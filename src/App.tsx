@@ -330,12 +330,13 @@ export default function App() {
             >
               <div className="bg-slate-900 p-6 text-white border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <MessageSquareText size={24} />
+                  <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-0.5 relative group">
+                    <img src="/artifacts/shepherd_app_logo.png" alt="AI Agent Logo" className="w-full h-full object-cover rounded-xl" />
+                    <div className="absolute inset-0 bg-blue-600/10 group-hover:bg-transparent transition-colors" />
                   </div>
                   <div>
                     <h3 className="font-black text-xl tracking-tighter uppercase italic flex items-center gap-2">
-                       Senior Sound Engineer <span className="bg-blue-600 text-[10px] not-italic px-2 py-0.5 rounded-full">AI AGENT</span>
+                       Senior Sound Engineer <span className="bg-blue-600 text-[10px] not-italic px-2 py-0.5 rounded-full shadow-lg shadow-blue-500/40">AI AGENT</span>
                     </h3>
                     <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">20+ Years Field Experience • Church Audio Expert</p>
                   </div>

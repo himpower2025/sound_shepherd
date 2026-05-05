@@ -340,8 +340,8 @@ export const VirtualMixer = () => {
         skin === 'modern' ? 'border-white/5' : 'border-black/10'
       }`}>
         <div className="flex items-center gap-2 md:gap-4">
-          <div className={`${skin === 'modern' ? 'bg-gradient-to-br from-blue-600 to-blue-800' : 'bg-slate-700'} p-1 md:p-1.5 rounded-lg shadow-lg`}>
-            <SlidersHorizontal className="text-white" size={16} />
+          <div className={`${skin === 'modern' ? 'bg-gradient-to-br from-blue-600 to-blue-800' : 'bg-slate-700'} p-0.5 md:p-1 rounded-lg shadow-lg overflow-hidden w-8 h-8 md:w-10 md:h-10 flex items-center justify-center`}>
+            <img src="/artifacts/shepherd_app_logo.png" alt="Shepherd Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <h2 className={`text-[10px] md:text-lg font-black tracking-tighter uppercase italic leading-none ${
