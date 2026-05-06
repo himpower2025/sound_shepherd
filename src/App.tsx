@@ -18,7 +18,8 @@ import {
   Mic,
   MonitorPlay,
   Zap,
-  Activity
+  Activity,
+  AudioLines
 } from 'lucide-react';
 import { AppState } from './types';
 import { GUIDE_SECTIONS, GLOSSARY } from './constants';
@@ -26,6 +27,7 @@ import { askSoundAssistant } from './services/geminiService';
 import { VirtualMixer } from './components/VirtualMixer';
 import { AudioRecorder } from './components/AudioRecorder';
 import { FrequencyReference } from './components/FrequencyReference';
+import { Logo } from './components/Logo';
 
 export default function App() {
   const [activeState, setActiveState] = useState<AppState>('home');
@@ -74,7 +76,10 @@ export default function App() {
                 <ChevronLeft size={24} />
               </button>
             )}
-            <h1 className="text-xl font-black tracking-tighter italic">SOUND SHEPHERD</h1>
+            <h1 className="text-xl font-black tracking-tighter italic flex items-center gap-2">
+              <Logo size={28} />
+              SOUND SHEPHERD
+            </h1>
             <span className="text-[8px] font-bold text-blue-500/60 uppercase tracking-widest hidden sm:block">by HIMPOWER</span>
           </div>
           <div className="flex gap-2">
@@ -330,8 +335,8 @@ export default function App() {
             >
               <div className="bg-slate-900 p-6 text-white border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-blue-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/40 relative group border-2 border-white/10">
-                    <AudioLines size={32} className="text-white group-hover:scale-110 transition-transform" />
+                  <div className="w-14 h-14 bg-slate-900 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/20 relative group border border-white/5">
+                    <Logo size={40} />
                   </div>
                   <div>
                     <h3 className="font-black text-2xl tracking-tighter uppercase italic flex items-center gap-3">

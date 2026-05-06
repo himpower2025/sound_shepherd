@@ -1,8 +1,21 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Defensive check for Gemini API Key to prevent crash in browser environments like Vercel
+const getApiKey = () => {
+  try {
+    return process.env.GEMINI_API_KEY || "";
+  } catch {
+    // If process is not defined in browser
+    return "";
+  }
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 export async function askSoundAssistant(question: string) {
+  if (!getApiKey()) {
+    return "API Key is missing. If you are on Vercel, please add GEMINI_API_KEY to Environment Variables.";
+  }
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",

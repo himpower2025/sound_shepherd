@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { HelpCircle, SlidersHorizontal, Activity, Power, VolumeX, Headphones, CircleDot, ChevronRight, Play, Square, Music } from 'lucide-react';
+import { HelpCircle, SlidersHorizontal, Activity, Power, VolumeX, Headphones, CircleDot, ChevronRight, Play, Square, Music, AudioLines, Waves } from 'lucide-react';
+import { Logo } from './Logo';
 
 interface ChannelData {
   id: number;
@@ -344,11 +345,11 @@ export const VirtualMixer = () => {
             skin === 'modern' 
               ? 'bg-slate-900 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]' 
               : 'bg-slate-700 border border-slate-600 shadow-xl'
-          } p-2 md:p-2.5 rounded-2xl flex items-center justify-center relative group`}>
+          } p-2 md:p-2.5 rounded-2xl flex items-center justify-center relative group overflow-hidden`}>
             {skin === 'modern' && (
               <div className="absolute inset-0 bg-blue-600/5 blur-xl group-hover:bg-blue-600/10 transition-colors" />
             )}
-            <AudioLines className={skin === 'modern' ? 'text-blue-400' : 'text-slate-300'} size={24} />
+            <Logo size={24} />
           </div>
           <div>
             <h2 className={`text-[12px] md:text-xl font-black tracking-tighter uppercase italic leading-none flex items-center gap-2 ${
