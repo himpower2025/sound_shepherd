@@ -340,21 +340,28 @@ export const VirtualMixer = () => {
         skin === 'modern' ? 'border-white/5' : 'border-black/10'
       }`}>
         <div className="flex items-center gap-2 md:gap-4">
-          <div className={`${skin === 'modern' ? 'bg-gradient-to-br from-blue-600 to-blue-800' : 'bg-slate-700'} p-0.5 md:p-1 rounded-lg shadow-lg overflow-hidden w-8 h-8 md:w-10 md:h-10 flex items-center justify-center`}>
-            <img src="/artifacts/shepherd_app_logo.png" alt="Shepherd Logo" className="w-full h-full object-cover" />
+          <div className={`${
+            skin === 'modern' 
+              ? 'bg-slate-900 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]' 
+              : 'bg-slate-700 border border-slate-600 shadow-xl'
+          } p-2 md:p-2.5 rounded-2xl flex items-center justify-center relative group`}>
+            {skin === 'modern' && (
+              <div className="absolute inset-0 bg-blue-600/5 blur-xl group-hover:bg-blue-600/10 transition-colors" />
+            )}
+            <AudioLines className={skin === 'modern' ? 'text-blue-400' : 'text-slate-300'} size={24} />
           </div>
           <div>
-            <h2 className={`text-[10px] md:text-lg font-black tracking-tighter uppercase italic leading-none ${
+            <h2 className={`text-[12px] md:text-xl font-black tracking-tighter uppercase italic leading-none flex items-center gap-2 ${
               skin === 'modern' ? 'text-white' : 'text-slate-800'
             }`}>
-              {skin === 'modern' ? 'SHEPHERD CORE v2.5' : 'SHEPHERD ANALOG 800'}
+              SHEPHERD <span className={skin === 'modern' ? 'text-blue-500' : 'text-slate-500'}>CORE</span>
             </h2>
-            <div className="flex items-center gap-1 mt-0.5">
+            <div className="flex items-center gap-1 mt-1">
                 <span className={`w-1 h-1 rounded-full animate-pulse ${skin === 'modern' ? 'bg-green-500' : 'bg-red-600'}`}></span>
-                <span className={`text-[6px] md:text-[9px] font-bold uppercase tracking-widest leading-none ${
+                <span className={`text-[6px] md:text-[9px] font-bold uppercase tracking-[0.2em] leading-none ${
                   skin === 'modern' ? 'text-slate-500' : 'text-slate-600'
                 }`}>
-                  {skin === 'modern' ? 'DSP ACTIVE' : 'PHANTOM ON'}
+                  {skin === 'modern' ? 'PRECISION DSP ACTIVE' : 'VINTAGE SIGNAL PATH'}
                 </span>
             </div>
           </div>
