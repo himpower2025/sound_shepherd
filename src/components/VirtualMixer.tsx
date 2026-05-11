@@ -129,9 +129,13 @@ export const VirtualMixer = () => {
       audio.crossOrigin = "anonymous"; 
       audio.preload = "auto";
       audio.loop = true;
+<<<<<<< HEAD
       if (currentSong.type === 'file') {
         audio.src = currentSong.url;
       }
+=======
+      audio.src = currentSong.url;
+>>>>>>> c67af4c7d765884789ba3e8b5243cc252dd1e3ca
       
       // Event Listeners for robust state tracking
       const handleStart = () => {
@@ -219,6 +223,7 @@ export const VirtualMixer = () => {
   useEffect(() => {
     let ani: number;
     const loop = () => {
+<<<<<<< HEAD
       if (isPlaying) {
         if (currentSong.type === 'file' && nodes.current && nodes.current.analyser) {
           const data = new Uint8Array(nodes.current.analyser.frequencyBinCount);
@@ -231,6 +236,13 @@ export const VirtualMixer = () => {
           const peak = Math.random() > 0.9 ? 15 : 0;
           setMasterMeter(base + peak);
         }
+=======
+      if (nodes.current && isPlaying && nodes.current.analyser) {
+        const data = new Uint8Array(nodes.current.analyser.frequencyBinCount);
+        nodes.current.analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        setMasterMeter((avg / 255) * 100);
+>>>>>>> c67af4c7d765884789ba3e8b5243cc252dd1e3ca
       } else {
         setMasterMeter(0);
       }
@@ -238,6 +250,7 @@ export const VirtualMixer = () => {
     };
     loop();
     return () => cancelAnimationFrame(ani);
+<<<<<<< HEAD
   }, [isPlaying, currentSong]);
 
   const togglePlay = async () => {
@@ -282,6 +295,43 @@ export const VirtualMixer = () => {
         }
         setYtPlaying(!isPlaying);
         setIsPlaying(!isPlaying);
+=======
+  }, [isPlaying]);
+
+  const togglePlay = async () => {
+    try {
+      if (!audioCtx.current || !audioTag.current) {
+        initAudio();
+      }
+      
+      if (audioTag.current && audioCtx.current) {
+        if (isPlaying) {
+          audioTag.current.pause();
+        } else {
+          try {
+            if (audioCtx.current.state === 'suspended') {
+              await audioCtx.current.resume();
+            }
+            
+            if (!audioTag.current.src || audioTag.current.src === "") {
+               audioTag.current.src = currentSong.url;
+            }
+            
+            const playPromise = audioTag.current.play();
+            if (playPromise !== undefined) {
+               playPromise.catch(e => {
+                 // Common browser restriction or network blip
+                 if (audioTag.current) {
+                   audioTag.current.load();
+                   audioTag.current.play().catch(() => {});
+                 }
+               });
+            }
+          } catch (err) {
+            // Handle context resume failures
+          }
+        }
+>>>>>>> c67af4c7d765884789ba3e8b5243cc252dd1e3ca
       }
     } catch (e) {
       console.error("Playback error:", e);
@@ -290,6 +340,7 @@ export const VirtualMixer = () => {
 
   const selectSong = async (song: Song) => {
     try {
+<<<<<<< HEAD
       const wasPlaying = isPlaying;
       setIsPlaying(false);
       setYtPlaying(false);
@@ -320,6 +371,29 @@ export const VirtualMixer = () => {
         if (wasPlaying) {
           setYtPlaying(true);
           setIsPlaying(true);
+=======
+      setCurrentSong(song);
+      setShowPlaylist(false);
+      
+      if (!audioCtx.current || !audioTag.current) {
+        initAudio();
+      }
+
+      if (audioTag.current) {
+        const wasPlaying = isPlaying;
+        audioTag.current.pause();
+        audioTag.current.crossOrigin = "anonymous";
+        audioTag.current.src = song.url;
+        audioTag.current.load();
+        
+        if (wasPlaying) {
+          if (audioCtx.current?.state === 'suspended') {
+            await audioCtx.current.resume();
+          }
+          audioTag.current.play().catch(e => {
+            console.error("Auto-play song failed:", e);
+          });
+>>>>>>> c67af4c7d765884789ba3e8b5243cc252dd1e3ca
         }
       }
     } catch (e) {
@@ -504,6 +578,7 @@ export const VirtualMixer = () => {
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${currentSong.id === song.id ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-800 text-slate-600 group-hover:bg-slate-700'}`}>
                              {currentSong.id === song.id && isPlaying ? <Activity size={14} className="animate-pulse" /> : <Music size={14} />}
                           </div>
+<<<<<<< HEAD
                             <div className="flex-1">
                               <div className={`text-[10px] md:text-xs font-black uppercase tracking-tight ${currentSong.id === song.id ? 'text-blue-400' : 'text-slate-300 group-hover:text-white'}`}>
                                 {song.title}
@@ -515,6 +590,12 @@ export const VirtualMixer = () => {
                                 </div>
                               </div>
                             </div>
+=======
+                          <div className="flex-1">
+                            <div className={`text-xs font-black uppercase tracking-tight ${currentSong.id === song.id ? 'text-blue-400' : 'text-slate-300 group-hover:text-white'}`}>{song.title}</div>
+                            <div className="text-[8px] text-slate-500 font-bold uppercase tracking-widest">{currentSong.id === song.id ? 'Now Playing' : 'Ready'}</div>
+                          </div>
+>>>>>>> c67af4c7d765884789ba3e8b5243cc252dd1e3ca
                           {currentSong.id === song.id && (
                             <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                           )}
@@ -934,6 +1015,7 @@ export const VirtualMixer = () => {
         )}
       </AnimatePresence>
 
+<<<<<<< HEAD
       <div className="absolute top-0 left-0 w-1 h-1 opacity-0 pointer-events-none overflow-hidden">
         {currentSong.type === 'youtube' && (
           <ReactPlayer
@@ -964,6 +1046,8 @@ export const VirtualMixer = () => {
         )}
       </div>
 
+=======
+>>>>>>> c67af4c7d765884789ba3e8b5243cc252dd1e3ca
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           height: 8px;
