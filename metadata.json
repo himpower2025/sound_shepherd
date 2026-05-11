@@ -1,0 +1,8 @@
+{
+  "name": "Sound Shepherd",
+  "description": "Professional audio training and reference tool by HIMPOWER PVT. LTD. Includes Virtual Console, Audio Lexicon, Frequency IQ, and AI Assistance.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
