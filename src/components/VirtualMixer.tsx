@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { HelpCircle, SlidersHorizontal, Activity, Power, VolumeX, Headphones, CircleDot, ChevronRight, Play, Square, Music, AudioLines, Waves, Youtube } from 'lucide-react';
+import { HelpCircle, SlidersHorizontal, Activity, Power, VolumeX, Volume2, Headphones, CircleDot, ChevronRight, Play, Square, Music, AudioLines, Waves, Youtube } from 'lucide-react';
 import ReactPlayer from 'react-player';
 import { Logo } from './Logo';
 
@@ -68,6 +68,35 @@ export const VirtualMixer = () => {
   const audioTag = useRef<HTMLAudioElement | null>(null);
   const [audioContextState, setAudioContextState] = useState<AudioContextState>('suspended');
   const [ytPlaying, setYtPlaying] = useState(false);
+  const [testToneActive, setTestToneActive] = useState(false);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+
+  const toggleSoundCheck = () => {
+    if (!audioCtx.current) initAudio();
+    if (audioCtx.current) {
+        if (audioCtx.current.state === 'suspended') audioCtx.current.resume();
+        
+        if (testToneActive) {
+            oscillatorRef.current?.stop();
+            setTestToneActive(false);
+        } else {
+            const osc = audioCtx.current.createOscillator();
+            const gain = audioCtx.current.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, audioCtx.current.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.current.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.current.destination);
+            osc.start();
+            oscillatorRef.current = osc;
+            setTestToneActive(true);
+            setTimeout(() => {
+                osc.stop();
+                setTestToneActive(false);
+            }, 1000);
+        }
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -435,6 +464,21 @@ export const VirtualMixer = () => {
               </button>
             )}
 
+            <button 
+                onClick={toggleSoundCheck}
+                className={`p-1.5 sm:p-2 rounded-lg border transition-all flex items-center gap-2 ${
+                    testToneActive 
+                    ? 'bg-green-600 border-green-400 text-white animate-bounce' 
+                    : (skin === 'modern' ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white' : 'bg-slate-300 border-slate-400 text-slate-700')
+                }`}
+                title="System Sound Check"
+            >
+                <Volume2 size={14} className={testToneActive ? 'animate-pulse' : ''} />
+                <span className="hidden sm:inline text-[8px] font-black uppercase tracking-tighter">Check</span>
+            </button>
+
+
+
             {isLoading && (
               <div className="absolute -bottom-6 left-0 right-0 text-[7px] text-blue-400 font-bold uppercase tracking-widest animate-pulse text-center">
                 Waiting for audio source...
@@ -739,6 +783,15 @@ export const VirtualMixer = () => {
                       playsinline={true}
                       width="100%"
                       height="100%"
+                      onReady={(player) => {
+                         // Force volume sync on ready
+                         if (player) {
+                            const internal = player.getInternalPlayer();
+                            if (internal && internal.setVolume) {
+                                internal.setVolume(masterFader / 100);
+                            }
+                         }
+                      }}
                       onPlay={() => { setIsPlaying(true); setYtPlaying(true); }}
                       onPause={() => { setIsPlaying(false); setYtPlaying(false); }}
                       onBuffer={() => setIsLoading(true)}
@@ -753,6 +806,7 @@ export const VirtualMixer = () => {
                             showinfo: 0,
                             rel: 0,
                             iv_load_policy: 3,
+                            enablejsapi: 1,
                             origin: window.location.origin
                           }
                         }
