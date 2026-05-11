@@ -715,6 +715,65 @@ export const VirtualMixer = () => {
           </div>
 
           <div className="p-2 md:p-4 space-y-3 md:space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+            {/* Stage Monitor / Visual Feedback */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1.5 px-1">
+                 <span className="text-[7px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest italic leading-none flex items-center gap-1.5">
+                    <Activity size={10} className="text-blue-500" /> Stage Monitor
+                 </span>
+                 <div className="flex items-center gap-1">
+                    <div className={`w-1 h-1 rounded-full ${isPlaying ? 'bg-green-500 animate-pulse' : 'bg-slate-700'}`} />
+                    <span className="text-[6px] md:text-[8px] font-bold text-slate-600 uppercase">Live Feed</span>
+                 </div>
+              </div>
+              <div className={`aspect-video rounded-xl border overflow-hidden relative group ${
+                skin === 'modern' ? 'bg-black border-white/10' : 'bg-slate-900 border-black/20'
+              }`}>
+                {currentSong.type === 'youtube' ? (
+                  <div className="w-full h-full relative">
+                    <ReactPlayer
+                      url={currentSong.url}
+                      playing={ytPlaying}
+                      volume={masterFader / 100}
+                      muted={false}
+                      playsinline={true}
+                      width="100%"
+                      height="100%"
+                      onPlay={() => { setIsPlaying(true); setYtPlaying(true); }}
+                      onPause={() => { setIsPlaying(false); setYtPlaying(false); }}
+                      onBuffer={() => setIsLoading(true)}
+                      onBufferEnd={() => setIsLoading(false)}
+                      onError={(e) => console.error("YT Error:", e)}
+                      config={{
+                        youtube: {
+                          playerVars: { 
+                            autoplay: 1, 
+                            modestbranding: 1,
+                            controls: 0,
+                            showinfo: 0,
+                            rel: 0,
+                            iv_load_policy: 3,
+                            origin: window.location.origin
+                          }
+                        }
+                      }}
+                    />
+                    {!ytPlaying && (
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center backdrop-blur-sm">
+                        <Play size={24} className="text-white/20 mb-2" />
+                        <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Standby</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
+                    <Waves size={24} className="text-blue-500/20 mb-2" />
+                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">Audio Only Mode</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Input Gain & Pan Section */}
             <div className="grid grid-cols-2 gap-2 md:gap-5">
                 {/* Gain Knob */}
@@ -933,37 +992,9 @@ export const VirtualMixer = () => {
         )}
       </AnimatePresence>
 
-      <div className="fixed -left-[2000px] -top-[2000px] w-[300px] h-[300px] opacity-0 pointer-events-none overflow-hidden invisible">
-        {currentSong.type === 'youtube' && (
-          <ReactPlayer
-            url={currentSong.url}
-            playing={ytPlaying}
-            volume={masterFader / 100}
-            muted={false}
-            playsinline={true}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onBuffer={() => setIsLoading(true)}
-            onBufferEnd={() => setIsLoading(false)}
-            onError={(e) => {
-              console.error("YouTube Player Error:", e);
-              setIsPlaying(false);
-              setYtPlaying(false);
-            }}
-            config={{
-              youtube: {
-                playerVars: { 
-                  autoplay: 1, 
-                  modestbranding: 1,
-                  controls: 0,
-                  showinfo: 0,
-                  rel: 0,
-                  origin: window.location.origin
-                }
-              }
-            }}
-          />
-        )}
+      {/* Background YouTube Player (Fallback / Sync) */}
+      <div className="fixed -left-[2000px] -top-[2000px] w-1 h-1 opacity-0 pointer-events-none">
+          {/* This is kept for safety but the main player is now in the Stage Monitor */}
       </div>
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
