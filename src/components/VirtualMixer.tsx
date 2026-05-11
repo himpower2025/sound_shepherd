@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { HelpCircle, SlidersHorizontal, Activity, Power, VolumeX, Volume2, Headphones, CircleDot, ChevronRight, Play, Square, Music, AudioLines, Waves, Youtube } from 'lucide-react';
+import { HelpCircle, SlidersHorizontal, Activity, Power, VolumeX, Volume2, Headphones, CircleDot, ChevronRight, Play, Square, Music, AudioLines, Waves, Youtube, Mic, MicOff } from 'lucide-react';
 import ReactPlayer from 'react-player';
 import { Logo } from './Logo';
 
@@ -68,6 +68,48 @@ export const VirtualMixer = () => {
   const audioTag = useRef<HTMLAudioElement | null>(null);
   const [audioContextState, setAudioContextState] = useState<AudioContextState>('suspended');
   const [ytPlaying, setYtPlaying] = useState(false);
+  const [ytMuted, setYtMuted] = useState(true); // Browser policy: always starts muted
+  const ytPlayerRef = useRef<ReactPlayer | null>(null);
+
+  // Microphone state
+  const [micActive, setMicActive] = useState(false);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+
+  const toggleMic = async () => {
+    if (micActive) {
+      micStreamRef.current?.getTracks().forEach(t => t.stop());
+      micSourceRef.current?.disconnect();
+      micStreamRef.current = null;
+      micSourceRef.current = null;
+      setMicActive(false);
+    } else {
+      try {
+        if (!audioCtx.current) initAudio();
+        if (audioCtx.current?.state === 'suspended') await audioCtx.current.resume();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        micStreamRef.current = stream;
+        if (audioCtx.current && nodes.current) {
+          const source = audioCtx.current.createMediaStreamSource(stream);
+          source.connect(nodes.current.analyser);
+          micSourceRef.current = source;
+        }
+        setMicActive(true);
+      } catch (err: any) {
+        console.error('Mic access failed:', err);
+        alert('마이크 접근이 거부되었습니다. 브라우저 설정에서 이 사이트의 마이크 권한을 허용해 주세요.');
+      }
+    }
+  };
+
+  const handleYtUnmute = () => {
+    const internal = ytPlayerRef.current?.getInternalPlayer();
+    if (internal) {
+      if (internal.unMute) internal.unMute();
+      if (internal.setVolume) internal.setVolume(masterFader);
+    }
+    setYtMuted(false);
+  };
   const [testToneActive, setTestToneActive] = useState(false);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
 
@@ -501,10 +543,28 @@ export const VirtualMixer = () => {
                 >
                     {isLoading ? <Activity size={16} className="animate-spin" /> : (isPlaying ? <Square size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />)}
                 </button>
+
+                {/* Microphone Button */}
+                <button
+                  onClick={toggleMic}
+                  title={micActive ? 'Mic On — Click to Stop' : 'Click to Activate Microphone'}
+                  className={`p-2 rounded-lg text-white transition-all shadow-lg ${
+                    micActive
+                      ? 'bg-red-600 hover:bg-red-500 shadow-red-600/30 animate-pulse'
+                      : (skin === 'modern' ? 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700' : 'bg-slate-300 hover:bg-slate-400 text-slate-700 border border-slate-400')
+                  }`}
+                >
+                  {micActive ? <MicOff size={16} /> : <Mic size={16} />}
+                </button>
+
                 <div className="hidden sm:block">
                     <div className="text-[8px] text-slate-500 uppercase font-black tracking-tighter">Transport</div>
-                    <div className={`text-[10px] font-black uppercase italic ${isLoading ? 'text-blue-400 animate-pulse' : (isPlaying ? 'text-green-500 animate-pulse' : 'text-slate-600')}`}>
-                      {isLoading ? 'Loading' : (isPlaying ? 'Live' : 'Stop')}
+                    <div className={`text-[10px] font-black uppercase italic ${
+                      micActive ? 'text-red-400 animate-pulse' :
+                      isLoading ? 'text-blue-400 animate-pulse' : 
+                      (isPlaying ? 'text-green-500 animate-pulse' : 'text-slate-600')
+                    }`}>
+                      {micActive ? 'Mic Live' : isLoading ? 'Loading' : (isPlaying ? 'Live' : 'Stop')}
                     </div>
                 </div>
             </div>
@@ -563,6 +623,7 @@ export const VirtualMixer = () => {
                           )}
                         </button>
                       ))}
+
                     </div>
                     <div className="p-3 bg-black/40 border-t border-slate-800">
                         <p className="text-[8px] text-slate-500 font-medium text-center uppercase tracking-widest">Select a source to practice your mix</p>
@@ -776,10 +837,11 @@ export const VirtualMixer = () => {
                 {currentSong.type === 'youtube' ? (
                   <div className="w-full h-full relative">
                     <ReactPlayer
+                      ref={ytPlayerRef}
                       url={currentSong.url}
                       playing={ytPlaying}
                       volume={masterFader / 100}
-                      muted={false}
+                      muted={ytMuted}
                       playsinline={true}
                       width="100%"
                       height="100%"
@@ -817,8 +879,21 @@ export const VirtualMixer = () => {
                         <Play size={24} className="text-white/20 mb-2" />
                         <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Standby</span>
                       </div>
-                    )}
-                  </div>
+                     )}
+                     {ytPlaying && ytMuted && (
+                       <div
+                         className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer z-10"
+                         style={{ background: 'rgba(0,0,0,0.6)' }}
+                         onClick={handleYtUnmute}
+                       >
+                         <div className="bg-blue-600 hover:bg-blue-500 transition-colors rounded-2xl px-5 py-3 flex flex-col items-center gap-2 shadow-[0_0_40px_rgba(59,130,246,0.6)] border border-blue-400">
+                           <Volume2 size={28} className="text-white animate-pulse" />
+                           <span className="text-white font-black text-xs uppercase tracking-[0.15em]">🔊 여기를 눌러 소리를 켜세요</span>
+                           <span className="text-blue-200 font-bold text-[8px] uppercase tracking-widest">TAP TO UNMUTE</span>
+                         </div>
+                       </div>
+                     )}
+                   </div>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
                     <Waves size={24} className="text-blue-500/20 mb-2" />
