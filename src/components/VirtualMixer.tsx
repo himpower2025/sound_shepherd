@@ -386,14 +386,14 @@ export const VirtualMixer = () => {
             <Logo size={24} />
           </div>
           <div>
-            <h2 className={`text-[12px] md:text-xl font-black tracking-tighter uppercase italic leading-none flex items-center gap-2 ${
+            <h2 className={`text-[10px] sm:text-xs md:text-xl font-black tracking-tighter uppercase italic leading-none flex items-center gap-1 sm:gap-2 ${
               skin === 'modern' ? 'text-white' : 'text-slate-800'
             }`}>
               SHEPHERD <span className={skin === 'modern' ? 'text-blue-500' : 'text-slate-500'}>CORE</span>
             </h2>
-            <div className="flex items-center gap-1 mt-1">
-                <span className={`w-1 h-1 rounded-full animate-pulse ${skin === 'modern' ? 'bg-green-500' : 'bg-red-600'}`}></span>
-                <span className={`text-[6px] md:text-[9px] font-bold uppercase tracking-[0.2em] leading-none ${
+            <div className="flex items-center gap-1 mt-0.5 sm:mt-1">
+                <span className={`w-0.5 h-0.5 sm:w-1 sm:h-1 rounded-full animate-pulse ${skin === 'modern' ? 'bg-green-500' : 'bg-red-600'}`}></span>
+                <span className={`text-[5px] sm:text-[6px] md:text-[9px] font-bold uppercase tracking-[0.2em] leading-none ${
                   skin === 'modern' ? 'text-slate-500' : 'text-slate-600'
                 }`}>
                   {skin === 'modern' ? 'PRECISION DSP ACTIVE' : 'VINTAGE SIGNAL PATH'}
@@ -429,9 +429,9 @@ export const VirtualMixer = () => {
                      await audioCtx.current.resume();
                    }
                 }}
-                className="animate-pulse px-3 py-1.5 bg-red-600 text-white text-[8px] md:text-[10px] font-black uppercase rounded shadow-[0_0_20px_rgba(220,38,38,0.5)] flex items-center gap-2 border border-red-400"
+                className="animate-pulse px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 text-white text-[7px] sm:text-[8px] md:text-[10px] font-black uppercase rounded shadow-[0_0_20px_rgba(220,38,38,0.5)] flex items-center gap-1.5 sm:gap-2 border border-red-400"
               >
-                <Power size={12} className="text-white" /> Audio Engine: Offline
+                <Power size={10} className="sm:w-[12px] sm:h-[12px] text-white" /> <span className="hidden xs:inline">Audio Engine:</span> Offline
               </button>
             )}
 
@@ -530,9 +530,9 @@ export const VirtualMixer = () => {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row landscape:flex-row gap-2 md:gap-6 flex-1 h-full overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-2 md:gap-4 lg:gap-6 flex-1 h-full overflow-hidden">
         {/* Main Mixer Surface (Left Scrolls) */}
-        <div className="flex-1 overflow-x-auto pb-1 custom-scrollbar lg:max-w-[65%] xl:max-w-[72%] landscape:max-w-[65%] order-2 lg:order-1 landscape:order-1">
+        <div className="flex-1 overflow-x-auto pb-1 custom-scrollbar lg:max-w-[65%] xl:max-w-[72%] order-2 lg:order-1">
           <div className={`flex gap-1 min-w-max p-1 rounded-2xl h-full ${
             skin === 'modern' ? 'bg-black/10' : 'bg-slate-300 shadow-inner'
           }`}>
@@ -675,7 +675,7 @@ export const VirtualMixer = () => {
         </div>
 
         {/* Detailed Processing View (Right) */}
-        <div className={`lg:w-[35%] xl:w-[30%] landscape:w-[40%] rounded-[1.5rem] border overflow-hidden flex flex-col min-w-full lg:min-w-[300px] landscape:min-w-[300px] order-1 lg:order-2 landscape:order-2 mb-2 lg:mb-0 transition-colors ${
+        <div className={`lg:w-[35%] xl:w-[30%] rounded-[1rem] sm:rounded-[1.5rem] border overflow-hidden flex flex-col min-w-full lg:min-w-[300px] order-1 lg:order-2 mb-2 lg:mb-0 transition-colors ${
           skin === 'modern' ? 'bg-slate-800/40 border-white/5' : 'bg-slate-200 border-black/10'
         }`}>
           <div className={`p-2 md:p-3 border-b flex items-center justify-between shrink-0 ${
@@ -933,12 +933,14 @@ export const VirtualMixer = () => {
         )}
       </AnimatePresence>
 
-      <div className="absolute top-0 left-0 w-1 h-1 opacity-0 pointer-events-none overflow-hidden">
+      <div className="fixed -left-[2000px] -top-[2000px] w-[300px] h-[300px] opacity-0 pointer-events-none overflow-hidden invisible">
         {currentSong.type === 'youtube' && (
           <ReactPlayer
             url={currentSong.url}
             playing={ytPlaying}
             volume={masterFader / 100}
+            muted={false}
+            playsinline={true}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onBuffer={() => setIsLoading(true)}
@@ -955,7 +957,8 @@ export const VirtualMixer = () => {
                   modestbranding: 1,
                   controls: 0,
                   showinfo: 0,
-                  rel: 0
+                  rel: 0,
+                  origin: window.location.origin
                 }
               }
             }}
