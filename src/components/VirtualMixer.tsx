@@ -320,7 +320,6 @@ export const VirtualMixer = () => {
           setYtPlaying(true);
           setIsPlaying(true);
         }
-        }
       }
     } catch (e) {
       console.error("Song selection failed:", e);
