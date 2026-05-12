@@ -68,7 +68,7 @@ export const VirtualMixer = () => {
   const audioTag = useRef<HTMLAudioElement | null>(null);
   const [audioContextState, setAudioContextState] = useState<AudioContextState>('suspended');
   const [ytPlaying, setYtPlaying] = useState(false);
-  const [ytMuted, setYtMuted] = useState(false); // Browser policy: always starts muted
+  const [ytMuted, setYtMuted] = useState(true); // Browser policy: always starts muted
   const ytPlayerRef = useRef<ReactPlayer | null>(null);
 
   // Microphone state
@@ -111,7 +111,7 @@ export const VirtualMixer = () => {
       if (internal.setVolume) internal.setVolume(masterFader);
       if (internal.playVideo) internal.playVideo(); // Force play state after unmuting
     }
-    }, 100); // React state 업데이트 후 YouTube API 호출
+    }, 150); // React state 업데이트 후 YouTube API 호출
   };
   const [testToneActive, setTestToneActive] = useState(false);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
@@ -854,7 +854,7 @@ export const VirtualMixer = () => {
                             const internal = player.getInternalPlayer();
                             if (internal) {
                               if (internal.unMute) internal.unMute();
-                              if (internal.setVolume) internal.setVolume(masterFader); // YouTube는 0~100
+                              if (internal.setVolume) internal.setVolume(masterFader);
                             }
                          }
                       }}
