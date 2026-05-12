@@ -68,7 +68,7 @@ export const VirtualMixer = () => {
   const audioTag = useRef<HTMLAudioElement | null>(null);
   const [audioContextState, setAudioContextState] = useState<AudioContextState>('suspended');
   const [ytPlaying, setYtPlaying] = useState(false);
-  const [ytMuted, setYtMuted] = useState(true); // Browser policy: always starts muted
+  const [ytNeedsUnmute, setYtNeedsUnmute] = useState(false); // Browser policy: always starts muted
   const ytPlayerRef = useRef<ReactPlayer | null>(null);
 
   // Microphone state
@@ -103,15 +103,13 @@ export const VirtualMixer = () => {
   };
 
   const handleYtUnmute = () => {
-    setYtMuted(false);
-    setTimeout(() => {
     const internal = ytPlayerRef.current?.getInternalPlayer();
     if (internal) {
       if (internal.unMute) internal.unMute();
       if (internal.setVolume) internal.setVolume(masterFader);
       if (internal.playVideo) internal.playVideo(); // Force play state after unmuting
     }
-    }, 150); // React state 업데이트 후 YouTube API 호출
+    setYtNeedsUnmute(false); // React state 업데이트 후 YouTube API 호출
   };
   const [testToneActive, setTestToneActive] = useState(false);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
@@ -348,7 +346,7 @@ export const VirtualMixer = () => {
       } else {
         // YouTube toggle
         if (!isPlaying) {
-            // If starting YouTube, make sure audio context is resumed for simulated meters
+          setYtNeedsUnmute(true); // 재생 시작할 때 unmute 배너 표시
             if (audioCtx.current?.state === 'suspended') {
                 audioCtx.current.resume();
             }
@@ -866,7 +864,7 @@ export const VirtualMixer = () => {
                       config={{
                         youtube: {
                           playerVars: { 
-                            autoplay: 1, 
+                            autoplay: 0, 
                             modestbranding: 1,
                             controls: 0,
                             showinfo: 0,
@@ -878,6 +876,25 @@ export const VirtualMixer = () => {
                         }
                       }}
                     />
+                    {ytPlaying && ytNeedsUnmute && (
+                      <div 
+                          className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer z-10"
+                          style={{ background: 'rgba(0,0,0,0.75)' }}
+                          onClick={handleYtUnmute}
+                        >
+                      <div className="bg-blue-600 hover:bg-blue-500 transition-all rounded-2xl px-6 py-4 flex flex-col items-center gap-3 shadow-[0_0_50px_rgba(59,130,246,0.6)] border border-blue-400">
+                        <Volume2 size={32} className="text-white animate-pulse" />
+                        <div className="text-center">
+                        <span className="block text-white font-black text-xs uppercase tracking-[0.2em] mb-1">
+                              탭해서 소리 켜기
+                        </span>
+                        <span className="block text-blue-200 font-bold text-[9px] uppercase tracking-[0.3em]">
+                              Tap to Unmute
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                     {!ytPlaying && (
                       <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center backdrop-blur-sm">
                         <Play size={24} className="text-white/20 mb-2" />
