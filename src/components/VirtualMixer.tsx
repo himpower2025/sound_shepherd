@@ -33,9 +33,9 @@ interface Song {
 
 // ─────────────────────────────────────────────
 // Song List
-// NOTE: YouTube type는 UI 표시용으로만 남겨두고
-//       실제 오디오는 아래 MP3 file 타입으로만 재생됩니다.
-//       YouTube는 브라우저 정책상 iframe 소리 제어 불가.
+// NOTE: 'file' type = full Web Audio API control
+//       'youtube' type = video display + IFrame volume sync only
+//       Full EQ/Pan on YouTube blocked by browser same-origin policy.
 // ─────────────────────────────────────────────
 const SONGS: Song[] = [
   {
@@ -52,8 +52,8 @@ const SONGS: Song[] = [
     url: 'https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f694b.mp3',
     type: 'file',
   },
-  // YouTube 곡들: 영상은 표시되지만 소리는 Web Audio로 제어 불가
-  // 추후 MP3 URL로 교체하면 바로 작동합니다
+  // YouTube tracks: video display + master volume sync via IFrame API
+  // Replace with direct MP3 URLs for full console control
   {
     id: 'y1',
     title: 'Anugrako Inar',
@@ -106,7 +106,7 @@ const INITIAL_CHANNELS: ChannelData[] = [
 function getYouTubeEmbedUrl(url: string): string {
   const match = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
   const id = match ? match[1] : '';
-  // controls=1 을 유지해서 사용자가 iframe 내부에서 직접 재생 가능하게 함
+  // keep controls=1 so the user can press play directly inside the iframe
   return `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=1&rel=0&modestbranding=1`;
 }
 
@@ -128,8 +128,8 @@ export const VirtualMixer = () => {
   const [skin, setSkin] = useState<'modern' | 'analog'>('modern');
 
   // ── Web Audio Engine ──────────────────────────
-  // 오직 type==='file' 곡에만 사용됩니다.
-  // AudioContext는 사용자 클릭 이후에 한 번만 생성합니다.
+  // Used only for type==='file' tracks.
+  // AudioContext is created once, after the first user interaction.
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);   // <audio> element
   const gainNodeRef = useRef<GainNode | null>(null);
@@ -164,7 +164,7 @@ export const VirtualMixer = () => {
 
   // ── Init Web Audio (file only) ────────────────
   const initWebAudio = useCallback(() => {
-    // 이미 초기화된 경우 resume만
+    // Already initialized — just resume if suspended
     if (audioCtxRef.current) {
       if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
       return;
@@ -173,20 +173,22 @@ export const VirtualMixer = () => {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     const ctx = new AudioContextClass();
 
-    // <audio> 엘리먼트 생성
+    // Create <audio> element
+    // NOTE: do NOT set crossOrigin='anonymous' for external MP3s —
+    // it forces strict CORS and causes 403s from CDNs that don't send CORS headers.
+    // Without it, the browser plays the audio fine (just no Web Audio routing for CORS-blocked files).
     const audio = new Audio();
-    audio.crossOrigin = 'anonymous';
     audio.preload = 'auto';
     audio.loop = true;
 
-    // 이벤트
+    // Events
     audio.addEventListener('playing', () => { setIsLoading(false); setIsPlaying(true); });
     audio.addEventListener('pause', () => setIsPlaying(false));
     audio.addEventListener('waiting', () => setIsLoading(true));
     audio.addEventListener('canplay', () => setIsLoading(false));
     audio.addEventListener('error', () => setIsLoading(false));
 
-    // Web Audio 노드 체인: source → HPF → EQ(4band) → Pan → Gain → Analyser → output
+    // Web Audio node chain: source → HPF → EQ(4band) → Pan → Gain → Analyser → output
     const source = ctx.createMediaElementSource(audio);
     const hpf = ctx.createBiquadFilter();
     hpf.type = 'highpass'; hpf.frequency.value = 80;
@@ -218,7 +220,7 @@ export const VirtualMixer = () => {
     if (ctx.state === 'suspended') ctx.resume();
   }, []);
 
-  // ── AudioContext 상태 폴링 ─────────────────────
+  // ── AudioContext state polling ──────────────────
   useEffect(() => {
     const t = setInterval(() => {
       if (audioCtxRef.current) setAudioCtxState(audioCtxRef.current.state);
@@ -226,7 +228,7 @@ export const VirtualMixer = () => {
     return () => clearInterval(t);
   }, []);
 
-  // ── Node 파라미터 동기화 ───────────────────────
+  // ── Sync node parameters ────────────────────────
   const syncNodes = useCallback(() => {
     const ctx = audioCtxRef.current;
     if (!ctx || ctx.state === 'closed') return;
@@ -248,7 +250,7 @@ export const VirtualMixer = () => {
 
   useEffect(() => { syncNodes(); }, [syncNodes]);
 
-  // ── VU Meter 애니메이션 ───────────────────────
+  // ── VU Meter animation ──────────────────────────
   useEffect(() => {
     let raf: number;
     const loop = () => {
@@ -259,7 +261,7 @@ export const VirtualMixer = () => {
           const avg = data.reduce((a, b) => a + b, 0) / data.length;
           setMasterMeter((avg / 255) * 100);
         } else {
-          // YouTube: 시뮬레이션 미터
+          // YouTube: simulated meter
           setMasterMeter(40 + Math.random() * 20 + (Math.random() > 0.9 ? 15 : 0));
         }
       } else {
@@ -271,7 +273,7 @@ export const VirtualMixer = () => {
     return () => cancelAnimationFrame(raf);
   }, [isPlaying, currentSong]);
 
-  // ── Cleanup ────────────────────────────────────
+  // ── Cleanup ─────────────────────────────────────
   useEffect(() => {
     return () => {
       audioElRef.current?.pause();
@@ -284,13 +286,13 @@ export const VirtualMixer = () => {
   // Transport Controls
   // ─────────────────────────────────────────────
   const togglePlay = async () => {
-    // YouTube 타입: 콘솔/미터만 시뮬레이션, iframe 안에서 직접 재생
+    // YouTube type: console/meter simulation only — user plays directly inside iframe
     if (currentSong.type === 'youtube') {
       setIsPlaying(prev => !prev);
       return;
     }
 
-    // file 타입: Web Audio 재생
+    // file type: Web Audio playback
     initWebAudio();
 
     const ctx = audioCtxRef.current;
@@ -301,14 +303,19 @@ export const VirtualMixer = () => {
       audio.pause();
     } else {
       if (ctx.state === 'suspended') await ctx.resume();
-      if (!audio.src || audio.src !== currentSong.url) {
+      // Always update src in case the song changed
+      if (audio.src !== currentSong.url) {
         audio.src = currentSong.url;
         audio.load();
       }
       setIsLoading(true);
       audio.play().catch(err => {
-        console.error('Play failed:', err);
+        console.error('Play error:', err);
         setIsLoading(false);
+        // If CORS blocks the CDN file, guide user to upload their own file
+        if (err.name === 'NotSupportedError' || err.name === 'NotAllowedError') {
+          alert('Could not play this track. Please use the Upload button to load your own audio file.');
+        }
       });
     }
   };
@@ -316,28 +323,30 @@ export const VirtualMixer = () => {
   const selectSong = async (song: Song) => {
     const wasPlaying = isPlaying;
 
-    // 현재 재생 중이면 중지
+    // Stop current playback
     if (audioElRef.current) audioElRef.current.pause();
     setIsPlaying(false);
     setCurrentSong(song);
     setShowPlaylist(false);
 
     if (song.type === 'file') {
+      // Ensure Web Audio engine is ready
       initWebAudio();
-      const ctx = audioCtxRef.current;
+      // audioElRef may now be set by initWebAudio; get fresh reference
       const audio = audioElRef.current;
+      const ctx = audioCtxRef.current;
       if (!audio) return;
 
       audio.src = song.url;
       audio.load();
 
       if (wasPlaying) {
-        if (ctx?.state === 'suspended') await ctx.resume();
+        if (ctx?.state === 'suspended') await ctx?.resume();
         setIsLoading(true);
         audio.play().catch(() => setIsLoading(false));
       }
     }
-    // YouTube 타입: src 교체만, 실제 재생은 iframe 안에서 사용자가 직접
+    // YouTube type: video replaces via key={currentSong.id} on the iframe
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -345,12 +354,17 @@ export const VirtualMixer = () => {
     if (!file) return;
     initWebAudio();
     const url = URL.createObjectURL(file);
-    const newSong: Song = { id: 'custom-' + Date.now(), title: file.name, url, type: 'file' };
+    // Blob URLs are always same-origin — CORS never an issue
+    const newSong: Song = { id: 'custom-' + Date.now(), title: file.name.replace(/\.\w+$/, ''), url, type: 'file' };
     setCurrentSong(newSong);
-    if (audioElRef.current) {
-      audioElRef.current.src = url;
-      audioElRef.current.load();
-      if (isPlaying) audioElRef.current.play().catch(() => {});
+    const audio = audioElRef.current;
+    if (audio) {
+      audio.src = url;
+      audio.load();
+      // Auto-play the uploaded file immediately
+      const ctx = audioCtxRef.current;
+      if (ctx?.state === 'suspended') ctx.resume();
+      audio.play().catch(() => {});
     }
   };
 
@@ -469,7 +483,7 @@ export const VirtualMixer = () => {
             </button>
           )}
 
-          {/* Sound Check (삐 소리) */}
+          {/* Sound Check (test tone) */}
           <button
             onClick={toggleSoundCheck}
             className={`p-1.5 sm:p-2 rounded-lg border transition-all flex items-center gap-2 ${testToneActive ? 'bg-green-600 border-green-400 text-white animate-bounce' : (skin === 'modern' ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white' : 'bg-slate-300 border-slate-400 text-slate-700')}`}
@@ -568,7 +582,7 @@ export const VirtualMixer = () => {
                   </div>
                   <div className="p-3 bg-black/40 border-t border-slate-800">
                     <p className="text-[8px] text-slate-500 font-medium text-center uppercase tracking-widest">
-                      MP3 곡 = 콘솔 완전 제어 ✓ &nbsp;|&nbsp; YT = 영상만 표시
+                      MP3 tracks = full console control ✓ &nbsp;|&nbsp; YT = video display only
                     </p>
                   </div>
                 </motion.div>
@@ -717,9 +731,9 @@ export const VirtualMixer = () => {
               <div className={`aspect-video rounded-xl border overflow-hidden relative ${skin === 'modern' ? 'bg-black border-white/10' : 'bg-slate-900 border-black/20'}`}>
                 {currentSong.type === 'youtube' ? (
                   // ─────────────────────────────────────────
-                  // YouTube: iframe을 항상 노출, controls=1
-                  // 사용자가 직접 iframe 안에서 클릭해서 재생
-                  // React/JS로 소리 제어 불가 (브라우저 정책)
+                  // YouTube: iframe always visible, controls=1
+                  // User presses play directly inside the iframe
+                  // Audio cannot be controlled via React/JS (browser policy)
                   // ─────────────────────────────────────────
                   <div className="w-full h-full relative">
                     <iframe
@@ -730,15 +744,15 @@ export const VirtualMixer = () => {
                       allowFullScreen
                       title={currentSong.title}
                     />
-                    {/* 안내 배너 - iframe 위가 아닌 하단에 작게 표시 */}
+                    {/* Info banner — shown at bottom, below iframe controls */}
                     <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-center py-1 pointer-events-none">
                       <span className="text-[8px] text-blue-300 font-bold uppercase tracking-widest">
-                        ▶ 영상 안에서 직접 재생 버튼을 눌러주세요
+                        ▶ Press Play inside the video to start audio
                       </span>
                     </div>
                   </div>
                 ) : (
-                  // file 타입: 오디오만 있음, 파형 시각화
+                  // file type: audio only, waveform visualizer
                   <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50 gap-2">
                     <Waves size={24} className={isPlaying ? 'text-blue-500 animate-pulse' : 'text-blue-500/20'} />
                     <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">
@@ -761,11 +775,11 @@ export const VirtualMixer = () => {
                 )}
               </div>
 
-              {/* YouTube 곡 선택 시 안내 */}
+              {/* Notice: YouTube track selected */}
               {currentSong.type === 'youtube' && (
                 <div className="mt-2 p-2 rounded-lg bg-yellow-900/20 border border-yellow-700/30">
                   <p className="text-[8px] text-yellow-400 font-bold uppercase tracking-wide text-center">
-                    ⚠ YouTube는 영상 표시 전용 — 콘솔 EQ/Fader 실습은 MP3 곡을 선택하세요
+                    ⚠ YouTube is for video display only — select an MP3 track to practice EQ & Fader control
                   </p>
                 </div>
               )}
