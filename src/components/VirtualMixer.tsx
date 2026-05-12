@@ -68,7 +68,7 @@ export const VirtualMixer = () => {
   const audioTag = useRef<HTMLAudioElement | null>(null);
   const [audioContextState, setAudioContextState] = useState<AudioContextState>('suspended');
   const [ytPlaying, setYtPlaying] = useState(false);
-  const [ytMuted, setYtMuted] = useState(true); // Browser policy: always starts muted
+  const [ytMuted, setYtMuted] = useState(false); // Browser policy: always starts muted
   const ytPlayerRef = useRef<ReactPlayer | null>(null);
 
   // Microphone state
@@ -97,18 +97,21 @@ export const VirtualMixer = () => {
         setMicActive(true);
       } catch (err: any) {
         console.error('Mic access failed:', err);
-        alert('마이크 접근이 거부되었습니다. 브라우저 설정에서 이 사이트의 마이크 권한을 허용해 주세요.');
+        alert(`Microphone access failed: ${err.message || 'Unknown error'}. Please check your browser permissions and ensure no other app is using the microphone.`);
       }
     }
   };
 
   const handleYtUnmute = () => {
+    setYtMuted(false);
+    setTimeout(() => {
     const internal = ytPlayerRef.current?.getInternalPlayer();
     if (internal) {
       if (internal.unMute) internal.unMute();
       if (internal.setVolume) internal.setVolume(masterFader);
+      if (internal.playVideo) internal.playVideo(); // Force play state after unmuting
     }
-    setYtMuted(false);
+    }, 100); // React state 업데이트 후 YouTube API 호출
   };
   const [testToneActive, setTestToneActive] = useState(false);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
@@ -841,7 +844,7 @@ export const VirtualMixer = () => {
                       url={currentSong.url}
                       playing={ytPlaying}
                       volume={masterFader / 100}
-                      muted={ytMuted}
+                      muted={false}
                       playsinline={true}
                       width="100%"
                       height="100%"
@@ -849,8 +852,9 @@ export const VirtualMixer = () => {
                          // Force volume sync on ready
                          if (player) {
                             const internal = player.getInternalPlayer();
-                            if (internal && internal.setVolume) {
-                                internal.setVolume(masterFader / 100);
+                            if (internal) {
+                              if (internal.unMute) internal.unMute();
+                              if (internal.setVolume) internal.setVolume(masterFader); // YouTube는 0~100
                             }
                          }
                       }}
@@ -879,19 +883,6 @@ export const VirtualMixer = () => {
                         <Play size={24} className="text-white/20 mb-2" />
                         <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Standby</span>
                       </div>
-                     )}
-                     {ytPlaying && ytMuted && (
-                       <div
-                         className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer z-10"
-                         style={{ background: 'rgba(0,0,0,0.6)' }}
-                         onClick={handleYtUnmute}
-                       >
-                         <div className="bg-blue-600 hover:bg-blue-500 transition-colors rounded-2xl px-5 py-3 flex flex-col items-center gap-2 shadow-[0_0_40px_rgba(59,130,246,0.6)] border border-blue-400">
-                           <Volume2 size={28} className="text-white animate-pulse" />
-                           <span className="text-white font-black text-xs uppercase tracking-[0.15em]">🔊 여기를 눌러 소리를 켜세요</span>
-                           <span className="text-blue-200 font-bold text-[8px] uppercase tracking-widest">TAP TO UNMUTE</span>
-                         </div>
-                       </div>
                      )}
                    </div>
                 ) : (
