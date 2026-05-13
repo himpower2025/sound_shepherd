@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  HelpCircle, Activity, Power, Volume2, CircleDot,
+  HelpCircle, Activity, Power, Volume2, CircleDot, Trash2,
   ChevronRight, Play, Square, Music, Waves, Mic, MicOff
 } from 'lucide-react';
 import { Logo } from './Logo';
@@ -104,9 +104,7 @@ const INITIAL_CHANNELS: ChannelData[] = [
 // Helpers
 // ─────────────────────────────────────────────
 function getYouTubeEmbedUrl(url: string): string {
-  const match = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
-  const id = match ? match[1] : '';
-  // keep controls=1 so the user can press play directly inside the iframe
+  const id = getYouTubeVideoId(url) || '';
   return `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=1&rel=0&modestbranding=1`;
 }
 
@@ -121,10 +119,14 @@ export const VirtualMixer = () => {
   // Transport
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentSong, setCurrentSong] = useState<Song>(SONGS[0]);
+  const [songs, setSongs] = useState<Song[]>(DEFAULT_SONGS);
+  const [currentSong, setCurrentSong] = useState<Song>(DEFAULT_SONGS[0]);
   const [masterMeter, setMasterMeter] = useState(0);
   const [masterFader, setMasterFader] = useState(80);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [ytInputUrl, setYtInputUrl] = useState('');
+  const [ytInputLoading, setYtInputLoading] = useState(false);
+  const [ytInputError, setYtInputError] = useState('');
   const [skin, setSkin] = useState<'modern' | 'analog'>('modern');
 
   // ── Web Audio Engine ──────────────────────────
@@ -368,6 +370,47 @@ export const VirtualMixer = () => {
     }
   };
 
+  // ── Add YouTube URL to playlist ───────────────
+  const addYouTubeSong = async () => {
+    const url = ytInputUrl.trim();
+    if (!url) return;
+    const videoId = getYouTubeVideoId(url);
+    if (!videoId) {
+      setYtInputError('Please paste a valid YouTube URL (youtube.com or youtu.be)');
+      return;
+    }
+    // Prevent duplicates
+    if (songs.some(s => s.url.includes(videoId))) {
+      setYtInputError('This video is already in your playlist.');
+      return;
+    }
+    setYtInputError('');
+    setYtInputLoading(true);
+    const { title, author } = await fetchYouTubeTitle(url);
+    const newSong: Song = {
+      id: 'yt-' + videoId,
+      title,
+      artist: author,
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      type: 'youtube',
+    };
+    setSongs(prev => [...prev, newSong]);
+    setYtInputUrl('');
+    setYtInputLoading(false);
+  };
+
+  // ── Delete song from playlist ──────────────────
+  const deleteSong = (id: string) => {
+    setSongs(prev => {
+      const next = prev.filter(s => s.id !== id);
+      // If deleted song was playing, switch to first available
+      if (currentSong.id === id && next.length > 0) {
+        selectSong(next[0]);
+      }
+      return next;
+    });
+  };
+
   // ── Test Tone ──────────────────────────────────
   const toggleSoundCheck = () => {
     initWebAudio();
@@ -557,32 +600,75 @@ export const VirtualMixer = () => {
                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Training Tracks</h4>
                     <Activity size={12} className={isPlaying ? 'text-blue-500' : 'text-slate-600'} />
                   </div>
-                  <div className="p-1 max-h-80 overflow-y-auto">
-                    {SONGS.map(song => (
-                      <button
+                  {/* Song list */}
+                  <div className="p-1 max-h-60 overflow-y-auto custom-scrollbar">
+                    {songs.length === 0 && (
+                      <div className="py-8 text-center text-slate-600 text-[10px] font-bold uppercase tracking-widest">
+                        No tracks yet — paste a YouTube URL below
+                      </div>
+                    )}
+                    {songs.map(song => (
+                      <div
                         key={song.id}
-                        onClick={() => selectSong(song)}
-                        className={`w-full p-4 text-left flex items-center gap-4 rounded-xl hover:bg-blue-600/20 group transition-all mb-1 ${currentSong.id === song.id ? 'bg-blue-600/10' : ''}`}
+                        className={`flex items-center gap-2 rounded-xl mb-1 pr-2 transition-all group ${currentSong.id === song.id ? 'bg-blue-600/10' : 'hover:bg-white/5'}`}
                       >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${currentSong.id === song.id ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-800 text-slate-600 group-hover:bg-slate-700'}`}>
-                          {currentSong.id === song.id && isPlaying ? <Activity size={14} className="animate-pulse" /> : <Music size={14} />}
-                        </div>
-                        <div className="flex-1">
-                          <div className={`text-[10px] md:text-xs font-black uppercase tracking-tight ${currentSong.id === song.id ? 'text-blue-400' : 'text-slate-300 group-hover:text-white'}`}>{song.title}</div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {song.type === 'youtube' && (
-                              <span className="text-[7px] text-red-400 font-bold uppercase border border-red-800 rounded px-1">YT</span>
-                            )}
-                            <div className="text-[7px] text-slate-500 font-bold uppercase tracking-widest">{song.artist || 'Sample'}</div>
+                        <button
+                          onClick={() => selectSong(song)}
+                          className="flex-1 p-3 text-left flex items-center gap-3 min-w-0"
+                        >
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${currentSong.id === song.id ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-800 text-slate-600 group-hover:bg-slate-700'}`}>
+                            {currentSong.id === song.id && isPlaying ? <Activity size={12} className="animate-pulse" /> : <Music size={12} />}
                           </div>
-                        </div>
-                        {currentSong.id === song.id && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                      </button>
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-[10px] font-black uppercase tracking-tight truncate ${currentSong.id === song.id ? 'text-blue-400' : 'text-slate-300'}`}>{song.title}</div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {song.type === 'youtube' && (
+                                <span className="text-[7px] text-red-400 font-bold uppercase border border-red-800 rounded px-1 shrink-0">YT</span>
+                              )}
+                              {song.type === 'file' && (
+                                <span className="text-[7px] text-green-400 font-bold uppercase border border-green-800 rounded px-1 shrink-0">MP3</span>
+                              )}
+                              <div className="text-[7px] text-slate-500 font-bold uppercase truncate">{song.artist || ''}</div>
+                            </div>
+                          </div>
+                        </button>
+                        {/* Delete button */}
+                        <button
+                          onClick={() => deleteSong(song.id)}
+                          title="Remove from playlist"
+                          className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-slate-700 hover:bg-red-600/20 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
                     ))}
                   </div>
-                  <div className="p-3 bg-black/40 border-t border-slate-800">
-                    <p className="text-[8px] text-slate-500 font-medium text-center uppercase tracking-widest">
-                      MP3 tracks = full console control ✓ &nbsp;|&nbsp; YT = video display only
+
+                  {/* Add YouTube URL input */}
+                  <div className="p-3 border-t border-slate-800 bg-black/40 space-y-2">
+                    <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Add YouTube Track</p>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={ytInputUrl}
+                        onChange={e => { setYtInputUrl(e.target.value); setYtInputError(''); }}
+                        onKeyDown={e => e.key === 'Enter' && addYouTubeSong()}
+                        placeholder="Paste YouTube URL here..."
+                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[10px] text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 min-w-0"
+                      />
+                      <button
+                        onClick={addYouTubeSong}
+                        disabled={ytInputLoading || !ytInputUrl.trim()}
+                        className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+                      >
+                        {ytInputLoading ? '...' : 'Add'}
+                      </button>
+                    </div>
+                    {ytInputError && (
+                      <p className="text-[8px] text-red-400 font-bold">{ytInputError}</p>
+                    )}
+                    <p className="text-[7px] text-slate-600 font-medium uppercase tracking-widest">
+                      YT = video display only &nbsp;|&nbsp; Upload MP3 for full console control
                     </p>
                   </div>
                 </motion.div>
