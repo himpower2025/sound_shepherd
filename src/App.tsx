@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sliders, 
@@ -19,8 +19,15 @@ import {
   MonitorPlay,
   Zap,
   Activity,
-  AudioLines
+  AudioLines,
+  LogIn,
+  LogOut
 } from 'lucide-react';
+import { 
+  signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser 
+} from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db, googleProvider } from './lib/firebase';
 import { AppState } from './types';
 import { GUIDE_SECTIONS, GLOSSARY } from './constants';
 import { askSoundAssistant } from './services/geminiService';
@@ -59,6 +66,30 @@ export default function App() {
     item.definition.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Auth logic
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      if (u) {
+        setDoc(doc(db, 'users', u.uid), {
+          displayName: u.displayName,
+          photoURL: u.photoURL,
+          lastLogin: new Date().toISOString()
+        }, { merge: true });
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const login = async () => {
+    try { await signInWithPopup(auth, googleProvider); } 
+    catch (e) { console.error("Login failed:", e); }
+  };
+
+  const logout = () => signOut(auth);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
@@ -83,6 +114,34 @@ export default function App() {
             <span className="text-[8px] font-bold text-blue-500/60 uppercase tracking-widest hidden sm:block">by HIMPOWER</span>
           </div>
           <div className="flex gap-2">
+            {/* Global Connect Button */}
+            <div className="flex items-center gap-2 px-3 border-r border-slate-800">
+              {user ? (
+                <div className="flex items-center gap-2 group relative">
+                  <img src={user.photoURL || ''} alt="" className="w-8 h-8 rounded-full border border-blue-500/50" />
+                  <div className="hidden lg:block">
+                    <div className="text-[7px] text-slate-500 font-black uppercase">Online</div>
+                    <div className="text-[9px] text-white font-bold truncate max-w-[60px]">{user.displayName}</div>
+                  </div>
+                  <button 
+                    onClick={logout}
+                    className="absolute -top-1 -right-1 bg-red-600 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                    title="Logout"
+                  >
+                    <LogOut size={10} className="text-white" />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={login}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:bg-blue-600 hover:text-white hover:border-blue-500 transition-all"
+                >
+                  <LogIn size={16} />
+                  <span className="hidden sm:inline text-[9px] font-black uppercase tracking-widest">Connect</span>
+                </button>
+              )}
+            </div>
+
             <button 
               onClick={() => setActiveState('mixer')}
               className={`p-2 rounded-lg transition-all flex items-center gap-2 ${activeState === 'mixer' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 scale-105' : 'hover:bg-slate-800 text-slate-400'}`}
@@ -356,7 +415,7 @@ export default function App() {
               <div className="flex-1 p-6 overflow-y-auto space-y-6 bg-slate-50/50 custom-scrollbar" id="chat-messages">
                 <div className="flex gap-3 max-w-[85%]">
                   <div className="bg-white p-5 rounded-[2rem] rounded-tl-none text-sm text-slate-700 shadow-sm border border-slate-100 leading-relaxed font-medium">
-                    샬롬! 20년 현업 경력의 시니어 엔지니어입니다. 예배 음향 세팅, 믹싱 노하우, 혹은 장비 트러블슈팅에 대해 무엇이든 물어보세요. 실전 팁을 바탕으로 도와드리겠습니다.
+                    Shalom! I'm a senior sound engineer with over 20 years of field experience. How can I help you today? Ask me about live mixing techniques, equipment troubleshooting, or worship sound basics.
                   </div>
                 </div>
                 {messages.map((msg, mIdx) => (
@@ -382,7 +441,7 @@ export default function App() {
                 >
                   <input 
                     type="text" 
-                    placeholder="엔지니어에게 질문하기 (예: '보컬 피드백 잡는 방법', '컴프레서 세팅법'...)" 
+                    placeholder="Ask the engineer (e.g., 'How to catch vocal feedback', 'Compressor settings'...)" 
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     className="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium transition-all"

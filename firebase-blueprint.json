@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores basic information about the user.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "lastLogin": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Song": {
+      "title": "Shared Song",
+      "description": "A YouTube or MP3 song added to the community playlist.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "artist": { "type": "string" },
+        "url": { "type": "string" },
+        "type": { "type": "string", "enum": ["file", "youtube"] },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "url", "type", "createdBy"]
+    },
+    "Preset": {
+      "title": "Mixer Preset",
+      "description": "User's saved slider/EQ settings for a specific song.",
+      "type": "object",
+      "properties": {
+        "songId": { "type": "string" },
+        "userId": { "type": "string" },
+        "masterFader": { "type": "number" },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "number" },
+              "gain": { "type": "number" },
+              "pan": { "type": "number" },
+              "fader": { "type": "number" },
+              "muted": { "type": "boolean" },
+              "solo": { "type": "boolean" },
+              "hpf": { "type": "boolean" },
+              "eq": {
+                "type": "object",
+                "properties": {
+                  "low": { "type": "number" },
+                  "midLow": { "type": "number" },
+                  "midHigh": { "type": "number" },
+                  "high": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["songId", "userId", "channels", "masterFader"]
+    }
+  },
+  "firestore": {
+    "songs": {
+      "schema": "Song",
+      "description": "Shared community practice tracks."
+    },
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Individual user settings and metadata."
+    },
+    "users/{userId}/presets": {
+      "schema": "Preset",
+      "description": "User-specific saved mix configurations."
+    }
+  }
+}

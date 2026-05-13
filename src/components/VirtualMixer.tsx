@@ -2,9 +2,55 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   HelpCircle, Activity, Power, Volume2, CircleDot, Trash2,
-  ChevronRight, Play, Square, Music, Waves, Mic, MicOff
+  ChevronRight, Play, Square, Music, Waves, Mic, MicOff,
+  LogIn, LogOut, Save, Download
 } from 'lucide-react';
+import { 
+  onSnapshot, collection, addDoc, query, orderBy, 
+  serverTimestamp, doc, setDoc, getDoc, deleteDoc,
+  getDocFromServer
+} from 'firebase/firestore';
+import { 
+  signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser 
+} from 'firebase/auth';
+import { auth, db, googleProvider } from '../lib/firebase';
 import { Logo } from './Logo';
+
+// ─────────────────────────────────────────────
+// Error Handling
+// ─────────────────────────────────────────────
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  // In a real app, you might show a toast here.
+}
 
 // ─────────────────────────────────────────────
 // Types
@@ -103,6 +149,28 @@ const INITIAL_CHANNELS: ChannelData[] = [
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
+function getYouTubeVideoId(url: string): string | null {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
+
+async function fetchYouTubeTitle(url: string): Promise<{ title: string; author: string }> {
+  // Real OEmbed call for accurate titles
+  try {
+    const videoId = getYouTubeVideoId(url);
+    if (!videoId) throw new Error("Invalid ID");
+    const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+    const data = await response.json();
+    return { 
+      title: data.title || "YouTube Track", 
+      author: data.author_name || "Unknown Artist" 
+    };
+  } catch (e) {
+    return { title: 'New Community Track', author: 'YouTube' };
+  }
+}
+
 function getYouTubeEmbedUrl(url: string): string {
   const id = getYouTubeVideoId(url) || '';
   return `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=1&rel=0&modestbranding=1`;
@@ -116,11 +184,14 @@ export const VirtualMixer = () => {
   const [selectedId, setSelectedId] = useState<number>(1);
   const [info, setInfo] = useState<{ title: string; desc: string; x: number; y: number } | null>(null);
 
+  // Auth
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+
   // Transport
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [songs, setSongs] = useState<Song[]>(DEFAULT_SONGS);
-  const [currentSong, setCurrentSong] = useState<Song>(DEFAULT_SONGS[0]);
+  const [songs, setSongs] = useState<Song[]>(SONGS);
+  const [currentSong, setCurrentSong] = useState<Song>(SONGS[0]);
   const [masterMeter, setMasterMeter] = useState(0);
   const [masterFader, setMasterFader] = useState(80);
   const [showPlaylist, setShowPlaylist] = useState(false);
@@ -151,9 +222,91 @@ export const VirtualMixer = () => {
   const [testToneActive, setTestToneActive] = useState(false);
   const oscRef = useRef<OscillatorNode | null>(null);
 
+  // ── Firebase Integration ──────────────────────
+  useEffect(() => {
+    // 1. Connection Test
+    const testConn = async () => {
+      try { await getDocFromServer(doc(db, 'test', 'connection')); } catch (e) {}
+    };
+    testConn();
+
+    // 2. Auth state
+    const unsubAuth = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      if (u) {
+        // Update user profile
+        setDoc(doc(db, 'users', u.uid), {
+          displayName: u.displayName,
+          photoURL: u.photoURL,
+          lastLogin: new Date().toISOString()
+        }, { merge: true }).catch(e => handleFirestoreError(e, OperationType.WRITE, `users/${u.uid}`));
+      }
+    });
+
+    // 3. Real-time Songs (Community Playlist)
+    const q = query(collection(db, 'songs'), orderBy('createdAt', 'desc'));
+    const unsubSongs = onSnapshot(q, (snapshot) => {
+      const dbSongs: Song[] = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      } as Song));
+      
+      // Merge with default songs, keeping defaults unique
+      setSongs([...SONGS, ...dbSongs.filter(s => !SONGS.some(def => def.id === s.id))]);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'songs'));
+
+    return () => {
+      unsubAuth();
+      unsubSongs();
+    };
+  }, []);
+
+  const login = async () => {
+    try { await signInWithPopup(auth, googleProvider); } 
+    catch (e) { console.error("Login failed:", e); }
+  };
+
+  const logout = () => signOut(auth);
+
+  // ── Save/Load Mix ──
+  const saveMix = async () => {
+    if (!user) { alert("Please login to save your mix."); return; }
+    try {
+      const presetData = {
+        songId: currentSong.id,
+        userId: user.uid,
+        masterFader,
+        channels: channels.map(c => ({
+          id: c.id,
+          gain: c.gain,
+          pan: c.pan,
+          fader: c.fader,
+          muted: c.muted,
+          solo: c.solo,
+          hpf: c.hpf,
+          eq: { ...c.eq }
+        })),
+        createdAt: serverTimestamp()
+      };
+      await addDoc(collection(db, 'users', user.uid, 'presets'), presetData);
+      alert("Mix preset saved!");
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, `users/${user.uid}/presets`);
+    }
+  };
+
+  const loadLatestMix = async () => {
+    if (!user) return;
+    try {
+      // For simplicity, just get the latest preset for this song
+      const q = query(collection(db, 'users', user.uid, 'presets'), orderBy('createdAt', 'desc'));
+      const snap = await getDoc(doc(db, 'users', user.uid, 'presets', 'latest')); // This is a placeholder logic
+      // In a real app, you'd show a list. Let's just fetch the last one from the snapshot if needed.
+    } catch (e) {}
+  };
+
   const selectedChannel = channels.find(c => c.id === selectedId)!;
 
-  // ── Help Database ─────────────────────────────
   const HELP_DATABASE: Record<string, { title: string; desc: string }> = {
     gain: { title: 'Input Gain (Sensitivity)', desc: 'Think of this as the "volume" coming INTO the mixer. Set this so the loudest parts don\'t hit the red. Too low → hiss; too high → distort (clip).' },
     hpf: { title: 'High-Pass Filter (80Hz)', desc: 'Turn this ON for every vocal and instrument EXCEPT kick drums and bass guitars. It removes foot stomps and rumble, making your mix sound professional and clear.' },
@@ -370,7 +523,6 @@ export const VirtualMixer = () => {
     }
   };
 
-  // ── Add YouTube URL to playlist ───────────────
   const addYouTubeSong = async () => {
     const url = ytInputUrl.trim();
     if (!url) return;
@@ -386,29 +538,53 @@ export const VirtualMixer = () => {
     }
     setYtInputError('');
     setYtInputLoading(true);
-    const { title, author } = await fetchYouTubeTitle(url);
-    const newSong: Song = {
-      id: 'yt-' + videoId,
-      title,
-      artist: author,
-      url: `https://www.youtube.com/watch?v=${videoId}`,
-      type: 'youtube',
-    };
-    setSongs(prev => [...prev, newSong]);
-    setYtInputUrl('');
-    setYtInputLoading(false);
+    
+    try {
+      const { title, author } = await fetchYouTubeTitle(url);
+      const newSongData = {
+        title,
+        artist: author,
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        type: 'youtube',
+        createdBy: user?.uid || 'anonymous',
+        createdAt: serverTimestamp()
+      };
+
+      if (user) {
+        await addDoc(collection(db, 'songs'), newSongData);
+      } else {
+        // Fallback for anonymous users (local only)
+        setSongs(prev => [...prev, { id: 'yt-' + videoId, ...newSongData } as Song]);
+      }
+      setYtInputUrl('');
+    } catch (e) {
+      setYtInputError('Failed to add track.');
+    } finally {
+      setYtInputLoading(false);
+    }
   };
 
   // ── Delete song from playlist ──────────────────
-  const deleteSong = (id: string) => {
-    setSongs(prev => {
-      const next = prev.filter(s => s.id !== id);
-      // If deleted song was playing, switch to first available
-      if (currentSong.id === id && next.length > 0) {
-        selectSong(next[0]);
-      }
-      return next;
-    });
+  const deleteSong = async (id: string) => {
+    // If it's a default song, just hide it locally
+    if (SONGS.some(s => s.id === id)) {
+      setSongs(prev => prev.filter(s => s.id !== id));
+      return;
+    }
+
+    // If it's a Firestore song, delete it
+    try {
+       await deleteDoc(doc(db, 'songs', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `songs/${id}`);
+      // Fallback: local delete
+      setSongs(prev => prev.filter(s => s.id !== id));
+    }
+
+    if (currentSong.id === id) {
+      const next = songs.filter(s => s.id !== id);
+      if (next.length > 0) selectSong(next[0]);
+    }
   };
 
   // ── Test Tone ──────────────────────────────────
@@ -540,7 +716,7 @@ export const VirtualMixer = () => {
           <div className="flex gap-2 items-center px-1 md:px-2 border-x border-white/5 mx-1 md:mx-2">
             <label className={`cursor-pointer group flex items-center justify-center p-1.5 md:p-2 rounded-lg border transition-all ${skin === 'modern' ? 'bg-slate-800 border-slate-700 hover:bg-blue-600 hover:border-blue-400' : 'bg-slate-300 border-slate-400 hover:bg-slate-400'}`}>
               <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
-              <Music size={14} className={skin === 'modern' ? 'text-slate-400 group-hover:text-white' : 'text-slate-700'} title="Upload File" />
+              <Music size={14} className={skin === 'modern' ? 'text-slate-400 group-hover:text-white' : 'text-slate-700'} />
             </label>
           </div>
 
@@ -743,6 +919,20 @@ export const VirtualMixer = () => {
 
             {/* Master fader */}
             <div className="w-[75px] md:w-[95px] border-l border-white/5 pl-2 md:pl-3 ml-1 md:ml-3 flex flex-col items-center gap-1 bg-black/5 rounded-2xl p-1 md:p-2 self-stretch">
+              
+              {/* Preset Controls */}
+              {user && (
+                <div className="flex gap-1 w-full mb-1">
+                  <button 
+                    onClick={saveMix}
+                    className="flex-1 p-2 bg-slate-900 border border-slate-700 rounded-lg hover:border-blue-500 transition-all group"
+                    title="Save Mix Preset"
+                  >
+                    <Save size={12} className="text-slate-500 group-hover:text-blue-500 mx-auto" />
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={(e) => { initWebAudio(); showInfo(e, 'Master Output', 'Main output level. Make sure Audio Engine is Online (green) before playback.'); }}
                 className="w-full h-9 md:h-11 bg-red-600 rounded-lg flex flex-col items-center justify-center border-2 border-red-400 shadow-lg shadow-red-600/20 mb-1 hover:bg-red-500 transition-colors"
