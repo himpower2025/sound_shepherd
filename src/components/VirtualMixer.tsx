@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   HelpCircle, Activity, Power, Volume2, CircleDot, Trash2,
-  ChevronRight, Play, Square, Music, Waves, Mic, MicOff,
+  ChevronRight, ChevronLeft, Play, Square, Music, Waves, Mic, MicOff,
   LogIn, LogOut, Save, Download
 } from 'lucide-react';
 import { 
@@ -200,6 +200,23 @@ export const VirtualMixer = () => {
   const [ytInputError, setYtInputError] = useState('');
   const [skin, setSkin] = useState<'modern' | 'analog'>('modern');
 
+  // Multi-device responsive layout & scrolling helpers
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const channelRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  // Auto-scroll selected channel into view centered horizontally
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    const activeCh = channelRefs.current[selectedId];
+    if (container && activeCh) {
+      const scrollLeft = activeCh.offsetLeft - (container.clientWidth / 2) + (activeCh.clientWidth / 2);
+      container.scrollTo({
+        left: Math.max(0, scrollLeft),
+        behavior: 'smooth'
+      });
+    }
+  }, [selectedId]);
+
   // ── Web Audio Engine ──────────────────────────
   // Used only for type==='file' tracks.
   // AudioContext is created once, after the first user interaction.
@@ -231,7 +248,7 @@ export const VirtualMixer = () => {
     testConn();
 
     // 2. Auth state
-    const unsubAuth = onAuthStateChanged(auth, (u) => {
+    const unsubAuth = onAuthStateChanged(auth, (u: FirebaseUser | null) => {
       setUser(u);
       if (u) {
         // Update user profile
@@ -239,21 +256,21 @@ export const VirtualMixer = () => {
           displayName: u.displayName,
           photoURL: u.photoURL,
           lastLogin: new Date().toISOString()
-        }, { merge: true }).catch(e => handleFirestoreError(e, OperationType.WRITE, `users/${u.uid}`));
+        }, { merge: true }).catch((e: any) => handleFirestoreError(e, OperationType.WRITE, `users/${u.uid}`));
       }
     });
 
     // 3. Real-time Songs (Community Playlist)
     const q = query(collection(db, 'songs'), orderBy('createdAt', 'desc'));
-    const unsubSongs = onSnapshot(q, (snapshot) => {
-      const dbSongs: Song[] = snapshot.docs.map(d => ({
+    const unsubSongs = onSnapshot(q, (snapshot: any) => {
+      const dbSongs: Song[] = snapshot.docs.map((d: any) => ({
         id: d.id,
         ...d.data()
       } as Song));
       
       // Merge with default songs, keeping defaults unique
       setSongs([...SONGS, ...dbSongs.filter(s => !SONGS.some(def => def.id === s.id))]);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'songs'));
+    }, (error: any) => handleFirestoreError(error, OperationType.LIST, 'songs'));
 
     return () => {
       unsubAuth();
@@ -464,7 +481,7 @@ export const VirtualMixer = () => {
         audio.load();
       }
       setIsLoading(true);
-      audio.play().catch(err => {
+      audio.play().catch((err: any) => {
         console.error('Play error:', err);
         setIsLoading(false);
         // If CORS blocks the CDN file, guide user to upload their own file
@@ -858,11 +875,12 @@ export const VirtualMixer = () => {
       <div className="flex flex-col lg:flex-row gap-2 md:gap-4 lg:gap-6 flex-1 h-full overflow-hidden">
 
         {/* Left: Fader strips */}
-        <div className="flex-1 overflow-x-auto pb-1 custom-scrollbar lg:max-w-[65%] xl:max-w-[72%] order-2 lg:order-1">
-          <div className={`flex gap-1 min-w-max p-1 rounded-2xl h-full ${skin === 'modern' ? 'bg-black/10' : 'bg-slate-300 shadow-inner'}`}>
+        <div ref={scrollContainerRef} className="flex-1 overflow-x-auto pb-1 custom-scrollbar lg:max-w-[65%] xl:max-w-[72%] order-2 lg:order-1">
+          <div className={`flex gap-1 min-w-max p-1 rounded-2xl h-full relative ${skin === 'modern' ? 'bg-black/10' : 'bg-slate-300 shadow-inner'}`}>
             {channels.map(ch => (
               <div
                 key={ch.id}
+                ref={el => { channelRefs.current[ch.id] = el; }}
                 className={`w-[68px] md:w-[82px] flex flex-col items-center gap-1 transition-all p-1 rounded-xl ${selectedId === ch.id ? (skin === 'modern' ? 'bg-slate-800/60 ring-1 ring-white/5' : 'bg-white/60 shadow-lg ring-1 ring-black/10') : ''}`}
               >
                 {/* Scribble strip */}
@@ -1182,10 +1200,16 @@ export const VirtualMixer = () => {
             </div>
           </div>
 
-          <div className={`p-2 md:p-4 border-t shrink-0 ${skin === 'modern' ? 'bg-slate-900/100 border-white/5' : 'bg-slate-400 border-black/10'}`}>
+          <div className={`p-2 md:p-4 border-t shrink-0 ${skin === 'modern' ? 'bg-slate-900/100 border-white/5' : 'bg-slate-400 border-black/10'} flex gap-3`}>
+            <button
+              onClick={() => setSelectedId(selectedId > 1 ? selectedId - 1 : 6)}
+              className={`flex-1 py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg ${skin === 'modern' ? 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 hover:bg-slate-700' : 'bg-slate-300 text-slate-700 hover:bg-slate-400 border border-slate-400'}`}
+            >
+              <ChevronLeft size={12} /> Prev
+            </button>
             <button
               onClick={() => setSelectedId(selectedId < 6 ? selectedId + 1 : 1)}
-              className={`w-full py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg ${skin === 'modern' ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-600/20' : 'bg-slate-800 text-white hover:bg-slate-900 shadow-black/20'}`}
+              className={`flex-1 py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg ${skin === 'modern' ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-600/20' : 'bg-slate-800 text-white hover:bg-slate-900 shadow-black/20'}`}
             >
               Next <ChevronRight size={12} />
             </button>
