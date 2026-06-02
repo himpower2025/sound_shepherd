@@ -836,7 +836,7 @@ export const VirtualMixer = () => {
       <div className="flex flex-col lg:flex-row gap-2 md:gap-4 lg:gap-6 flex-1 h-full overflow-hidden">
 
         {/* Left: Fader strips */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-x-auto pb-1 custom-scrollbar lg:max-w-[65%] xl:max-w-[72%] order-2 lg:order-1">
+        <div ref={scrollContainerRef} className="flex-1 overflow-x-auto pb-1 custom-scrollbar lg:max-w-none order-2 lg:order-1">
           <div className={`flex gap-1 min-w-max p-1 rounded-2xl h-full relative ${skin === 'modern' ? 'bg-black/10' : 'bg-slate-300 shadow-inner'}`}>
             {channels.map(ch => (
               <div
@@ -949,7 +949,7 @@ export const VirtualMixer = () => {
         </div>
 
         {/* Right: Channel detail + Stage Monitor */}
-        <div className={`lg:w-[35%] xl:w-[30%] rounded-[1rem] sm:rounded-[1.5rem] border overflow-hidden flex flex-col min-w-full lg:min-w-[300px] order-1 lg:order-2 mb-2 lg:mb-0 transition-colors ${skin === 'modern' ? 'bg-slate-800/40 border-white/5' : 'bg-slate-200 border-black/10'}`}>
+        <div className={`lg:w-[320px] xl:w-[360px] shrink-0 rounded-[1rem] sm:rounded-[1.5rem] border overflow-hidden flex flex-col min-w-full lg:min-w-0 order-1 lg:order-2 mb-2 lg:mb-0 transition-colors ${skin === 'modern' ? 'bg-slate-800/40 border-white/5' : 'bg-slate-200 border-black/10'}`}>
           <div className={`p-2 md:p-3 border-b flex items-center justify-between shrink-0 ${skin === 'modern' ? 'bg-slate-900 border-white/5' : 'bg-slate-400 border-black/10'}`}>
             <div className="flex items-center gap-2">
               <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg ${selectedChannel.color} flex items-center justify-center text-white font-black text-xs md:text-sm shadow-inner shrink-0`}>{selectedChannel.id}</div>

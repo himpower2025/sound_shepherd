@@ -93,7 +93,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+        <div className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto flex items-center justify-between transition-all duration-300`}>
           <div className="flex items-center gap-3">
             {activeState !== 'home' && (
               <button 
@@ -171,7 +171,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto p-4 md:p-8 pb-32">
+      <main className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-[1440px]' : 'max-w-5xl'} mx-auto p-3 md:p-6 lg:p-8 pb-32 transition-all duration-300`}>
         <AnimatePresence mode="wait">
           {activeState === 'home' && (
             <motion.div 
@@ -460,7 +460,7 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <footer className="max-w-5xl mx-auto p-12 text-center">
+      <footer className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-[1440px]' : 'max-w-5xl'} mx-auto p-12 text-center transition-all duration-300`}>
         <div className="flex flex-col items-center gap-2 opacity-40">
           <p className="text-[10px] font-black uppercase tracking-[0.3em]">HIMPOWER PVT. LTD.</p>
           <p className="text-[9px] font-bold tracking-[0.1em]">© 2026 SOUND SHEPHERD • ALL RIGHTS RESERVED</p>
