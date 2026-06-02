@@ -21,7 +21,9 @@ import {
   Activity,
   AudioLines,
   LogIn,
-  LogOut
+  LogOut,
+  Bell,
+  BellOff
 } from 'lucide-react';
 import { 
   signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser 
@@ -35,6 +37,17 @@ import { VirtualMixer } from './components/VirtualMixer';
 import { AudioRecorder } from './components/AudioRecorder';
 import { FrequencyReference } from './components/FrequencyReference';
 import { Logo } from './components/Logo';
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export default function App() {
   const [activeState, setActiveState] = useState<AppState>('home');
@@ -89,6 +102,91 @@ export default function App() {
   };
 
   const logout = () => signOut(auth);
+
+  // PWA Service Worker & Push Notification Setup
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
+    typeof window !== 'undefined' ? Notification.permission : 'default'
+  );
+
+  // Clear badge count on app mount
+  useEffect(() => {
+    if ('clearAppBadge' in navigator) {
+      navigator.clearAppBadge().catch(err => console.error("Error clearing badge on load:", err));
+    }
+  }, []);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('Service Worker registered successfully:', reg.scope))
+        .catch((err) => console.error('Service Worker registration failed:', err));
+    }
+  }, []);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('Notifications are not supported in this browser.');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+
+      if (permission === 'granted') {
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.ready;
+          
+          // Clear badge immediately upon active consent
+          if ('clearAppBadge' in navigator) {
+            navigator.clearAppBadge().catch(err => console.error(err));
+          }
+
+          // Register push manager subscription
+          let sub: PushSubscription | null = null;
+          
+          // VAPID Public Key placeholder - User will configure this in Vercel env or code
+          const VAPID_PUBLIC_KEY = "BEl62iCIhp85J2kgUBGthcabc123_PLACEHOLDER_KEY";
+          
+          try {
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+            console.log("Push Subscription successfully generated:", sub.toJSON());
+          } catch (subErr) {
+            console.warn("Push subscription failed (VAPID key might be placeholder):", subErr);
+          }
+
+          // Save subscription and push-ready status to Firestore
+          if (user) {
+            await setDoc(doc(db, 'users', user.uid), {
+              pushSubscription: sub ? sub.toJSON() : null,
+              notificationsEnabled: true,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+            console.log("Push subscription saved to Firestore for user:", user.uid);
+          }
+
+          reg.showNotification("Sound Shepherd", {
+            body: "Notifications active! Sound Shepherd is now registered in your iOS Settings.",
+            icon: "/icon-192.png",
+            badge: "/icon-192.png",
+            tag: "pwa-registration"
+          });
+        } else {
+          new Notification("Sound Shepherd", {
+            body: "Notifications active! Sound Shepherd is now registered in your iOS Settings.",
+            icon: "/icon-192.png"
+          });
+        }
+      } else if (permission === 'denied') {
+        alert('Notification permission was blocked. Please reset your browser site settings to enable it.');
+      }
+    } catch (err) {
+      console.error('Error requesting notification permission:', err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -166,6 +264,20 @@ export default function App() {
             >
               <MessageSquareText size={20} />
               <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">Ask AI</span>
+            </button>
+            <button 
+              onClick={requestNotificationPermission}
+              className={`p-2 rounded-lg transition-all flex items-center gap-2 ${notificationPermission === 'granted' ? 'bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20' : 'hover:bg-slate-800 text-slate-400'}`}
+              title={notificationPermission === 'granted' ? "Notifications Active" : "Enable Notifications"}
+            >
+              {notificationPermission === 'granted' ? (
+                <Bell size={20} className="text-emerald-400 animate-pulse" />
+              ) : (
+                <BellOff size={20} />
+              )}
+              <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">
+                {notificationPermission === 'granted' ? 'Active' : 'Alerts'}
+              </span>
             </button>
           </div>
         </div>
