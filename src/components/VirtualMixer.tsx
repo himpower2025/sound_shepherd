@@ -83,59 +83,7 @@ interface Song {
 //       'youtube' type = video display + IFrame volume sync only
 //       Full EQ/Pan on YouTube blocked by browser same-origin policy.
 // ─────────────────────────────────────────────
-const SONGS: Song[] = [
-  {
-    id: '1',
-    title: 'Soul Piano (Practice)',
-    artist: 'Worship',
-    url: 'https://cdn.pixabay.com/audio/2022/02/22/audio_d1be8e046a.mp3',
-    type: 'file',
-  },
-  {
-    id: '2',
-    title: 'Acoustic Guitar',
-    artist: 'Warm',
-    url: 'https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f694b.mp3',
-    type: 'file',
-  },
-  // YouTube tracks: video display + master volume sync via IFrame API
-  // Replace with direct MP3 URLs for full console control
-  {
-    id: 'y1',
-    title: 'Anugrako Inar',
-    artist: 'Adrian Dewan (YouTube)',
-    url: 'https://www.youtube.com/watch?v=BLJcYljOq-U',
-    type: 'youtube',
-  },
-  {
-    id: 'y2',
-    title: 'All I Want for Christmas',
-    artist: 'Mariah Carey (YouTube)',
-    url: 'https://www.youtube.com/watch?v=aAkMkVFwAoo',
-    type: 'youtube',
-  },
-  {
-    id: 'y3',
-    title: 'Last Christmas',
-    artist: 'Wham! (YouTube)',
-    url: 'https://www.youtube.com/watch?v=KhqNTjbQ71A',
-    type: 'youtube',
-  },
-  {
-    id: 'y4',
-    title: 'Golden',
-    artist: 'KPop Demon Hunters (YouTube)',
-    url: 'https://www.youtube.com/watch?v=yebNIHKAC4A',
-    type: 'youtube',
-  },
-  {
-    id: 'y5',
-    title: 'Dynamite',
-    artist: 'BTS (YouTube)',
-    url: 'https://www.youtube.com/watch?v=gdZLi9oWNZg',
-    type: 'youtube',
-  },
-];
+const SONGS: Song[] = [];
 
 const INITIAL_CHANNELS: ChannelData[] = [
   { id: 1, name: 'Lead Voc', color: 'bg-blue-500', gain: 45, pan: 0, fader: 75, muted: false, solo: false, hpf: true, eq: { high: 2, midHigh: 1, midLow: 0, low: -3 } },
@@ -191,7 +139,7 @@ export const VirtualMixer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [songs, setSongs] = useState<Song[]>(SONGS);
-  const [currentSong, setCurrentSong] = useState<Song>(SONGS[0]);
+  const [currentSong, setCurrentSong] = useState<Song | null>(SONGS[0] || null);
   const [masterMeter, setMasterMeter] = useState(0);
   const [masterFader, setMasterFader] = useState(80);
   const [showPlaylist, setShowPlaylist] = useState(false);
@@ -269,7 +217,11 @@ export const VirtualMixer = () => {
       } as Song));
       
       // Merge with default songs, keeping defaults unique
-      setSongs([...SONGS, ...dbSongs.filter(s => !SONGS.some(def => def.id === s.id))]);
+      const merged = [...SONGS, ...dbSongs.filter(s => !SONGS.some(def => def.id === s.id))];
+      setSongs(merged);
+      if (merged.length > 0) {
+        setCurrentSong(prev => prev || merged[0]);
+      }
     }, (error: any) => handleFirestoreError(error, OperationType.LIST, 'songs'));
 
     return () => {
@@ -288,6 +240,7 @@ export const VirtualMixer = () => {
   // ── Save/Load Mix ──
   const saveMix = async () => {
     if (!user) { alert("Please login to save your mix."); return; }
+    if (!currentSong) { alert("Please load or upload a song first to save your mix configuration."); return; }
     try {
       const presetData = {
         songId: currentSong.id,
@@ -426,7 +379,7 @@ export const VirtualMixer = () => {
   useEffect(() => {
     let raf: number;
     const loop = () => {
-      if (isPlaying) {
+      if (isPlaying && currentSong) {
         if (currentSong.type === 'file' && analyserRef.current) {
           const data = new Uint8Array(analyserRef.current.frequencyBinCount);
           analyserRef.current.getByteFrequencyData(data);
@@ -458,6 +411,7 @@ export const VirtualMixer = () => {
   // Transport Controls
   // ─────────────────────────────────────────────
   const togglePlay = async () => {
+    if (!currentSong) return;
     // YouTube type: console/meter simulation only — user plays directly inside iframe
     if (currentSong.type === 'youtube') {
       setIsPlaying(prev => !prev);
@@ -528,6 +482,7 @@ export const VirtualMixer = () => {
     const url = URL.createObjectURL(file);
     // Blob URLs are always same-origin — CORS never an issue
     const newSong: Song = { id: 'custom-' + Date.now(), title: file.name.replace(/\.\w+$/, ''), url, type: 'file' };
+    setSongs(prev => [...prev.filter(s => s.id !== newSong.id), newSong]);
     setCurrentSong(newSong);
     const audio = audioElRef.current;
     if (audio) {
@@ -598,9 +553,15 @@ export const VirtualMixer = () => {
       setSongs(prev => prev.filter(s => s.id !== id));
     }
 
-    if (currentSong.id === id) {
+    if (currentSong?.id === id) {
       const next = songs.filter(s => s.id !== id);
-      if (next.length > 0) selectSong(next[0]);
+      if (next.length > 0) {
+        selectSong(next[0]);
+      } else {
+        setCurrentSong(null);
+        setIsPlaying(false);
+        if (audioElRef.current) audioElRef.current.pause();
+      }
     }
   };
 
@@ -775,7 +736,7 @@ export const VirtualMixer = () => {
               <div className="text-left relative z-10">
                 <div className="text-[7px] text-slate-500 uppercase font-black tracking-widest leading-none mb-0.5">Media Source</div>
                 <div className="text-[10px] text-white font-black uppercase tracking-tight flex items-center gap-2">
-                  {currentSong.title}
+                  {currentSong ? currentSong.title : "No Track Selected"}
                   <ChevronRight size={10} className={`text-slate-600 transition-transform ${showPlaylist ? 'rotate-90' : ''}`} />
                 </div>
               </div>
@@ -797,23 +758,23 @@ export const VirtualMixer = () => {
                   <div className="p-1 max-h-60 overflow-y-auto custom-scrollbar">
                     {songs.length === 0 && (
                       <div className="py-8 text-center text-slate-600 text-[10px] font-bold uppercase tracking-widest">
-                        No tracks yet — paste a YouTube URL below
+                        No tracks yet — upload an MP3 file below
                       </div>
                     )}
                     {songs.map(song => (
                       <div
                         key={song.id}
-                        className={`flex items-center gap-2 rounded-xl mb-1 pr-2 transition-all group ${currentSong.id === song.id ? 'bg-blue-600/10' : 'hover:bg-white/5'}`}
+                        className={`flex items-center gap-2 rounded-xl mb-1 pr-2 transition-all group ${currentSong?.id === song.id ? 'bg-blue-600/10' : 'hover:bg-white/5'}`}
                       >
                         <button
                           onClick={() => selectSong(song)}
                           className="flex-1 p-3 text-left flex items-center gap-3 min-w-0"
                         >
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${currentSong.id === song.id ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-800 text-slate-600 group-hover:bg-slate-700'}`}>
-                            {currentSong.id === song.id && isPlaying ? <Activity size={12} className="animate-pulse" /> : <Music size={12} />}
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${currentSong?.id === song.id ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-800 text-slate-600 group-hover:bg-slate-700'}`}>
+                            {currentSong?.id === song.id && isPlaying ? <Activity size={12} className="animate-pulse" /> : <Music size={12} />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className={`text-[10px] font-black uppercase tracking-tight truncate ${currentSong.id === song.id ? 'text-blue-400' : 'text-slate-300'}`}>{song.title}</div>
+                            <div className={`text-[10px] font-black uppercase tracking-tight truncate ${currentSong?.id === song.id ? 'text-blue-400' : 'text-slate-300'}`}>{song.title}</div>
                             <div className="flex items-center gap-1 mt-0.5">
                               {song.type === 'youtube' && (
                                 <span className="text-[7px] text-red-400 font-bold uppercase border border-red-800 rounded px-1 shrink-0">YT</span>
@@ -1023,54 +984,74 @@ export const VirtualMixer = () => {
               </div>
 
               <div className={`aspect-video rounded-xl border overflow-hidden relative ${skin === 'modern' ? 'bg-black border-white/10' : 'bg-slate-900 border-black/20'}`}>
-                {currentSong.type === 'youtube' ? (
-                  // ─────────────────────────────────────────
-                  // YouTube: iframe always visible, controls=1
-                  // User presses play directly inside the iframe
-                  // Audio cannot be controlled via React/JS (browser policy)
-                  // ─────────────────────────────────────────
-                  <div className="w-full h-full relative">
-                    <iframe
-                      key={currentSong.id}
-                      src={getYouTubeEmbedUrl(currentSong.url)}
-                      className="w-full h-full"
-                      allow="autoplay; encrypted-media"
-                      allowFullScreen
-                      title={currentSong.title}
-                    />
-                    {/* Info banner — shown at bottom, below iframe controls */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-center py-1 pointer-events-none">
-                      <span className="text-[8px] text-blue-300 font-bold uppercase tracking-widest">
-                        ▶ Press Play inside the video to start audio
+                {currentSong ? (
+                  currentSong.type === 'youtube' ? (
+                    // ─────────────────────────────────────────
+                    // YouTube: iframe always visible, controls=1
+                    // User presses play directly inside the iframe
+                    // Audio cannot be controlled via React/JS (browser policy)
+                    // ─────────────────────────────────────────
+                    <div className="w-full h-full relative">
+                      <iframe
+                        key={currentSong.id}
+                        src={getYouTubeEmbedUrl(currentSong.url)}
+                        className="w-full h-full"
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen
+                        title={currentSong.title}
+                      />
+                      {/* Info banner — shown at bottom, below iframe controls */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-center py-1 pointer-events-none">
+                        <span className="text-[8px] text-blue-300 font-bold uppercase tracking-widest">
+                          ▶ Press Play inside the video to start audio
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    // file type: audio only, waveform visualizer
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50 gap-2">
+                      <Waves size={24} className={isPlaying ? 'text-blue-500 animate-pulse' : 'text-blue-500/20'} />
+                      <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">
+                        {isPlaying ? 'Audio Playing' : 'Audio Only Mode'}
+                      </span>
+                      {isPlaying && (
+                        <div className="flex gap-0.5 items-end h-6">
+                          {[...Array(12)].map((_, i) => (
+                            <motion.div
+                              key={i}
+                              animate={{ height: [`${20 + Math.random() * 80}%`, `${20 + Math.random() * 80}%`] }}
+                              transition={{ duration: 0.3 + Math.random() * 0.3, repeat: Infinity, repeatType: 'reverse' }}
+                              className="w-1 bg-blue-500/60 rounded-full"
+                              style={{ height: '20%' }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  // Empty state when no song is loaded or uploaded
+                  <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-slate-950/60 transition-all text-center gap-3">
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-blue-400">
+                      <Music size={24} className="animate-pulse" />
+                    </div>
+                    <div className="space-y-1 max-w-xs px-2">
+                      <span className="block text-[10px] font-black text-white uppercase tracking-wider">No Practice Track Loaded</span>
+                      <span className="block text-[8px] text-slate-400 font-medium uppercase leading-relaxed">
+                        To practice EQ mixing, panning, and faders, please upload your own MP3 multitrack file or paste a YouTube worship link!
                       </span>
                     </div>
-                  </div>
-                ) : (
-                  // file type: audio only, waveform visualizer
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50 gap-2">
-                    <Waves size={24} className={isPlaying ? 'text-blue-500 animate-pulse' : 'text-blue-500/20'} />
-                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">
-                      {isPlaying ? 'Audio Playing' : 'Audio Only Mode'}
-                    </span>
-                    {isPlaying && (
-                      <div className="flex gap-0.5 items-end h-6">
-                        {[...Array(12)].map((_, i) => (
-                          <motion.div
-                            key={i}
-                            animate={{ height: [`${20 + Math.random() * 80}%`, `${20 + Math.random() * 80}%`] }}
-                            transition={{ duration: 0.3 + Math.random() * 0.3, repeat: Infinity, repeatType: 'reverse' }}
-                            className="w-1 bg-blue-500/60 rounded-full"
-                            style={{ height: '20%' }}
-                          />
-                        ))}
-                      </div>
-                    )}
+                    {/* Compact direct trigger for file input in empty state */}
+                    <label className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/95 hover:bg-blue-600 text-[8px] font-bold text-white uppercase tracking-wider rounded-lg cursor-pointer transition-colors shadow-lg shadow-blue-500/10">
+                      <Download size={10} className="rotate-180" /> Upload Custom MP3
+                      <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
+                    </label>
                   </div>
                 )}
               </div>
 
               {/* Notice: YouTube track selected */}
-              {currentSong.type === 'youtube' && (
+              {currentSong?.type === 'youtube' && (
                 <div className="mt-2 p-2 rounded-lg bg-yellow-900/20 border border-yellow-700/30">
                   <p className="text-[8px] text-yellow-400 font-bold uppercase tracking-wide text-center">
                     ⚠ YouTube is for video display only — select an MP3 track to practice EQ & Fader control
