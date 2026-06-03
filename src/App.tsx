@@ -189,10 +189,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans overflow-x-hidden flex flex-col">
+      <header className="bg-gradient-to-r from-[#0c1e3d] via-[#102a54] to-[#0c1e3d] text-white p-3 sm:p-4 sticky top-0 z-30 shadow-[0_4px_20px_rgba(30,58,138,0.25)] border-b border-blue-500/20">
         <div className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto flex items-center justify-between transition-all duration-300`}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {activeState !== 'home' && (
               <button 
                 onClick={() => {
@@ -202,18 +202,18 @@ export default function App() {
                 className="p-1 hover:bg-slate-800 rounded-full transition-colors"
                 id="back-button"
               >
-                <ChevronLeft size={24} />
+                <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
               </button>
             )}
-            <h1 className="text-xl font-black tracking-tighter italic flex items-center gap-2">
-              <Logo size={28} />
-              SOUND SHEPHERD
+            <h1 className="text-lg sm:text-xl font-black tracking-tighter italic flex items-center gap-1.5 sm:gap-2">
+              <Logo size={24} className="sm:w-[28px] sm:h-[28px]" />
+              <span className="hidden min-[420px]:inline">SOUND SHEPHERD</span>
             </h1>
-            <span className="text-[8px] font-bold text-blue-500/60 uppercase tracking-widest hidden sm:block">by HIMPOWER</span>
+            <span className="text-[8px] font-bold text-blue-500/60 uppercase tracking-widest hidden md:block">by HIMPOWER</span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2 items-center shrink-0">
             {/* Global Connect Button */}
-            <div className="flex items-center gap-2 px-3 border-r border-slate-800">
+            <div className="flex items-center gap-2 px-2 sm:px-3 border-r border-slate-800">
               {user ? (
                 <div className="flex items-center gap-2 group relative">
                   <img src={user.photoURL || ''} alt="" className="w-8 h-8 rounded-full border border-blue-500/50" />
@@ -232,22 +232,14 @@ export default function App() {
               ) : (
                 <button 
                   onClick={login}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:bg-blue-600 hover:text-white hover:border-blue-500 transition-all"
+                  className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:bg-blue-600 hover:text-white hover:border-blue-500 transition-all"
                 >
-                  <LogIn size={16} />
+                  <LogIn size={14} className="sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline text-[9px] font-black uppercase tracking-widest">Connect</span>
                 </button>
               )}
             </div>
 
-            <button 
-              onClick={() => setActiveState('mixer')}
-              className={`p-2 rounded-lg transition-all flex items-center gap-2 ${activeState === 'mixer' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 scale-105' : 'hover:bg-slate-800 text-slate-400'}`}
-              title="Virtual Mixer"
-            >
-              <Sliders size={20} />
-              <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">Console</span>
-            </button>
             <button 
               onClick={() => setActiveState('recorder')}
               className={`p-2 rounded-lg transition-all flex items-center gap-2 ${activeState === 'recorder' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 scale-105' : 'hover:bg-slate-800 text-slate-400'}`}

@@ -65,7 +65,9 @@ interface ChannelData {
   muted: boolean;
   solo: boolean;
   hpf: boolean;
-  eq: { high: number; midHigh: number; midLow: number; low: number };
+  eq: { high: number; mid: number; midFreq: number; low: number };
+  comp: { threshold: number; ratio: number; attack: number; release: number };
+  reverb: number;
 }
 
 interface Song {
@@ -83,15 +85,73 @@ interface Song {
 //       'youtube' type = video display + IFrame volume sync only
 //       Full EQ/Pan on YouTube blocked by browser same-origin policy.
 // ─────────────────────────────────────────────
-const SONGS: Song[] = [];
+const SONGS: Song[] = [
+  {
+    id: 'demo-worship',
+    title: 'Glory Hallelujah (Demo)',
+    artist: 'Worship Team',
+    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    type: 'file'
+  }
+];
 
 const INITIAL_CHANNELS: ChannelData[] = [
-  { id: 1, name: 'Lead Voc', color: 'bg-blue-500', gain: 45, pan: 0, fader: 75, muted: false, solo: false, hpf: true, eq: { high: 2, midHigh: 1, midLow: 0, low: -3 } },
-  { id: 2, name: 'Back Voc', color: 'bg-blue-400', gain: 40, pan: -15, fader: 65, muted: false, solo: false, hpf: true, eq: { high: 0, midHigh: 0, midLow: 0, low: -3 } },
-  { id: 3, name: 'Acoustic', color: 'bg-orange-500', gain: 35, pan: 15, fader: 60, muted: false, solo: false, hpf: true, eq: { high: 3, midHigh: 1, midLow: -2, low: -5 } },
-  { id: 4, name: 'Keys L', color: 'bg-green-500', gain: 30, pan: -30, fader: 70, muted: false, solo: false, hpf: false, eq: { high: 0, midHigh: 0, midLow: 0, low: 0 } },
-  { id: 5, name: 'Keys R', color: 'bg-green-500', gain: 30, pan: 30, fader: 70, muted: false, solo: false, hpf: false, eq: { high: 0, midHigh: 0, midLow: 0, low: 0 } },
-  { id: 6, name: 'Drum Mix', color: 'bg-purple-500', gain: 25, pan: 0, fader: 35, muted: false, solo: false, hpf: false, eq: { high: 3, midHigh: 0, midLow: 2, low: 5 } },
+  { 
+    id: 1, 
+    name: 'Vocals', 
+    color: 'bg-amber-500/20', 
+    gain: 50, 
+    pan: 0, 
+    fader: 75, 
+    muted: false, 
+    solo: false, 
+    hpf: true, 
+    eq: { high: 2, mid: 1, midFreq: 1500, low: -3 }, 
+    comp: { threshold: -20, ratio: 4, attack: 15, release: 150 }, 
+    reverb: 30 
+  },
+  { 
+    id: 2, 
+    name: 'Guitar/Piano', 
+    color: 'bg-orange-500/15', 
+    gain: 45, 
+    pan: -20, 
+    fader: 70, 
+    muted: false, 
+    solo: false, 
+    hpf: true, 
+    eq: { high: 3, mid: -1, midFreq: 800, low: -2 }, 
+    comp: { threshold: -15, ratio: 3, attack: 25, release: 200 }, 
+    reverb: 15 
+  },
+  { 
+    id: 3, 
+    name: 'Bass Guitar', 
+    color: 'bg-blue-500/15', 
+    gain: 40, 
+    pan: 0, 
+    fader: 65, 
+    muted: false, 
+    solo: false, 
+    hpf: false, 
+    eq: { high: -4, mid: 2, midFreq: 250, low: 3 }, 
+    comp: { threshold: -25, ratio: 5, attack: 10, release: 100 }, 
+    reverb: 0 
+  },
+  { 
+    id: 4, 
+    name: 'Drums', 
+    color: 'bg-emerald-500/15', 
+    gain: 45, 
+    pan: 15, 
+    fader: 70, 
+    muted: false, 
+    solo: false, 
+    hpf: false, 
+    eq: { high: 4, mid: 0, midFreq: 1000, low: 2 }, 
+    comp: { threshold: -18, ratio: 6, attack: 5, release: 80 }, 
+    reverb: 5 
+  }
 ];
 
 // ─────────────────────────────────────────────
@@ -123,6 +183,89 @@ function getYouTubeEmbedUrl(url: string): string {
   const id = getYouTubeVideoId(url) || '';
   return `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=1&rel=0&modestbranding=1`;
 }
+
+// Generates a professional synthetic impulse response for reverb effect (zero assets/fetch needed!)
+function createReverbImpulseResponse(ctx: BaseAudioContext, duration: number, decay: number) {
+  const sampleRate = ctx.sampleRate;
+  const length = sampleRate * duration;
+  const impulse = ctx.createBuffer(2, length, sampleRate);
+  for (let channel = 0; channel < 2; channel++) {
+    const channelData = impulse.getChannelData(channel);
+    for (let i = 0; i < length; i++) {
+      channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+    }
+  }
+  return impulse;
+}
+
+// ─────────────────────────────────────────────
+// Interactive 3D Analog Knob Component
+// ─────────────────────────────────────────────
+interface KnobProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+  colorClass?: string;
+  unit?: string;
+}
+
+const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClass = "text-blue-500", unit = "" }) => {
+  const knobRef = useRef<HTMLDivElement>(null);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startVal = value;
+    const range = max - min;
+    const speed = 0.5; // Drag sensitivity multiplier
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const deltaY = startY - moveEvent.clientY; // Dragging UP increases value
+      const newVal = Math.min(max, Math.max(min, startVal + (deltaY * (range / 150)) * speed));
+      onChange(Math.round(newVal * 10) / 10);
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  // Map value to rotation angle (-135 degrees to +135 degrees)
+  const percent = (value - min) / (max - min);
+  const angle = -135 + percent * 270;
+
+  return (
+    <div className="flex flex-col items-center select-none group">
+      <div 
+        ref={knobRef}
+        onPointerDown={handlePointerDown}
+        className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-b from-slate-700 to-slate-900 border-2 border-slate-600/40 shadow-md cursor-ns-resize flex items-center justify-center active:scale-95 transition-transform"
+      >
+        {/* Notch indicator line */}
+        <motion.div 
+          className="absolute w-0.5 h-3 bg-blue-400 rounded-full origin-bottom"
+          style={{ 
+            transform: `rotate(${angle}deg)`, 
+            top: '4px',
+            boxShadow: '0 0 4px rgba(96,165,250,0.8)'
+          }} 
+        />
+        {/* Metal Cap center */}
+        <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-slate-800 border border-slate-705 shadow-inner flex items-center justify-center pointer-events-none">
+          <div className="w-1 h-1 rounded-full bg-slate-600/50" />
+        </div>
+      </div>
+      <span className="text-[7px] md:text-[8px] font-black uppercase tracking-tight text-slate-500 mt-1 leading-none">{label}</span>
+      <span className="text-[6px] md:text-[7px] font-mono font-bold text-blue-400/80 leading-none mt-0.5">{value}{unit}</span>
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────
 // Component
@@ -170,13 +313,35 @@ export const VirtualMixer = () => {
   // AudioContext is created once, after the first user interaction.
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);   // <audio> element
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const hpfRef = useRef<BiquadFilterNode | null>(null);
-  const panRef = useRef<StereoPannerNode | null>(null);
-  const eqRefs = useRef<{ L: BiquadFilterNode; ML: BiquadFilterNode; MH: BiquadFilterNode; H: BiquadFilterNode } | null>(null);
   const [audioCtxState, setAudioCtxState] = useState<AudioContextState>('suspended');
+
+  // Multi-channel stem references modeled after Yamaha MG16
+  interface ChannelNodes {
+    crossoverFilter1: BiquadFilterNode;
+    crossoverFilter2?: BiquadFilterNode;
+    hpf: BiquadFilterNode;
+    eqL: BiquadFilterNode;
+    eqM: BiquadFilterNode;
+    eqH: BiquadFilterNode;
+    compressor: DynamicsCompressorNode;
+    pan: StereoPannerNode;
+    gain: GainNode;
+    reverbSend: GainNode;
+    analyser: AnalyserNode;
+  }
+  const channelNodesRef = useRef<Record<number, ChannelNodes>>({});
+  const masterGainNodeRef = useRef<GainNode | null>(null);
+  const masterAnalyserRef = useRef<AnalyserNode | null>(null);
+  const convolverNodeRef = useRef<ConvolverNode | null>(null);
+  const reverbReturnGainRef = useRef<GainNode | null>(null);
+
+  // FX SPX Reverb settings
+  const [reverbSize, setReverbSize] = useState<number>(1.8); // decay duration in seconds
+  const [reverbMix, setReverbMix] = useState<number>(25);   // return level 0-100
+
+  // Real-time bouncing VU meters state for channels
+  const [channelMeters, setChannelMeters] = useState<Record<number, number>>({ 1: 0, 2: 0, 3: 0, 4: 0 });
 
   // Mic
   const [micActive, setMicActive] = useState(false);
@@ -287,7 +452,7 @@ export const VirtualMixer = () => {
     mute: { title: 'Mute / Silence', desc: 'Instantly silences the channel. Always mute mics when not in use to prevent feedback or hearing private conversations between songs.' },
   };
 
-  // ── Init Web Audio (file only) ────────────────
+  // ── Init Web Audio (multi-channel split) ──────
   const initWebAudio = useCallback(() => {
     // Already initialized — just resume if suspended
     if (audioCtxRef.current) {
@@ -298,10 +463,7 @@ export const VirtualMixer = () => {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     const ctx = new AudioContextClass();
 
-    // Create <audio> element
-    // NOTE: do NOT set crossOrigin='anonymous' for external MP3s —
-    // it forces strict CORS and causes 403s from CDNs that don't send CORS headers.
-    // Without it, the browser plays the audio fine (just no Web Audio routing for CORS-blocked files).
+    // Create <audio> elements
     const audio = new Audio();
     audio.preload = 'auto';
     audio.loop = true;
@@ -313,37 +475,147 @@ export const VirtualMixer = () => {
     audio.addEventListener('canplay', () => setIsLoading(false));
     audio.addEventListener('error', () => setIsLoading(false));
 
-    // Web Audio node chain: source → HPF → EQ(4band) → Pan → Gain → Analyser → output
+    // Web Audio Routing: source -> crossovers -> EQs -> Comps -> Pans -> Gains -> Analysers -> MasterBus -> MasterOut
     const source = ctx.createMediaElementSource(audio);
-    const hpf = ctx.createBiquadFilter();
-    hpf.type = 'highpass'; hpf.frequency.value = 80;
 
-    const eqL = ctx.createBiquadFilter(); eqL.type = 'lowshelf'; eqL.frequency.value = 100;
-    const eqML = ctx.createBiquadFilter(); eqML.type = 'peaking'; eqML.frequency.value = 400;
-    const eqMH = ctx.createBiquadFilter(); eqMH.type = 'peaking'; eqMH.frequency.value = 2500;
-    const eqH = ctx.createBiquadFilter(); eqH.type = 'highshelf'; eqH.frequency.value = 8000;
+    // Create Master Bus Gain and Analyser
+    const masterBus = ctx.createGain();
+    const masterAnalyserNode = ctx.createAnalyser();
+    masterAnalyserNode.fftSize = 64;
 
-    const pan = ctx.createStereoPanner();
-    const gain = ctx.createGain();
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 64;
+    // Create SPX Reverb Convolver effect
+    const convolver = ctx.createConvolver();
+    convolver.buffer = createReverbImpulseResponse(ctx, reverbSize, 1.5);
+    const reverbReturn = ctx.createGain();
+    convolver.connect(reverbReturn);
+    reverbReturn.connect(masterBus);
 
-    source.connect(hpf);
-    hpf.connect(eqL); eqL.connect(eqML); eqML.connect(eqMH); eqMH.connect(eqH);
-    eqH.connect(pan); pan.connect(gain); gain.connect(analyser); analyser.connect(ctx.destination);
+    // Master path
+    const masterVolumeNode = ctx.createGain();
+    masterBus.connect(masterVolumeNode);
+    masterVolumeNode.connect(masterAnalyserNode);
+    masterAnalyserNode.connect(ctx.destination);
+
+    // Build the 4 channels
+    const nodes: Record<number, ChannelNodes> = {};
+    INITIAL_CHANNELS.forEach(ch => {
+      const cross1 = ctx.createBiquadFilter();
+      let cross2: BiquadFilterNode | undefined;
+
+      // STEM FREQUENCY CROSSOVER EXTRACTION LOGIC
+      if (ch.id === 1) {
+        // Vocals: presence bandpass
+        cross1.type = 'bandpass';
+        cross1.frequency.value = 1800;
+        cross1.Q.value = 0.65;
+      } else if (ch.id === 2) {
+        // Guitar/Piano: wide midrange
+        cross1.type = 'bandpass';
+        cross1.frequency.value = 600;
+        cross1.Q.value = 0.5;
+      } else if (ch.id === 3) {
+        // Bass Guitar: sub lows
+        cross1.type = 'lowpass';
+        cross1.frequency.value = 130;
+      } else if (ch.id === 4) {
+        // Drums: parallel lowpass (kick) + highpass (cymbals/clicks)
+        cross1.type = 'lowpass';
+        cross1.frequency.value = 85;
+
+        cross2 = ctx.createBiquadFilter();
+        cross2.type = 'highpass';
+        cross2.frequency.value = 4500;
+        source.connect(cross2);
+      }
+
+      // Connect crossovers from source
+      source.connect(cross1);
+
+      // HPF
+      const hpfNode = ctx.createBiquadFilter();
+      hpfNode.type = 'highpass';
+      hpfNode.frequency.value = ch.hpf ? 80 : 15;
+
+      // EQs
+      const eqLNode = ctx.createBiquadFilter();
+      eqLNode.type = 'lowshelf';
+      eqLNode.frequency.value = 100;
+
+      const eqMNode = ctx.createBiquadFilter();
+      eqMNode.type = 'peaking';
+      eqMNode.frequency.value = ch.eq.midFreq;
+      eqMNode.Q.value = 0.7;
+
+      const eqHNode = ctx.createBiquadFilter();
+      eqHNode.type = 'highshelf';
+      eqHNode.frequency.value = 8000;
+
+      // Dynamics Compressor
+      const compNode = ctx.createDynamicsCompressor();
+      compNode.threshold.value = ch.comp.threshold;
+      compNode.ratio.value = ch.comp.ratio;
+      compNode.attack.value = ch.comp.attack / 1000;
+      compNode.release.value = ch.comp.release / 1000;
+
+      // Stereo Pan
+      const panNode = ctx.createStereoPanner();
+      panNode.pan.value = ch.pan / 100;
+
+      // Gain controls
+      const gainNode = ctx.createGain();
+      const reverbSendNode = ctx.createGain();
+
+      // Analyser per channel for separate meters
+      const chAnalyser = ctx.createAnalyser();
+      chAnalyser.fftSize = 64;
+
+      // Connect stems together
+      cross1.connect(hpfNode);
+      if (cross2) {
+        cross2.connect(hpfNode);
+      }
+
+      hpfNode.connect(eqLNode);
+      eqLNode.connect(eqMNode);
+      eqMNode.connect(eqHNode);
+      eqHNode.connect(compNode);
+
+      // Branch to Pan and Reverb Send
+      compNode.connect(panNode);
+      panNode.connect(gainNode);
+      gainNode.connect(chAnalyser);
+      chAnalyser.connect(masterBus);
+
+      compNode.connect(reverbSendNode);
+      reverbSendNode.connect(convolver);
+
+      nodes[ch.id] = {
+        crossoverFilter1: cross1,
+        crossoverFilter2: cross2,
+        hpf: hpfNode,
+        eqL: eqLNode,
+        eqM: eqMNode,
+        eqH: eqHNode,
+        compressor: compNode,
+        pan: panNode,
+        gain: gainNode,
+        reverbSend: reverbSendNode,
+        analyser: chAnalyser,
+      };
+    });
 
     audioCtxRef.current = ctx;
     audioElRef.current = audio;
     sourceNodeRef.current = source;
-    gainNodeRef.current = gain;
-    analyserRef.current = analyser;
-    hpfRef.current = hpf;
-    panRef.current = pan;
-    eqRefs.current = { L: eqL, ML: eqML, MH: eqMH, H: eqH };
+    channelNodesRef.current = nodes;
+    masterGainNodeRef.current = masterVolumeNode;
+    masterAnalyserRef.current = masterAnalyserNode;
+    convolverNodeRef.current = convolver;
+    reverbReturnGainRef.current = reverbReturn;
 
     setAudioCtxState(ctx.state);
     if (ctx.state === 'suspended') ctx.resume();
-  }, []);
+  }, [reverbSize]);
 
   // ── AudioContext state polling ──────────────────
   useEffect(() => {
@@ -357,46 +629,117 @@ export const VirtualMixer = () => {
   const syncNodes = useCallback(() => {
     const ctx = audioCtxRef.current;
     if (!ctx || ctx.state === 'closed') return;
-    if (!gainNodeRef.current || !hpfRef.current || !panRef.current || !eqRefs.current) return;
 
-    const ch = selectedChannel;
     const t = ctx.currentTime;
-    const channelGain = ch.muted ? 0 : Math.pow(10, (ch.fader - 70) / 20);
     const masterGain = Math.pow(10, (masterFader - 80) / 20);
 
-    gainNodeRef.current.gain.setTargetAtTime(channelGain * masterGain, t, 0.05);
-    hpfRef.current.frequency.setTargetAtTime(ch.hpf ? 80 : 20, t, 0.05);
-    panRef.current.pan.setTargetAtTime(ch.pan / 100, t, 0.05);
-    eqRefs.current.L.gain.setTargetAtTime(ch.eq.low, t, 0.05);
-    eqRefs.current.ML.gain.setTargetAtTime(ch.eq.midLow, t, 0.05);
-    eqRefs.current.MH.gain.setTargetAtTime(ch.eq.midHigh, t, 0.05);
-    eqRefs.current.H.gain.setTargetAtTime(ch.eq.high, t, 0.05);
-  }, [selectedChannel, masterFader]);
+    // Sync Master volume and reverb returns
+    if (masterGainNodeRef.current) {
+      masterGainNodeRef.current.gain.setTargetAtTime(masterGain, t, 0.05);
+    }
+    if (reverbReturnGainRef.current) {
+      reverbReturnGainRef.current.gain.setTargetAtTime(reverbMix / 100, t, 0.05);
+    }
+
+    // Is any channel currently Soloed? (PFL logic)
+    const isAnySoloed = channels.some(c => c.solo);
+
+    // Sync each channel strip
+    channels.forEach(ch => {
+      const live = channelNodesRef.current[ch.id];
+      if (!live) return;
+
+      // If solo exists, channels that are NOT soloed must be quiet
+      const isMutedBySolo = isAnySoloed && !ch.solo;
+      const isMuted = ch.muted || isMutedBySolo;
+
+      const faderVolume = Math.pow(10, (ch.fader - 70) / 20); // 70 is nominal 0dB fader level
+      const trimGain = ch.gain / 50; // nominal 50 -> 1x trim
+
+      // Power scales to balance filtered bands
+      let stemMultiplier = 1.0;
+      if (ch.id === 1) stemMultiplier = 1.7; // vocals clarity
+      if (ch.id === 2) stemMultiplier = 1.2; // guitar presence
+      if (ch.id === 3) stemMultiplier = 1.85; // bass richness
+      if (ch.id === 4) stemMultiplier = 1.55; // drum crispness
+
+      const targetGain = isMuted ? 0 : faderVolume * trimGain * stemMultiplier;
+
+      live.gain.gain.setTargetAtTime(targetGain, t, 0.05);
+      live.reverbSend.gain.setTargetAtTime((ch.reverb / 100) * (isMuted ? 0 : 1), t, 0.05);
+
+      // Pan
+      live.pan.pan.setTargetAtTime(ch.pan / 100, t, 0.05);
+
+      // HPF
+      live.hpf.frequency.setTargetAtTime(ch.hpf ? 80 : 15, t, 0.05);
+
+      // 3-Band Parametric Sweep EQ
+      live.eqL.gain.setTargetAtTime(ch.eq.low, t, 0.05);
+      live.eqM.gain.setTargetAtTime(ch.eq.mid, t, 0.05);
+      live.eqM.frequency.setTargetAtTime(ch.eq.midFreq, t, 0.05);
+      live.eqH.gain.setTargetAtTime(ch.eq.high, t, 0.05);
+
+      // Compressor parameters
+      live.compressor.threshold.setTargetAtTime(ch.comp.threshold, t, 0.05);
+      live.compressor.ratio.setTargetAtTime(ch.comp.ratio, t, 0.05);
+      live.compressor.attack.setTargetAtTime(ch.comp.attack / 1000, t, 0.05);
+      live.compressor.release.setTargetAtTime(ch.comp.release / 1000, t, 0.05);
+    });
+  }, [channels, masterFader, reverbMix]);
 
   useEffect(() => { syncNodes(); }, [syncNodes]);
 
-  // ── VU Meter animation ──────────────────────────
+  // ── VU Meter animation (multitrack reading) ─────
   useEffect(() => {
     let raf: number;
     const loop = () => {
       if (isPlaying && currentSong) {
-        if (currentSong.type === 'file' && analyserRef.current) {
-          const data = new Uint8Array(analyserRef.current.frequencyBinCount);
-          analyserRef.current.getByteFrequencyData(data);
-          const avg = data.reduce((a, b) => a + b, 0) / data.length;
-          setMasterMeter((avg / 255) * 100);
+        if (currentSong.type === 'file') {
+          // Read Master output meter
+          if (masterAnalyserRef.current) {
+            const data = new Uint8Array(masterAnalyserRef.current.frequencyBinCount);
+            masterAnalyserRef.current.getByteFrequencyData(data);
+            const avg = data.reduce((a, b) => a + b, 0) / data.length;
+            setMasterMeter((avg / 255) * 110); // scale slightly for visual impact
+          }
+
+          // Read individual channels' analysers
+          const meters: Record<number, number> = {};
+          channels.forEach(ch => {
+            const live = channelNodesRef.current[ch.id];
+            if (live && live.analyser && !ch.muted) {
+              const chData = new Uint8Array(live.analyser.frequencyBinCount);
+              live.analyser.getByteFrequencyData(chData);
+              const avg = chData.reduce((a, b) => a + b, 0) / chData.length;
+              meters[ch.id] = Math.min(100, (avg / 255) * 200 * (ch.gain / 50));
+            } else {
+              meters[ch.id] = 0;
+            }
+          });
+          setChannelMeters(meters);
         } else {
-          // YouTube: simulated meter
-          setMasterMeter(40 + Math.random() * 20 + (Math.random() > 0.9 ? 15 : 0));
+          // YouTube: simple simulation with some random organic jitter
+          const t = Date.now() / 150;
+          setMasterMeter(40 + Math.sin(t) * 15 + Math.random() * 8);
+
+          const meters: Record<number, number> = {};
+          channels.forEach(ch => {
+            meters[ch.id] = ch.muted ? 0 : 35 + Math.sin(t + ch.id) * 18 + Math.random() * 10;
+          });
+          setChannelMeters(meters);
         }
       } else {
         setMasterMeter(0);
+        const meters: Record<number, number> = {};
+        channels.forEach(ch => { meters[ch.id] = 0; });
+        setChannelMeters(meters);
       }
       raf = requestAnimationFrame(loop);
     };
     loop();
     return () => cancelAnimationFrame(raf);
-  }, [isPlaying, currentSong]);
+  }, [isPlaying, currentSong, channels]);
 
   // ── Cleanup ─────────────────────────────────────
   useEffect(() => {
@@ -603,10 +946,16 @@ export const VirtualMixer = () => {
         if (ctx?.state === 'suspended') await ctx.resume();
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         micStreamRef.current = stream;
-        if (ctx && analyserRef.current) {
+        if (ctx) {
           const src = ctx.createMediaStreamSource(stream);
-          src.connect(analyserRef.current);
           micSourceRef.current = src;
+          // Dynamically plug microphone source into Channel 1 (Vocals) processing path!
+          const vocNode = channelNodesRef.current[1];
+          if (vocNode) {
+            src.connect(vocNode.hpf);
+          } else if (masterAnalyserRef.current) {
+            src.connect(masterAnalyserRef.current);
+          }
         }
         setMicActive(true);
       } catch (err: any) {
@@ -837,113 +1186,210 @@ export const VirtualMixer = () => {
 
         {/* Left: Fader strips */}
         <div ref={scrollContainerRef} className="flex-1 overflow-x-auto pb-1 custom-scrollbar lg:max-w-none order-2 lg:order-1">
-          <div className={`flex gap-1 min-w-max p-1 rounded-2xl h-full relative ${skin === 'modern' ? 'bg-black/10' : 'bg-slate-300 shadow-inner'}`}>
+          <div className={`flex gap-2 min-w-max p-2 rounded-2xl h-full relative ${skin === 'modern' ? 'bg-black/10' : 'bg-slate-300 shadow-inner'}`}>
             {channels.map(ch => (
               <div
                 key={ch.id}
                 ref={el => { channelRefs.current[ch.id] = el; }}
-                className={`w-[68px] md:w-[82px] flex flex-col items-center gap-1 transition-all p-1 rounded-xl ${selectedId === ch.id ? (skin === 'modern' ? 'bg-slate-800/60 ring-1 ring-white/5' : 'bg-white/60 shadow-lg ring-1 ring-black/10') : ''}`}
+                className={`w-[72px] md:w-[86px] flex flex-col items-center gap-1.5 transition-all p-1.5 rounded-xl cursor-pointer ${selectedId === ch.id ? (skin === 'modern' ? 'bg-slate-800/70 ring-1 ring-white/10 shadow-2xl scale-[1.01]' : 'bg-white/80 shadow-lg ring-1 ring-black/15 scale-[1.01]') : 'opacity-90 hover:opacity-100'}`}
+                onClick={() => setSelectedId(ch.id)}
               >
-                {/* Scribble strip */}
-                <button
-                  onClick={() => setSelectedId(ch.id)}
-                  className={`w-full h-10 md:h-12 rounded-lg ${ch.color} flex flex-col items-center justify-center p-1 border-2 transition-all ${selectedId === ch.id ? 'border-white scale-105 shadow-lg' : 'border-black/50'}`}
-                >
-                  <span className="text-[8px] font-black text-black/40 uppercase leading-none">{ch.id}</span>
-                  <span className="text-[9px] md:text-[11px] font-bold text-white truncate w-full text-center">{ch.name}</span>
-                </button>
-
-                {/* VU meter */}
-                <div className="h-28 md:h-44 w-2.5 md:w-3.5 bg-black rounded flex flex-col-reverse p-0.5 overflow-hidden">
-                  <motion.div
-                    animate={{ height: ch.muted ? '0%' : (ch.id === selectedId ? `${masterMeter}%` : `${masterMeter * (0.5 + Math.random() * 0.3)}%`) }}
-                    transition={{ duration: 0.1 }}
-                    className="w-full bg-green-500 rounded-sm shadow-[0_0_10px_rgba(34,197,94,0.5)]"
-                  />
+                {/* Channel Select Header */}
+                <div className={`w-full py-1 rounded text-[7px] md:text-[8px] font-black uppercase text-center tracking-widest ${selectedId === ch.id ? 'bg-blue-600 text-white animate-pulse' : (skin === 'modern' ? 'bg-slate-900 text-slate-500' : 'bg-slate-400 text-slate-700')}`}>
+                  CH {ch.id}
                 </div>
 
-                {/* Solo / Mute */}
+                {/* VU LED Meter (Green -> Yellow -> Red) */}
+                <div className="h-28 md:h-44 w-3 md:w-4 bg-[#0a0a0d] border border-slate-800 rounded flex flex-col-reverse p-0.5 overflow-hidden gap-[2px]">
+                  {[...Array(14)].map((_, i) => {
+                    const level = (i / 13) * 100;
+                    const val = channelMeters[ch.id] || 0;
+                    const isActive = val >= level && val > 0;
+                    let dotColor = 'bg-green-500/20';
+                    if (isActive) {
+                      if (level > 85) dotColor = 'bg-red-500 shadow-[0_0_6px_#f87171]';
+                      else if (level > 65) dotColor = 'bg-yellow-400 shadow-[0_0_5px_#facc15]';
+                      else dotColor = 'bg-green-400 shadow-[0_0_4px_#4ade80]';
+                    } else {
+                      if (level > 85) dotColor = 'bg-red-950/20';
+                      else if (level > 65) dotColor = 'bg-yellow-950/20';
+                      else dotColor = 'bg-green-950/20';
+                    }
+                    return (
+                      <div key={i} className={`h-1.5 w-full rounded-[1px] transition-all duration-75 ${dotColor}`} />
+                    );
+                  })}
+                </div>
+
+                {/* Solo / Mute Card indicators */}
                 <div className="flex flex-col gap-1 w-full p-0.5">
                   <button
-                    onClick={(e) => { updateChannel(ch.id, { solo: !ch.solo }); if (!ch.solo) showInfo(e, HELP_DATABASE.solo.title, HELP_DATABASE.solo.desc); }}
-                    className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${ch.solo ? 'bg-yellow-500 border-yellow-300 text-black shadow-lg shadow-yellow-500/20' : (skin === 'modern' ? 'bg-slate-900 border-slate-800 text-slate-600' : 'bg-slate-400 border-slate-500 text-slate-700')}`}
+                    onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { solo: !ch.solo }); if (!ch.solo) showInfo(e, HELP_DATABASE.solo.title, HELP_DATABASE.solo.desc); }}
+                    className={`w-full py-1 rounded-md font-black text-[8px] md:text-[9px] uppercase border transition-all ${ch.solo ? 'bg-yellow-500 border-yellow-300 text-black shadow-lg shadow-yellow-500/30' : (skin === 'modern' ? 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300' : 'bg-slate-400 border-slate-500 text-slate-700 hover:bg-slate-500')}`}
                   >Solo</button>
                   <button
-                    onClick={(e) => { updateChannel(ch.id, { muted: !ch.muted }); if (!ch.muted) showInfo(e, HELP_DATABASE.mute.title, HELP_DATABASE.mute.desc); }}
-                    className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${ch.muted ? 'bg-red-600 border-red-400 text-white shadow-lg shadow-red-600/20' : (skin === 'modern' ? 'bg-slate-900 border-slate-800 text-slate-600' : 'bg-slate-400 border-slate-500 text-slate-700')}`}
+                    onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { muted: !ch.muted }); if (!ch.muted) showInfo(e, HELP_DATABASE.mute.title, HELP_DATABASE.mute.desc); }}
+                    className={`w-full py-1 rounded-md font-black text-[8px] md:text-[9px] uppercase border transition-all ${ch.muted ? 'bg-red-650 border-red-500 text-white shadow-lg shadow-red-655/30 font-black' : (skin === 'modern' ? 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300' : 'bg-slate-400 border-slate-500 text-slate-700 hover:bg-slate-500')}`}
                   >Mute</button>
                 </div>
 
-                {/* Fader */}
-                <div className={`relative h-40 md:h-60 w-6 md:w-8 rounded-lg border mb-1 flex items-center justify-center p-0.5 ${skin === 'modern' ? 'bg-[#0d0f14] border-slate-800/50' : 'bg-slate-800 border-slate-900 shadow-inner'}`}>
-                  <div className={`absolute inset-0 flex flex-col justify-between py-4 px-0.5 pointer-events-none ${skin === 'modern' ? 'opacity-10' : 'opacity-30'}`}>
-                    {[...Array(11)].map((_, i) => <div key={i} className={`h-[1px] w-full ${skin === 'modern' ? 'bg-slate-500' : 'bg-slate-400'}`} />)}
+                {/* Fader Track */}
+                <div className={`relative h-40 md:h-60 w-7 md:w-9 rounded-xl border flex items-center justify-center p-0.5 shadow-inner ${skin === 'modern' ? 'bg-[#0a0a0d] border-slate-800/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]' : 'bg-slate-800 border-slate-900'}`}>
+                  {/* Tick Marks */}
+                  <div className={`absolute inset-y-0 inset-x-0.5 flex flex-col justify-between py-4 pointer-events-none ${skin === 'modern' ? 'opacity-15' : 'opacity-40'}`}>
+                    {[...Array(11)].map((_, i) => (
+                      <div key={i} className="flex justify-between items-center w-full px-0.5">
+                        <div className="h-[1px] w-1 bg-slate-400" />
+                        <span className="text-[5px] text-slate-500 leading-none">{(10 - i) * 10}</span>
+                        <div className="h-[1px] w-1 bg-slate-400" />
+                      </div>
+                    ))}
                   </div>
                   <input
                     type="range" min="0" max="100" value={ch.fader}
                     onChange={(e) => updateChannel(ch.id, { fader: parseInt(e.target.value) })}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                     style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
                   />
+                  {/* Yamaha Style Metallic Blue Fader Cap */}
                   <motion.div
                     animate={{ bottom: `${ch.fader}%` }}
-                    className="absolute w-6 md:w-8 h-8 md:h-12 bg-[#e0e0e0] border-y-2 md:border-y-4 border-[#888] rounded-sm shadow-xl z-0 pointer-events-none flex items-center justify-center"
+                    className="absolute w-7 md:w-9 h-8 md:h-12 bg-gradient-to-r from-slate-100 via-[#e0e0e0] to-slate-100 border-y border-[#3b82f6] rounded shadow-2xl z-10 pointer-events-none flex flex-col items-center justify-center ring-[1px] ring-blue-500/20"
                     style={{ transform: 'translateY(50%)' }}
                   >
-                    <div className="w-full h-[1px] md:h-0.5 bg-red-600 shadow-[0_0_8px_rgba(255,0,0,0.5)]" />
+                    <div className="w-[12%] h-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
                   </motion.div>
+                </div>
+
+                {/* Handwritten Scribble Tape at Bottom */}
+                <div className="mt-1 w-full px-1 py-1.5 bg-[#fef08a] border border-[#fef3c7] rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center -rotate-1 select-none">
+                  <span className="text-[9px] md:text-[10px] font-sans italic font-black text-slate-800 tracking-tight leading-none text-center truncate">
+                    {ch.name}
+                  </span>
                 </div>
               </div>
             ))}
 
+            {/* SPACER FOR FX CONSOLE */}
+            <div className="w-[1px] self-stretch bg-slate-700/20 dark:bg-white/5 my-2" />
+
+            {/* Yamaha SPX Reverb Return Strip */}
+            <div className={`w-[70px] md:w-[84px] flex flex-col items-center gap-1.5 p-1.5 rounded-xl border border-blue-500/10 ${skin === 'modern' ? 'bg-blue-950/10' : 'bg-slate-350 shadow-inner'}`}>
+              <div className="w-full text-center text-[7px] md:text-[8px] font-black uppercase tracking-wider text-blue-400 bg-blue-950/40 py-0.5 rounded leading-none">
+                SPX Return
+              </div>
+              
+              <div className="flex flex-col gap-3 py-2 items-center flex-1 justify-center">
+                {/* Decay size */}
+                <Knob 
+                  label="Reverb Size" 
+                  value={reverbSize} 
+                  min={0.5} 
+                  max={4.0} 
+                  unit="s" 
+                  onChange={(v) => { 
+                    setReverbSize(v);
+                    const ctx = audioCtxRef.current;
+                    if (ctx && convolverNodeRef.current) {
+                      convolverNodeRef.current.buffer = createReverbImpulseResponse(ctx, v, 1.5);
+                    }
+                  }} 
+                />
+                
+                {/* Return return mix level */}
+                <Knob 
+                  label="Eff Return" 
+                  value={reverbMix} 
+                  min={0} 
+                  max={100} 
+                  unit="%" 
+                  onChange={(v) => setReverbMix(v)} 
+                />
+              </div>
+
+              {/* Tape for Reverb return */}
+              <div className="mt-auto w-full px-1 py-1.5 bg-[#cbd5e1] border border-slate-300 rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center rotate-1 select-none">
+                <span className="text-[9px] md:text-[10px] font-sans font-black text-slate-700 tracking-tight leading-none text-center truncate">
+                  FX RET
+                </span>
+              </div>
+            </div>
+
+            <div className="w-[1px] self-stretch bg-slate-700/20 dark:bg-white/5 my-2" />
+
             {/* Master fader */}
-            <div className="w-[75px] md:w-[95px] border-l border-white/5 pl-2 md:pl-3 ml-1 md:ml-3 flex flex-col items-center gap-1 bg-black/5 rounded-2xl p-1 md:p-2 self-stretch">
+            <div className="w-[78px] md:w-[96px] border-l border-white/5 pl-1 ml-0.5 flex flex-col items-center gap-1.5 bg-black/5 rounded-2xl p-1.5 self-stretch">
               
               {/* Preset Controls */}
               {user && (
-                <div className="flex gap-1 w-full mb-1">
+                <div className="flex gap-1 w-full">
                   <button 
                     onClick={saveMix}
-                    className="flex-1 p-2 bg-slate-900 border border-slate-700 rounded-lg hover:border-blue-500 transition-all group"
+                    className="flex-1 py-1.5 bg-slate-900 border border-slate-700 rounded-lg hover:border-blue-500 transition-all group"
                     title="Save Mix Preset"
                   >
-                    <Save size={12} className="text-slate-500 group-hover:text-blue-500 mx-auto" />
+                    <Save size={11} className="text-slate-500 group-hover:text-blue-500 mx-auto" />
                   </button>
                 </div>
               )}
 
               <button
                 onClick={(e) => { initWebAudio(); showInfo(e, 'Master Output', 'Main output level. Make sure Audio Engine is Online (green) before playback.'); }}
-                className="w-full h-9 md:h-11 bg-red-600 rounded-lg flex flex-col items-center justify-center border-2 border-red-400 shadow-lg shadow-red-600/20 mb-1 hover:bg-red-500 transition-colors"
+                className="w-full h-8 md:h-10 bg-red-650 rounded-lg flex flex-col items-center justify-center border border-red-500 shadow-lg shadow-red-600/10 hover:bg-red-600 transition-colors"
               >
                 <span className="text-[8px] md:text-[9px] font-black text-white uppercase italic leading-none">MAIN</span>
               </button>
-              <div className="flex gap-0.5 md:gap-1 h-28 md:h-44 w-5 md:w-7 bg-black rounded p-0.5 md:p-1 mb-1">
-                <div className="flex-1 bg-green-500/10 rounded-sm relative overflow-hidden">
-                  <motion.div animate={{ height: `${masterMeter}%` }} className="absolute bottom-0 w-full bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]" />
+
+              {/* Master Dual VU Meter */}
+              <div className="flex gap-1 h-28 md:h-44 w-6 md:w-8 bg-black rounded p-0.5 overflow-hidden border border-slate-800">
+                {/* L channel */}
+                <div className="flex-1 bg-green-500/5 rounded-sm relative overflow-hidden flex flex-col-reverse gap-[1px]">
+                  {[...Array(14)].map((_, i) => {
+                    const level = (i / 13) * 100;
+                    const isActive = masterMeter >= level && masterMeter > 0;
+                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-405' : 'bg-green-400') : 'bg-slate-900/45';
+                    return <div key={i} className={`h-1.5 w-full rounded-[1px] ${dotColor}`} />;
+                  })}
                 </div>
-                <div className="flex-1 bg-green-500/10 rounded-sm relative overflow-hidden">
-                  <motion.div animate={{ height: `${masterMeter * 0.9}%` }} className="absolute bottom-0 w-full bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]" />
+                {/* R channel */}
+                <div className="flex-1 bg-green-500/5 rounded-sm relative overflow-hidden flex flex-col-reverse gap-[1px]">
+                  {[...Array(14)].map((_, i) => {
+                    const level = (i / 13) * 100;
+                    const isActive = masterMeter * 0.95 >= level && masterMeter > 0;
+                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-405' : 'bg-green-400') : 'bg-slate-900/45';
+                    return <div key={i} className={`h-1.5 w-full rounded-[1px] ${dotColor}`} />;
+                  })}
                 </div>
               </div>
-              <div className="relative h-40 md:h-60 w-7 md:w-9 bg-[#0a0a0a] rounded-lg border-2 border-slate-700 flex items-center justify-center p-0.5 md:p-1 mt-auto">
-                <div className="absolute inset-x-0 top-0 bottom-0 z-10 opacity-0 cursor-pointer">
-                  <input
-                    type="range" min="0" max="100" value={masterFader}
-                    onChange={(e) => setMasterFader(parseInt(e.target.value))}
-                    className="w-full h-full cursor-pointer"
-                    style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
-                  />
+
+              {/* Master Fader Container */}
+              <div className={`relative h-40 md:h-60 w-8 md:w-10 rounded-xl border flex items-center justify-center p-0.5 shadow-inner mt-auto ${skin === 'modern' ? 'bg-[#08080b] border-slate-800' : 'bg-slate-800'}`}>
+                {/* Master ticks */}
+                <div className="absolute inset-y-0 inset-x-0.5 flex flex-col justify-between py-4 pointer-events-none opacity-20">
+                  {[...Array(11)].map((_, i) => <div key={i} className="h-[1px] w-full bg-slate-400" />)}
                 </div>
+                <input
+                  type="range" min="0" max="100" value={masterFader}
+                  onChange={(e) => setMasterFader(parseInt(e.target.value))}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                  style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
+                />
+                {/* Yamaha style metallic red master fader cap */}
                 <motion.div
                   animate={{ bottom: `${masterFader}%` }}
-                  className="absolute w-7 md:w-9 h-10 md:h-14 bg-red-700 border-y-2 md:border-y-4 border-red-500 rounded-sm shadow-2xl flex items-center justify-center pointer-events-none z-0"
+                  className="absolute w-8 md:w-10 h-8 md:h-12 bg-gradient-to-r from-red-200 via-red-100 to-red-red border-y border-red-650 rounded shadow-2xl z-10 pointer-events-none flex flex-col items-center justify-center"
                   style={{ transform: 'translateY(50%)' }}
                 >
-                  <div className="w-full h-[1px] md:h-0.5 bg-white shadow-[0_0_10px_white]" />
+                  <div className="w-[12%] h-full bg-red-600 shadow-[0_0_8px_#dc2626]" />
                 </motion.div>
               </div>
-              <div className="text-[7px] md:text-[9px] font-black text-slate-700 mt-1 uppercase italic leading-none">Master</div>
+
+              {/* Handwritten tape for Main Master */}
+              <div className="w-full px-1 py-1.5 bg-[#fecaca] border border-red-200 rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center -rotate-1 select-none">
+                <span className="text-[9px] md:text-[10px] font-sans font-black text-red-800 tracking-tight leading-none text-center truncate">
+                  STEREO
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -1118,25 +1564,23 @@ export const VirtualMixer = () => {
               {/* EQ curve visual */}
               <div className="h-10 md:h-14 bg-black/40 rounded-lg border border-white/5 overflow-hidden flex items-end relative">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-full w-[1px] bg-slate-800 absolute left-1/4" />
-                  <div className="h-full w-[1px] bg-slate-800 absolute left-2/4" />
-                  <div className="h-full w-[1px] bg-slate-800 absolute left-3/4" />
+                  <div className="h-full w-[1px] bg-slate-800 absolute left-1/3" />
+                  <div className="h-full w-[1px] bg-slate-800 absolute left-2/3" />
                 </div>
                 <div className="w-full h-full flex items-end px-1.5 z-10">
-                  <div className="flex-1 h-full flex items-end gap-1">
+                  <div className="flex-1 h-full flex items-end gap-1.5">
                     <div className="w-full bg-blue-500/20 rounded-t-xs transition-all" style={{ height: `${50 + (selectedChannel.hpf ? -30 : selectedChannel.eq.low * 3)}%` }} />
-                    <div className="w-full bg-blue-500/20 rounded-t-xs transition-all" style={{ height: `${50 + selectedChannel.eq.midLow * 3}%` }} />
-                    <div className="w-full bg-blue-500/20 rounded-t-xs transition-all" style={{ height: `${50 + selectedChannel.eq.midHigh * 3}%` }} />
-                    <div className="w-full bg-blue-500/20 rounded-t-xs transition-all" style={{ height: `${50 + selectedChannel.eq.high * 3}%` }} />
+                    <div className="w-full bg-blue-500/20 rounded-t-xs transition-all" style={{ height: `${50 + selectedChannel.eq.mid * 3}%` }} />
+                    <div className="w-full bg-blue-500/25 rounded-t-xs transition-all" style={{ height: `${50 + selectedChannel.eq.high * 3}%` }} />
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-1.5">
-                {(['high', 'midHigh', 'midLow', 'low'] as const).map(band => (
-                  <div key={band} className="flex flex-col items-center gap-0.5">
-                    <span className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase leading-none">{band.replace('mid', 'm')}</span>
-                    <div className="relative h-14 md:h-20 w-0.5 bg-slate-800 rounded-full flex items-center justify-center">
+              <div className="grid grid-cols-3 gap-2">
+                {(['high', 'mid', 'low'] as const).map(band => (
+                  <div key={band} className="flex flex-col items-center gap-1 bg-slate-900/30 p-1.5 rounded-lg border border-white/5">
+                    <span className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase leading-none">{band}</span>
+                    <div className="relative h-14 md:h-20 w-0.5 bg-slate-800 rounded-full flex items-center justify-center my-1">
                       <input
                         type="range" min="-12" max="12" value={selectedChannel.eq[band]}
                         onChange={(e) => updateChannel(selectedId, { eq: { ...selectedChannel.eq, [band]: parseInt(e.target.value) } })}
@@ -1144,17 +1588,29 @@ export const VirtualMixer = () => {
                       />
                       <motion.div
                         animate={{ bottom: `${((selectedChannel.eq[band] + 12) / 24) * 100}%` }}
-                        className="absolute w-3 h-4 md:w-4 md:h-5 bg-slate-700 border border-slate-500 rounded-sm shadow-xl flex flex-col justify-between py-1"
+                        className="absolute w-3 h-4 md:w-4 md:h-5 bg-gradient-to-b from-slate-600 to-slate-800 border border-slate-500 rounded-sm shadow-xl flex flex-col justify-between py-1"
                         style={{ transform: 'translateY(50%)' }}
                       >
                         <div className="w-full h-[0.5px] bg-blue-400 opacity-50" />
                       </motion.div>
                     </div>
                     <span className="text-[6px] md:text-[8px] font-mono font-bold text-blue-400 leading-none">
-                      {selectedChannel.eq[band] > 0 ? '+' : ''}{selectedChannel.eq[band]}
+                      {selectedChannel.eq[band] > 0 ? '+' : ''}{selectedChannel.eq[band]}dB
                     </span>
                   </div>
                 ))}
+              </div>
+
+              {/* Sweepable Mid Frequency Knob */}
+              <div className="flex justify-center py-2 bg-slate-900/35 rounded-xl border border-white/5">
+                <Knob
+                  label="Mid Crossover"
+                  value={selectedChannel.eq.midFreq}
+                  min={250}
+                  max={5000}
+                  unit="Hz"
+                  onChange={(v) => updateChannel(selectedId, { eq: { ...selectedChannel.eq, midFreq: Math.round(v) } })}
+                />
               </div>
             </div>
 
@@ -1183,13 +1639,19 @@ export const VirtualMixer = () => {
 
           <div className={`p-2 md:p-4 border-t shrink-0 ${skin === 'modern' ? 'bg-slate-900/100 border-white/5' : 'bg-slate-400 border-black/10'} flex gap-3`}>
             <button
-              onClick={() => setSelectedId(selectedId > 1 ? selectedId - 1 : 6)}
+              onClick={() => {
+                const prevId = selectedId > 1 ? selectedId - 1 : channels.length;
+                setSelectedId(prevId);
+              }}
               className={`flex-1 py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg ${skin === 'modern' ? 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 hover:bg-slate-700' : 'bg-slate-300 text-slate-700 hover:bg-slate-400 border border-slate-400'}`}
             >
               <ChevronLeft size={12} /> Prev
             </button>
             <button
-              onClick={() => setSelectedId(selectedId < 6 ? selectedId + 1 : 1)}
+              onClick={() => {
+                const nextId = selectedId < channels.length ? selectedId + 1 : 1;
+                setSelectedId(nextId);
+              }}
               className={`flex-1 py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg ${skin === 'modern' ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-600/20' : 'bg-slate-800 text-white hover:bg-slate-900 shadow-black/20'}`}
             >
               Next <ChevronRight size={12} />
