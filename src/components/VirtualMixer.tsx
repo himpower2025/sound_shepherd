@@ -1139,7 +1139,7 @@ export const VirtualMixer = () => {
                         <button
                           onClick={() => deleteSong(song.id)}
                           title="Remove from playlist"
-                          className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-slate-700 hover:bg-red-600/20 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
+                          className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-slate-700 hover:bg-red-600/20 hover:text-red-405 transition-all opacity-0 group-hover:opacity-100"
                         >
                           <Trash2 size={11} />
                         </button>
@@ -1157,20 +1157,20 @@ export const VirtualMixer = () => {
                         onChange={e => { setYtInputUrl(e.target.value); setYtInputError(''); }}
                         onKeyDown={e => e.key === 'Enter' && addYouTubeSong()}
                         placeholder="Paste YouTube URL here..."
-                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[10px] text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 min-w-0"
+                        className="flex-1 bg-slate-900 border border-slate-705 rounded-lg px-2 py-1.5 text-[10px] text-white placeholder-slate-650 focus:outline-none focus:border-blue-500 min-w-0"
                       />
                       <button
                         onClick={addYouTubeSong}
                         disabled={ytInputLoading || !ytInputUrl.trim()}
-                        className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+                        className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-705 disabled:text-slate-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
                       >
                         {ytInputLoading ? '...' : 'Add'}
                       </button>
                     </div>
                     {ytInputError && (
-                      <p className="text-[8px] text-red-400 font-bold">{ytInputError}</p>
+                      <p className="text-[8px] text-red-100 font-bold">{ytInputError}</p>
                     )}
-                    <p className="text-[7px] text-slate-600 font-medium uppercase tracking-widest">
+                    <p className="text-[7px] text-slate-600 font-medium uppercase tracking-[0.15em]">
                       YT = video display only &nbsp;|&nbsp; Upload MP3 for full console control
                     </p>
                   </div>
@@ -1182,105 +1182,268 @@ export const VirtualMixer = () => {
       </div>
 
       {/* ── Main Layout ── */}
-      <div className="flex flex-col lg:flex-row gap-2 md:gap-4 lg:gap-6 flex-1 h-full overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 h-full overflow-hidden">
 
-        {/* Left: Fader strips */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-x-auto pb-1 custom-scrollbar lg:max-w-none order-2 lg:order-1">
-          <div className={`flex gap-2 min-w-max p-2 rounded-2xl h-full relative ${skin === 'modern' ? 'bg-black/10' : 'bg-slate-300 shadow-inner'}`}>
-            {channels.map(ch => (
-              <div
-                key={ch.id}
-                ref={el => { channelRefs.current[ch.id] = el; }}
-                className={`w-[72px] md:w-[86px] flex flex-col items-center gap-1.5 transition-all p-1.5 rounded-xl cursor-pointer ${selectedId === ch.id ? (skin === 'modern' ? 'bg-slate-800/70 ring-1 ring-white/10 shadow-2xl scale-[1.01]' : 'bg-white/80 shadow-lg ring-1 ring-black/15 scale-[1.01]') : 'opacity-90 hover:opacity-100'}`}
-                onClick={() => setSelectedId(ch.id)}
-              >
-                {/* Channel Select Header */}
-                <div className={`w-full py-1 rounded text-[7px] md:text-[8px] font-black uppercase text-center tracking-widest ${selectedId === ch.id ? 'bg-blue-600 text-white animate-pulse' : (skin === 'modern' ? 'bg-slate-900 text-slate-500' : 'bg-slate-400 text-slate-700')}`}>
-                  CH {ch.id}
-                </div>
-
-                {/* VU LED Meter (Green -> Yellow -> Red) */}
-                <div className="h-28 md:h-44 w-3 md:w-4 bg-[#0a0a0d] border border-slate-800 rounded flex flex-col-reverse p-0.5 overflow-hidden gap-[2px]">
-                  {[...Array(14)].map((_, i) => {
-                    const level = (i / 13) * 100;
-                    const val = channelMeters[ch.id] || 0;
-                    const isActive = val >= level && val > 0;
-                    let dotColor = 'bg-green-500/20';
-                    if (isActive) {
-                      if (level > 85) dotColor = 'bg-red-500 shadow-[0_0_6px_#f87171]';
-                      else if (level > 65) dotColor = 'bg-yellow-400 shadow-[0_0_5px_#facc15]';
-                      else dotColor = 'bg-green-400 shadow-[0_0_4px_#4ade80]';
-                    } else {
-                      if (level > 85) dotColor = 'bg-red-950/20';
-                      else if (level > 65) dotColor = 'bg-yellow-950/20';
-                      else dotColor = 'bg-green-950/20';
-                    }
-                    return (
-                      <div key={i} className={`h-1.5 w-full rounded-[1px] transition-all duration-75 ${dotColor}`} />
-                    );
-                  })}
-                </div>
-
-                {/* Solo / Mute Card indicators */}
-                <div className="flex flex-col gap-1 w-full p-0.5">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { solo: !ch.solo }); if (!ch.solo) showInfo(e, HELP_DATABASE.solo.title, HELP_DATABASE.solo.desc); }}
-                    className={`w-full py-1 rounded-md font-black text-[8px] md:text-[9px] uppercase border transition-all ${ch.solo ? 'bg-yellow-500 border-yellow-300 text-black shadow-lg shadow-yellow-500/30' : (skin === 'modern' ? 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300' : 'bg-slate-400 border-slate-500 text-slate-700 hover:bg-slate-500')}`}
-                  >Solo</button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { muted: !ch.muted }); if (!ch.muted) showInfo(e, HELP_DATABASE.mute.title, HELP_DATABASE.mute.desc); }}
-                    className={`w-full py-1 rounded-md font-black text-[8px] md:text-[9px] uppercase border transition-all ${ch.muted ? 'bg-red-650 border-red-500 text-white shadow-lg shadow-red-655/30 font-black' : (skin === 'modern' ? 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300' : 'bg-slate-400 border-slate-500 text-slate-700 hover:bg-slate-500')}`}
-                  >Mute</button>
-                </div>
-
-                {/* Fader Track */}
-                <div className={`relative h-40 md:h-60 w-7 md:w-9 rounded-xl border flex items-center justify-center p-0.5 shadow-inner ${skin === 'modern' ? 'bg-[#0a0a0d] border-slate-800/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]' : 'bg-slate-800 border-slate-900'}`}>
-                  {/* Tick Marks */}
-                  <div className={`absolute inset-y-0 inset-x-0.5 flex flex-col justify-between py-4 pointer-events-none ${skin === 'modern' ? 'opacity-15' : 'opacity-40'}`}>
-                    {[...Array(11)].map((_, i) => (
-                      <div key={i} className="flex justify-between items-center w-full px-0.5">
-                        <div className="h-[1px] w-1 bg-slate-400" />
-                        <span className="text-[5px] text-slate-500 leading-none">{(10 - i) * 10}</span>
-                        <div className="h-[1px] w-1 bg-slate-400" />
-                      </div>
-                    ))}
+        {/* Left: Scrollable Console Desk */}
+        <div ref={scrollContainerRef} className="flex-1 overflow-x-auto pb-2 custom-scrollbar lg:max-w-none order-2 lg:order-1">
+          <div className={`flex gap-4 min-w-max p-4 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
+            
+            {channels.map(ch => {
+              const isSelected = selectedId === ch.id;
+              return (
+                <div
+                  key={ch.id}
+                  ref={el => { channelRefs.current[ch.id] = el; }}
+                  className={`flex flex-col gap-2 transition-all p-3 md:p-4 rounded-2xl cursor-pointer select-none ${
+                    isSelected 
+                      ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white/95 shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
+                      : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/80 border border-white/5' : 'bg-slate-205/90 hover:bg-white/60 border border-slate-400')
+                  }`}
+                  onClick={() => setSelectedId(ch.id)}
+                >
+                  {/* Channel Header */}
+                  <div className={`w-full py-1 rounded-md text-[10px] md:text-[11px] font-black uppercase text-center tracking-widest ${isSelected ? 'bg-blue-600 text-white animate-pulse' : (skin === 'modern' ? 'bg-slate-950 text-slate-500' : 'bg-slate-400 text-slate-700')}`}>
+                    CH {ch.id}
                   </div>
-                  <input
-                    type="range" min="0" max="100" value={ch.fader}
-                    onChange={(e) => updateChannel(ch.id, { fader: parseInt(e.target.value) })}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                    style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
-                  />
-                  {/* Yamaha Style Metallic Blue Fader Cap */}
-                  <motion.div
-                    animate={{ bottom: `${ch.fader}%` }}
-                    className="absolute w-7 md:w-9 h-8 md:h-12 bg-gradient-to-r from-slate-100 via-[#e0e0e0] to-slate-100 border-y border-[#3b82f6] rounded shadow-2xl z-10 pointer-events-none flex flex-col items-center justify-center ring-[1px] ring-blue-500/20"
-                    style={{ transform: 'translateY(50%)' }}
-                  >
-                    <div className="w-[12%] h-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
-                  </motion.div>
-                </div>
 
-                {/* Handwritten Scribble Tape at Bottom */}
-                <div className="mt-1 w-full px-1 py-1.5 bg-[#fef08a] border border-[#fef3c7] rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center -rotate-1 select-none">
-                  <span className="text-[9px] md:text-[10px] font-sans italic font-black text-slate-800 tracking-tight leading-none text-center truncate">
-                    {ch.name}
-                  </span>
-                </div>
-              </div>
-            ))}
+                  {/* 3 Column Sub-strips Grid */}
+                  <div className="flex gap-3 md:gap-4 flex-1">
+                    
+                    {/* ── Column 1: Input & Routing & Fader ── */}
+                    <div className="flex flex-col items-center gap-3 w-[64px] md:w-[74px]">
+                      <div className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase tracking-wider mb-0.5">Strip</div>
+                      
+                      {/* Trim (Input Level/Gain) */}
+                      <Knob
+                        label="Trim"
+                        value={ch.gain}
+                        min={0}
+                        max={100}
+                        onChange={(v) => updateChannel(ch.id, { gain: v })}
+                      />
 
-            {/* SPACER FOR FX CONSOLE */}
-            <div className="w-[1px] self-stretch bg-slate-700/20 dark:bg-white/5 my-2" />
+                      {/* Reverb send level */}
+                      <Knob
+                        label="Reverb"
+                        value={ch.reverb}
+                        min={0}
+                        max={100}
+                        unit="%"
+                        onChange={(v) => updateChannel(ch.id, { reverb: v })}
+                      />
+
+                      {/* Panoramic positioning */}
+                      <Knob
+                        label="L Pan R"
+                        value={ch.pan}
+                        min={-100}
+                        max={100}
+                        onChange={(v) => updateChannel(ch.id, { pan: v })}
+                      />
+
+                      {/* Mute Button (Analog tactile look) */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { muted: !ch.muted }); }}
+                        className={`w-full py-1.5 md:py-2 rounded-lg font-black text-[9px] md:text-[10px] uppercase border transition-all ${
+                          ch.muted 
+                            ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30 font-black' 
+                            : (skin === 'modern' ? 'bg-slate-950 border-slate-800 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-700 hover:bg-slate-400')
+                        }`}
+                      >
+                        mute
+                      </button>
+
+                      {/* Solo Button */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { solo: !ch.solo }); }}
+                        className={`w-full py-1.5 md:py-2 rounded-lg font-black text-[9px] md:text-[10px] uppercase border transition-all ${
+                          ch.solo 
+                            ? 'bg-yellow-500 border-yellow-300 text-black shadow-md shadow-yellow-500/30' 
+                            : (skin === 'modern' ? 'bg-slate-950 border-slate-800 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-705 hover:bg-slate-400')
+                        }`}
+                      >
+                        solo
+                      </button>
+
+                      {/* LED Meter + Vertical Fader Container */}
+                      <div className="flex gap-1 h-36 md:h-48 w-full mt-2">
+                        {/* Compact Channel Meter */}
+                        <div className="h-full w-2 md:w-3 bg-[#0a0a0d] border border-slate-800/80 rounded-[4px] flex flex-col-reverse p-0.5 overflow-hidden gap-[1px]">
+                          {[...Array(12)].map((_, i) => {
+                            const level = (i / 11) * 100;
+                            const val = channelMeters[ch.id] || 0;
+                            const isActive = val >= level && val > 0;
+                            let dotColor = 'bg-green-500/10';
+                            if (isActive) {
+                              if (level > 85) dotColor = 'bg-red-500 shadow-[0_0_6px_#f87171]';
+                              else if (level > 65) dotColor = 'bg-yellow-405 shadow-[0_0_5px_#facc15]';
+                              else dotColor = 'bg-green-400 shadow-[0_0_4px_#4ade80]';
+                            } else {
+                              if (level > 85) dotColor = 'bg-red-950/10';
+                              else if (level > 65) dotColor = 'bg-yellow-950/10';
+                              else dotColor = 'bg-green-950/10';
+                            }
+                            return (
+                              <div key={i} className={`h-[6%] w-full rounded-[1px] transition-all duration-75 ${dotColor}`} />
+                            );
+                          })}
+                        </div>
+
+                        {/* Interactive vertical Fader track layout */}
+                        <div className={`flex-1 relative rounded-lg border flex items-center justify-center p-0.5 shadow-inner ${skin === 'modern' ? 'bg-[#08080b] border-slate-800/80' : 'bg-slate-800 border-slate-900'}`}>
+                          {/* Hash ticks on track */}
+                          <div className="absolute inset-y-0 flex flex-col justify-between py-2 pointer-events-none opacity-10">
+                            {[...Array(9)].map((_, i) => <div key={i} className="h-[1px] w-3 bg-white" />)}
+                          </div>
+                          
+                          <input
+                            type="range" min="0" max="100" value={ch.fader}
+                            onChange={(e) => updateChannel(ch.id, { fader: parseInt(e.target.value) })}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                            style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
+                          />
+
+                          {/* Blue caps indicating level */}
+                          <motion.div
+                            animate={{ bottom: `${ch.fader}%` }}
+                            className="absolute w-full h-6 md:h-9 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-205 border-y-2 border-[#1e40af] rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
+                            style={{ transform: 'translateY(50%)' }}
+                          >
+                            <div className="w-[12%] h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                          </motion.div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── Column 2: Parametric Swept-Mid Equalizer ── */}
+                    <div className="flex flex-col items-center gap-3.5 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
+                      <div className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase tracking-wider mb-0.5">EQ</div>
+                      
+                      {/* High Shelf EQ Gain */}
+                      <Knob
+                        label="High"
+                        value={ch.eq.high}
+                        min={-12}
+                        max={12}
+                        unit="dB"
+                        onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, high: v } })}
+                      />
+
+                      {/* Mid Crossover sweepable center frequency */}
+                      <Knob
+                        label="Mid Freq"
+                        value={ch.eq.midFreq}
+                        min={250}
+                        max={5000}
+                        unit="Hz"
+                        onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, midFreq: Math.round(v) } })}
+                      />
+
+                      {/* Mid Peaking EQ Gain */}
+                      <Knob
+                        label="Mid gain"
+                        value={ch.eq.mid}
+                        min={-12}
+                        max={12}
+                        unit="dB"
+                        onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, mid: v } })}
+                      />
+
+                      {/* Low Shelf EQ Gain */}
+                      <Knob
+                        label="Low"
+                        value={ch.eq.low}
+                        min={-12}
+                        max={12}
+                        unit="dB"
+                        onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, low: v } })}
+                      />
+
+                      {/* High Pass Filter rumble killer */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { hpf: !ch.hpf }); }}
+                        className={`w-full py-1 rounded text-[7px] md:text-[8px] font-black uppercase border transition-all ${
+                          ch.hpf 
+                            ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
+                            : (skin === 'modern' ? 'bg-slate-950 border-slate-805 text-slate-600' : 'bg-slate-350 border-slate-400 text-slate-600')
+                        }`}
+                      >
+                        HPF
+                      </button>
+                    </div>
+
+                    {/* ── Column 3: Dynamics Compressor ── */}
+                    <div className="flex flex-col items-center gap-3.5 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
+                      <div className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase tracking-wider mb-0.5">COMP</div>
+                      
+                      {/* Comp Attack Speed */}
+                      <Knob
+                        label="Attack"
+                        value={ch.comp.attack}
+                        min={1}
+                        max={100}
+                        unit="ms"
+                        onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, attack: v } })}
+                      />
+
+                      {/* Comp Release Delay */}
+                      <Knob
+                        label="Release"
+                        value={ch.comp.release}
+                        min={10}
+                        max={1000}
+                        unit="ms"
+                        onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, release: v } })}
+                      />
+
+                      {/* Comp Threshold trigger point */}
+                      <Knob
+                        label="Thresh"
+                        value={ch.comp.threshold}
+                        min={-60}
+                        max={0}
+                        unit="dB"
+                        onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, threshold: v } })}
+                      />
+
+                      {/* Feedback Dynamics LEDs representing current GR */}
+                      <div className="w-full flex flex-col items-center gap-1 mt-auto">
+                        <span className="text-[5px] md:text-[7px] font-bold text-slate-600 uppercase tracking-tighter">GR Level</span>
+                        <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-900/80 relative">
+                          <motion.div 
+                            animate={{ 
+                              width: isPlaying && ch.fader > 30 && Math.abs((ch.fader + ch.id) % 4) > 1 
+                                ? `${Math.floor(25 + Math.random() * 45)}%` 
+                                : '0%' 
+                            }}
+                            className="h-full bg-orange-500" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Aesthetic Tape Scribble at Bottom of Channel strip */}
+                  <div className="mt-2 w-full px-2 py-2 bg-[#fef08a] border border-[#fef3c7] rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center -rotate-1 select-none">
+                    <span className="text-[11px] md:text-[13px] font-sans italic font-black text-slate-800 tracking-tight leading-none text-center truncate">
+                      {ch.name}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* SPACER */}
+            <div className="w-[1px] self-stretch bg-slate-700/20 dark:bg-white/5 my-2 animate-pulse" />
 
             {/* Yamaha SPX Reverb Return Strip */}
-            <div className={`w-[70px] md:w-[84px] flex flex-col items-center gap-1.5 p-1.5 rounded-xl border border-blue-500/10 ${skin === 'modern' ? 'bg-blue-950/10' : 'bg-slate-350 shadow-inner'}`}>
-              <div className="w-full text-center text-[7px] md:text-[8px] font-black uppercase tracking-wider text-blue-400 bg-blue-950/40 py-0.5 rounded leading-none">
+            <div className={`w-[78px] md:w-[90px] flex flex-col items-center gap-2 p-1.5 rounded-2xl border border-blue-500/10 ${skin === 'modern' ? 'bg-blue-950/10' : 'bg-slate-350 shadow-inner'}`}>
+              <div className="w-full text-center text-[7px] md:text-[8px] font-black uppercase tracking-wider text-blue-400 bg-blue-950/40 py-1 rounded leading-none">
                 SPX Return
               </div>
               
-              <div className="flex flex-col gap-3 py-2 items-center flex-1 justify-center">
-                {/* Decay size */}
+              <div className="flex flex-col gap-5 py-4 items-center flex-1 justify-start">
                 <Knob 
                   label="Reverb Size" 
                   value={reverbSize} 
@@ -1296,7 +1459,6 @@ export const VirtualMixer = () => {
                   }} 
                 />
                 
-                {/* Return return mix level */}
                 <Knob 
                   label="Eff Return" 
                   value={reverbMix} 
@@ -1307,7 +1469,7 @@ export const VirtualMixer = () => {
                 />
               </div>
 
-              {/* Tape for Reverb return */}
+              {/* Tape for Return */}
               <div className="mt-auto w-full px-1 py-1.5 bg-[#cbd5e1] border border-slate-300 rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center rotate-1 select-none">
                 <span className="text-[9px] md:text-[10px] font-sans font-black text-slate-700 tracking-tight leading-none text-center truncate">
                   FX RET
@@ -1317,15 +1479,14 @@ export const VirtualMixer = () => {
 
             <div className="w-[1px] self-stretch bg-slate-700/20 dark:bg-white/5 my-2" />
 
-            {/* Master fader */}
-            <div className="w-[78px] md:w-[96px] border-l border-white/5 pl-1 ml-0.5 flex flex-col items-center gap-1.5 bg-black/5 rounded-2xl p-1.5 self-stretch">
+            {/* Stereo Master Out Strip */}
+            <div className="w-[84px] md:w-[102px] border-l border-white/5 pl-1.5 ml-0.5 flex flex-col items-center gap-2 bg-black/5 rounded-2xl p-1.5 self-stretch">
               
-              {/* Preset Controls */}
               {user && (
                 <div className="flex gap-1 w-full">
                   <button 
                     onClick={saveMix}
-                    className="flex-1 py-1.5 bg-slate-900 border border-slate-700 rounded-lg hover:border-blue-500 transition-all group"
+                    className="flex-1 py-1 bg-slate-900 border border-slate-700 rounded-lg hover:border-blue-500 transition-all group"
                     title="Save Mix Preset"
                   >
                     <Save size={11} className="text-slate-500 group-hover:text-blue-500 mx-auto" />
@@ -1334,39 +1495,36 @@ export const VirtualMixer = () => {
               )}
 
               <button
-                onClick={(e) => { initWebAudio(); showInfo(e, 'Master Output', 'Main output level. Make sure Audio Engine is Online (green) before playback.'); }}
+                onClick={(e) => { initWebAudio(); showInfo(e, 'Master Output', 'Main stereo output terminal fader.'); }}
                 className="w-full h-8 md:h-10 bg-red-650 rounded-lg flex flex-col items-center justify-center border border-red-500 shadow-lg shadow-red-600/10 hover:bg-red-600 transition-colors"
               >
                 <span className="text-[8px] md:text-[9px] font-black text-white uppercase italic leading-none">MAIN</span>
               </button>
 
-              {/* Master Dual VU Meter */}
-              <div className="flex gap-1 h-28 md:h-44 w-6 md:w-8 bg-black rounded p-0.5 overflow-hidden border border-slate-800">
-                {/* L channel */}
+              {/* Stereo Output dual VUs */}
+              <div className="flex gap-1 h-32 md:h-44 w-7 md:w-9 bg-black rounded p-0.5 overflow-hidden border border-slate-800">
                 <div className="flex-1 bg-green-500/5 rounded-sm relative overflow-hidden flex flex-col-reverse gap-[1px]">
-                  {[...Array(14)].map((_, i) => {
-                    const level = (i / 13) * 100;
+                  {[...Array(12)].map((_, i) => {
+                    const level = (i / 11) * 100;
                     const isActive = masterMeter >= level && masterMeter > 0;
-                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-405' : 'bg-green-400') : 'bg-slate-900/45';
-                    return <div key={i} className={`h-1.5 w-full rounded-[1px] ${dotColor}`} />;
+                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-405' : 'bg-green-400') : 'bg-slate-950/60';
+                    return <div key={i} className={`h-[7%] w-full rounded-[1px] ${dotColor}`} />;
                   })}
                 </div>
-                {/* R channel */}
                 <div className="flex-1 bg-green-500/5 rounded-sm relative overflow-hidden flex flex-col-reverse gap-[1px]">
-                  {[...Array(14)].map((_, i) => {
-                    const level = (i / 13) * 100;
+                  {[...Array(12)].map((_, i) => {
+                    const level = (i / 11) * 100;
                     const isActive = masterMeter * 0.95 >= level && masterMeter > 0;
-                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-405' : 'bg-green-400') : 'bg-slate-900/45';
-                    return <div key={i} className={`h-1.5 w-full rounded-[1px] ${dotColor}`} />;
+                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-405' : 'bg-green-400') : 'bg-slate-950/60';
+                    return <div key={i} className={`h-[7%] w-full rounded-[1px] ${dotColor}`} />;
                   })}
                 </div>
               </div>
 
-              {/* Master Fader Container */}
-              <div className={`relative h-40 md:h-60 w-8 md:w-10 rounded-xl border flex items-center justify-center p-0.5 shadow-inner mt-auto ${skin === 'modern' ? 'bg-[#08080b] border-slate-800' : 'bg-slate-800'}`}>
-                {/* Master ticks */}
-                <div className="absolute inset-y-0 inset-x-0.5 flex flex-col justify-between py-4 pointer-events-none opacity-20">
-                  {[...Array(11)].map((_, i) => <div key={i} className="h-[1px] w-full bg-slate-400" />)}
+              {/* Master Stereo Fader cap */}
+              <div className={`relative h-36 md:h-48 w-8 md:w-10 rounded-xl border flex items-center justify-center p-0.5 shadow-inner mt-auto ${skin === 'modern' ? 'bg-[#08080b] border-slate-800' : 'bg-slate-800'}`}>
+                <div className="absolute inset-y-0 inset-x-0.5 flex flex-col justify-between py-3 pointer-events-none opacity-20">
+                  {[...Array(9)].map((_, i) => <div key={i} className="h-[1px] w-full bg-slate-400" />)}
                 </div>
                 <input
                   type="range" min="0" max="100" value={masterFader}
@@ -1374,69 +1532,53 @@ export const VirtualMixer = () => {
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                   style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
                 />
-                {/* Yamaha style metallic red master fader cap */}
                 <motion.div
                   animate={{ bottom: `${masterFader}%` }}
-                  className="absolute w-8 md:w-10 h-8 md:h-12 bg-gradient-to-r from-red-200 via-red-100 to-red-red border-y border-red-650 rounded shadow-2xl z-10 pointer-events-none flex flex-col items-center justify-center"
+                  className="absolute w-full h-6 md:h-10 bg-gradient-to-r from-red-200 via-red-100 to-red-205 border-y-2 border-red-750 rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
                   style={{ transform: 'translateY(50%)' }}
                 >
-                  <div className="w-[12%] h-full bg-red-600 shadow-[0_0_8px_#dc2626]" />
+                  <div className="w-[12%] h-full bg-red-650 shadow-[0_0_8px_#dc2626]" />
                 </motion.div>
               </div>
 
-              {/* Handwritten tape for Main Master */}
               <div className="w-full px-1 py-1.5 bg-[#fecaca] border border-red-200 rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center -rotate-1 select-none">
                 <span className="text-[9px] md:text-[10px] font-sans font-black text-red-800 tracking-tight leading-none text-center truncate">
                   STEREO
                 </span>
               </div>
             </div>
+
           </div>
         </div>
 
-        {/* Right: Channel detail + Stage Monitor */}
-        <div className={`lg:w-[320px] xl:w-[360px] shrink-0 rounded-[1rem] sm:rounded-[1.5rem] border overflow-hidden flex flex-col min-w-full lg:min-w-0 order-1 lg:order-2 mb-2 lg:mb-0 transition-colors ${skin === 'modern' ? 'bg-slate-800/40 border-white/5' : 'bg-slate-200 border-black/10'}`}>
+        {/* Right Panel: Console Monitor & Training Handbook */}
+        <div className={`lg:w-[320px] xl:w-[350px] shrink-0 rounded-[1.5rem] border overflow-hidden flex flex-col min-w-full lg:min-w-0 order-1 lg:order-2 mb-2 lg:mb-0 transition-colors ${skin === 'modern' ? 'bg-slate-800/40 border-white/5' : 'bg-slate-200 border-black/10'}`}>
           <div className={`p-2 md:p-3 border-b flex items-center justify-between shrink-0 ${skin === 'modern' ? 'bg-slate-900 border-white/5' : 'bg-slate-400 border-black/10'}`}>
             <div className="flex items-center gap-2">
-              <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg ${selectedChannel.color} flex items-center justify-center text-white font-black text-xs md:text-sm shadow-inner shrink-0`}>{selectedChannel.id}</div>
-              <div>
-                <h3 className={`text-[10px] md:text-sm font-bold uppercase italic truncate max-w-[100px] md:max-w-[120px] ${skin === 'modern' ? 'text-white' : 'text-slate-900'}`}>{selectedChannel.name}</h3>
-                <p className={`text-[7px] md:text-[10px] font-black tracking-widest leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-700'}`}>SHAPE</p>
+              <div className="w-7 h-7 rounded-lg bg-blue-600/20 flex items-center justify-center text-blue-400 shadow-inner">
+                <Activity size={13} />
               </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => { const init = INITIAL_CHANNELS.find(c => c.id === selectedId)!; updateChannel(selectedId, { ...init }); }}
-                className={`px-1.5 py-0.5 rounded border text-[7px] font-black uppercase transition-all ${skin === 'modern' ? 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border-white/5' : 'bg-slate-300 hover:bg-slate-400 text-slate-600 border-black/10 shadow-sm'}`}
-              >Reset</button>
-              <button className={`p-1 rounded-full transition-colors ${skin === 'modern' ? 'hover:bg-slate-800 text-slate-500' : 'hover:bg-slate-400 text-slate-700'}`} onClick={(e) => showInfo(e, 'Channel View', 'This section shows detailed processing for the selected channel.')}>
-                <HelpCircle size={14} />
-              </button>
+              <div>
+                <h3 className={`text-[10px] md:text-sm font-bold uppercase italic ${skin === 'modern' ? 'text-white' : 'text-slate-900'}`}>CONSOLE MONITOR</h3>
+                <p className={`text-[7px] md:text-[10px] font-black tracking-widest leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-700'}`}>TRAINING SUITE</p>
+              </div>
             </div>
           </div>
 
-          <div className="p-2 md:p-4 space-y-3 md:space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+          <div className="p-3 md:p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
 
-            {/* ── Stage Monitor ── */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-1.5 px-1">
+            {/* ── Stage Monitor (Always visualizes the sound) ── */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between px-1">
                 <span className="text-[7px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest italic leading-none flex items-center gap-1.5">
-                  <Activity size={10} className="text-blue-500" /> Stage Monitor
+                  <Activity size={10} className="text-blue-500" /> Live worship scene
                 </span>
-                <div className="flex items-center gap-1">
-                  <div className={`w-1 h-1 rounded-full ${isPlaying ? 'bg-green-500 animate-pulse' : 'bg-slate-700'}`} />
-                  <span className="text-[6px] md:text-[8px] font-bold text-slate-600 uppercase">Live Feed</span>
-                </div>
+                <span className="text-[6px] md:text-[8px] font-bold text-slate-600 uppercase">Interactive Screen</span>
               </div>
 
               <div className={`aspect-video rounded-xl border overflow-hidden relative ${skin === 'modern' ? 'bg-black border-white/10' : 'bg-slate-900 border-black/20'}`}>
                 {currentSong ? (
                   currentSong.type === 'youtube' ? (
-                    // ─────────────────────────────────────────
-                    // YouTube: iframe always visible, controls=1
-                    // User presses play directly inside the iframe
-                    // Audio cannot be controlled via React/JS (browser policy)
-                    // ─────────────────────────────────────────
                     <div className="w-full h-full relative">
                       <iframe
                         key={currentSong.id}
@@ -1446,29 +1588,27 @@ export const VirtualMixer = () => {
                         allowFullScreen
                         title={currentSong.title}
                       />
-                      {/* Info banner — shown at bottom, below iframe controls */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-center py-1 pointer-events-none">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/85 text-center py-1.5 pointer-events-none">
                         <span className="text-[8px] text-blue-300 font-bold uppercase tracking-widest">
-                          ▶ Press Play inside the video to start audio
+                          ▶ Press Play inside the video container
                         </span>
                       </div>
                     </div>
                   ) : (
-                    // file type: audio only, waveform visualizer
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50 gap-2">
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/60 p-3 text-center gap-2">
                       <Waves size={24} className={isPlaying ? 'text-blue-500 animate-pulse' : 'text-blue-500/20'} />
-                      <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">
-                        {isPlaying ? 'Audio Playing' : 'Audio Only Mode'}
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                        {isPlaying ? `Playing: ${currentSong.title}` : 'Audio Idle'}
                       </span>
                       {isPlaying && (
                         <div className="flex gap-0.5 items-end h-6">
-                          {[...Array(12)].map((_, i) => (
+                          {[...Array(15)].map((_, i) => (
                             <motion.div
                               key={i}
-                              animate={{ height: [`${20 + Math.random() * 80}%`, `${20 + Math.random() * 80}%`] }}
-                              transition={{ duration: 0.3 + Math.random() * 0.3, repeat: Infinity, repeatType: 'reverse' }}
+                              animate={{ height: [`${15 + Math.random() * 85}%`, `${15 + Math.random() * 85}%`] }}
+                              transition={{ duration: 0.2 + Math.random() * 0.4, repeat: Infinity, repeatType: 'reverse' }}
                               className="w-1 bg-blue-500/60 rounded-full"
-                              style={{ height: '20%' }}
+                              style={{ height: '30%' }}
                             />
                           ))}
                         </div>
@@ -1476,186 +1616,70 @@ export const VirtualMixer = () => {
                     </div>
                   )
                 ) : (
-                  // Empty state when no song is loaded or uploaded
-                  <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-slate-950/60 transition-all text-center gap-3">
-                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-blue-400">
-                      <Music size={24} className="animate-pulse" />
-                    </div>
-                    <div className="space-y-1 max-w-xs px-2">
-                      <span className="block text-[10px] font-black text-white uppercase tracking-wider">No Practice Track Loaded</span>
-                      <span className="block text-[8px] text-slate-400 font-medium uppercase leading-relaxed">
-                        To practice EQ mixing, panning, and faders, please upload your own MP3 multitrack file or paste a YouTube worship link!
-                      </span>
-                    </div>
-                    {/* Compact direct trigger for file input in empty state */}
-                    <label className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/95 hover:bg-blue-600 text-[8px] font-bold text-white uppercase tracking-wider rounded-lg cursor-pointer transition-colors shadow-lg shadow-blue-500/10">
-                      <Download size={10} className="rotate-180" /> Upload Custom MP3
-                      <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
-                    </label>
+                  <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-slate-950/60 text-center gap-2">
+                    <Music size={18} className="animate-pulse text-blue-500/30" />
+                    <span className="text-[9px] font-black text-white uppercase">No Practice Track</span>
                   </div>
                 )}
               </div>
-
-              {/* Notice: YouTube track selected */}
-              {currentSong?.type === 'youtube' && (
-                <div className="mt-2 p-2 rounded-lg bg-yellow-900/20 border border-yellow-700/30">
-                  <p className="text-[8px] text-yellow-400 font-bold uppercase tracking-wide text-center">
-                    ⚠ YouTube is for video display only — select an MP3 track to practice EQ & Fader control
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* ── Gain & Pan ── */}
-            <div className="grid grid-cols-2 gap-2 md:gap-5">
-              <div className="flex flex-col items-center gap-1 md:gap-2">
-                <div className="flex items-center gap-1">
-                  <span className="text-[7px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">Gain</span>
-                  <button onClick={(e) => showInfo(e, HELP_DATABASE.gain.title, HELP_DATABASE.gain.desc)} className="w-3.5 h-3.5 md:w-5 md:h-5 flex items-center justify-center bg-slate-700/50 hover:bg-blue-600 rounded-full transition-colors text-slate-400 hover:text-white"><HelpCircle size={8} /></button>
-                </div>
-                <div className="relative w-10 h-10 md:w-16 md:h-16">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="20" cy="20" r="16" fill="none" stroke="#2d3748" strokeWidth="3" />
-                    <circle cx="20" cy="20" r="16" fill="none" stroke="#3182ce" strokeWidth="3" strokeDasharray="100.5" strokeDashoffset={100.5 - (selectedChannel.gain / 100 * 100.5)} />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-[10px] md:text-sm font-mono font-bold text-white">{selectedChannel.gain}</span>
-                  </div>
-                  <input type="range" min="0" max="100" value={selectedChannel.gain} onChange={(e) => updateChannel(selectedId, { gain: parseInt(e.target.value) })} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+            {/* ── Active Channel Indicator Helper ── */}
+            <div className={`p-3 rounded-xl border ${skin === 'modern' ? 'bg-slate-950/40 border-white/5' : 'bg-white border-black/10 shadow-sm'}`}>
+              <div className="flex items-center gap-2.5 mb-2 border-b border-dashed pb-1.5 border-slate-705/30">
+                <span className={`w-5 h-5 rounded flex items-center justify-center text-white font-black text-[10px] leading-none ${selectedChannel.color}`}>{selectedChannel.id}</span>
+                <div>
+                  <h4 className="text-[10px] font-black uppercase text-blue-400 tracking-wide">Selected: {selectedChannel.name}</h4>
+                  <p className="text-[7px] text-slate-500 font-bold uppercase leading-none">Tuning active console strip</p>
                 </div>
               </div>
-
-              <div className="flex flex-col items-center gap-1 md:gap-2">
-                <div className="flex items-center gap-1">
-                  <span className="text-[7px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">Pan</span>
-                  <button onClick={(e) => showInfo(e, HELP_DATABASE.pan.title, HELP_DATABASE.pan.desc)} className="w-3.5 h-3.5 md:w-5 md:h-5 flex items-center justify-center bg-slate-700/50 hover:bg-blue-600 rounded-full transition-colors text-slate-400 hover:text-white"><HelpCircle size={8} /></button>
-                </div>
-                <div className="w-full flex flex-col gap-0.5">
-                  <div className="flex justify-between text-[6px] md:text-[8px] font-bold text-slate-600 px-1"><span>L</span><span>R</span></div>
-                  <div className="relative h-4 md:h-7 bg-black rounded-lg border border-white/5 flex items-center p-0.5 px-1">
-                    <div className="absolute left-1/2 w-0.5 h-2 md:h-3.5 bg-slate-700/50 -translate-x-1/2" />
-                    <input type="range" min="-100" max="100" value={selectedChannel.pan} onChange={(e) => updateChannel(selectedId, { pan: parseInt(e.target.value) })} className="w-full h-1.5 accent-blue-500 relative z-10" />
+              
+              <div className="space-y-2 text-[10px] text-slate-400 font-medium leading-relaxed">
+                <p>You can adjust this channel's <strong className="text-white">Trim, Reverb, Pan, custom fine-swept EQ</strong>, and <strong className="text-white">dynamic Compression threshold</strong> directly on the mixer desk in parallel.</p>
+                <div className="grid grid-cols-2 gap-1.5 pt-1">
+                  <div className="bg-slate-900/60 p-1.5 rounded border border-white/5 text-center">
+                    <span className="block text-[6px] text-slate-500 uppercase font-black">HPF state</span>
+                    <span className={`text-[8px] font-bold ${selectedChannel.hpf ? 'text-green-400' : 'text-slate-600'}`}>{selectedChannel.hpf ? 'ON (80Hz Cut)' : 'OFF (Full Bypass)'}</span>
                   </div>
-                  <div className="text-center text-[7px] md:text-[9px] font-mono text-blue-400/80">
-                    {selectedChannel.pan === 0 ? 'C' : `${Math.abs(selectedChannel.pan)}${selectedChannel.pan < 0 ? 'L' : 'R'}`}
+                  <div className="bg-slate-900/60 p-1.5 rounded border border-white/5 text-center">
+                    <span className="block text-[6px] text-slate-500 uppercase font-black">Swept Mid Range</span>
+                    <span className="text-[8px] font-black text-blue-400">{selectedChannel.eq.midFreq}Hz</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* ── EQ Section ── */}
-            <div className="space-y-2 md:space-y-4">
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-1">
-                  <span className="text-[7px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest italic leading-none">DSP Shape</span>
-                  <button onClick={(e) => showInfo(e, HELP_DATABASE.eq.title, HELP_DATABASE.eq.desc)} className="w-3.5 h-3.5 md:w-5 md:h-5 flex items-center justify-center bg-slate-700/50 hover:bg-blue-600 rounded-full transition-colors text-slate-400 hover:text-white"><HelpCircle size={8} /></button>
+            {/* ── SOUND ENGINEER HANDBOOK (Interactive help panel) ── */}
+            <div className={`p-3 rounded-xl border ${skin === 'modern' ? 'bg-slate-900/50 border-white/5' : 'bg-slate-300 border-black/10'}`}>
+              <h4 className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1.5 italic">SOUND TRAINING METHOD</h4>
+              
+              <div className="space-y-3">
+                {/* Topic 1: Gain Structure */}
+                <div className="space-y-1">
+                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">1. Gain (Trim) structure</span>
+                  <p className="text-[9px] text-slate-400 leading-snug">Set the top **Trim** knob so that loud vocal snaps bounce the channel meter primarily in the green and yellow zones. Don't hit red peak zone to avoid harsh clipping distortion.</p>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={(e) => { updateChannel(selectedId, { hpf: !selectedChannel.hpf }); if (!selectedChannel.hpf) showInfo(e, HELP_DATABASE.hpf.title, HELP_DATABASE.hpf.desc); }}
-                    className={`px-1.5 py-0.5 rounded text-[6px] md:text-[8px] font-black uppercase transition-all border ${selectedChannel.hpf ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 border-slate-700 text-slate-500'}`}
-                  >HPF</button>
-                  <button className="bg-slate-700/30 p-0.5 rounded-md border border-white/5">
-                    <Power size={8} className="text-green-500" />
-                  </button>
-                </div>
-              </div>
 
-              {/* EQ curve visual */}
-              <div className="h-10 md:h-14 bg-black/40 rounded-lg border border-white/5 overflow-hidden flex items-end relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-full w-[1px] bg-slate-800 absolute left-1/3" />
-                  <div className="h-full w-[1px] bg-slate-800 absolute left-2/3" />
+                {/* Topic 2: High Pass Filter */}
+                <div className="space-y-1">
+                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">2. Low-frequency Mud Cut (HPF)</span>
+                  <p className="text-[9px] text-slate-400 leading-snug">Press **HPF** to dynamically clean low end rumble on Vocals & Guitars. Keep HPF off on Bass Instrument to retain natural punchy power.</p>
                 </div>
-                <div className="w-full h-full flex items-end px-1.5 z-10">
-                  <div className="flex-1 h-full flex items-end gap-1.5">
-                    <div className="w-full bg-blue-500/20 rounded-t-xs transition-all" style={{ height: `${50 + (selectedChannel.hpf ? -30 : selectedChannel.eq.low * 3)}%` }} />
-                    <div className="w-full bg-blue-500/20 rounded-t-xs transition-all" style={{ height: `${50 + selectedChannel.eq.mid * 3}%` }} />
-                    <div className="w-full bg-blue-500/25 rounded-t-xs transition-all" style={{ height: `${50 + selectedChannel.eq.high * 3}%` }} />
-                  </div>
+
+                {/* Topic 3: 3-Band Swept EQ */}
+                <div className="space-y-1">
+                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">3. Parametric Vocal Tuning</span>
+                  <p className="text-[9px] text-slate-400 leading-snug">Adjust **Mid Crossover Freq** (e.g., 2000Hz for speech presence, 500Hz for guitar scoop) and apply safe cut/boost gains to sculpt a beautifully transparent frequency room mix.</p>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                {(['high', 'mid', 'low'] as const).map(band => (
-                  <div key={band} className="flex flex-col items-center gap-1 bg-slate-900/30 p-1.5 rounded-lg border border-white/5">
-                    <span className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase leading-none">{band}</span>
-                    <div className="relative h-14 md:h-20 w-0.5 bg-slate-800 rounded-full flex items-center justify-center my-1">
-                      <input
-                        type="range" min="-12" max="12" value={selectedChannel.eq[band]}
-                        onChange={(e) => updateChannel(selectedId, { eq: { ...selectedChannel.eq, [band]: parseInt(e.target.value) } })}
-                        className="absolute w-14 md:w-20 h-4 -rotate-90 opacity-0 cursor-pointer z-10"
-                      />
-                      <motion.div
-                        animate={{ bottom: `${((selectedChannel.eq[band] + 12) / 24) * 100}%` }}
-                        className="absolute w-3 h-4 md:w-4 md:h-5 bg-gradient-to-b from-slate-600 to-slate-800 border border-slate-500 rounded-sm shadow-xl flex flex-col justify-between py-1"
-                        style={{ transform: 'translateY(50%)' }}
-                      >
-                        <div className="w-full h-[0.5px] bg-blue-400 opacity-50" />
-                      </motion.div>
-                    </div>
-                    <span className="text-[6px] md:text-[8px] font-mono font-bold text-blue-400 leading-none">
-                      {selectedChannel.eq[band] > 0 ? '+' : ''}{selectedChannel.eq[band]}dB
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Sweepable Mid Frequency Knob */}
-              <div className="flex justify-center py-2 bg-slate-900/35 rounded-xl border border-white/5">
-                <Knob
-                  label="Mid Crossover"
-                  value={selectedChannel.eq.midFreq}
-                  min={250}
-                  max={5000}
-                  unit="Hz"
-                  onChange={(v) => updateChannel(selectedId, { eq: { ...selectedChannel.eq, midFreq: Math.round(v) } })}
-                />
+                {/* Topic 4: Dynamic Control */}
+                <div className="space-y-1">
+                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">4. Dynamic Compression (COMP)</span>
+                  <p className="text-[9px] text-slate-400 leading-snug">Turn down **Thresh** and dial in custom **Attack & Release** times to cleanly compress highly dynamic singers and level out inconsistent worship transients.</p>
+                </div>
               </div>
             </div>
 
-            {/* ── Gate / Comp ── */}
-            <div className="grid grid-cols-2 gap-2 pt-1 uppercase">
-              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-white/5">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[8px] font-black text-slate-600 tracking-widest">GATE</span>
-                  <CircleDot size={8} className="text-slate-800" />
-                </div>
-                <div className="h-1 w-full bg-black rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-950 w-full" />
-                </div>
-              </div>
-              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-white/5">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[8px] font-black text-slate-600 tracking-widest">COMP</span>
-                  <CircleDot size={8} className="text-slate-800" />
-                </div>
-                <div className="h-1 w-full bg-black rounded-full overflow-hidden">
-                  <div className="h-full bg-orange-500/20 w-[40%]" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={`p-2 md:p-4 border-t shrink-0 ${skin === 'modern' ? 'bg-slate-900/100 border-white/5' : 'bg-slate-400 border-black/10'} flex gap-3`}>
-            <button
-              onClick={() => {
-                const prevId = selectedId > 1 ? selectedId - 1 : channels.length;
-                setSelectedId(prevId);
-              }}
-              className={`flex-1 py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg ${skin === 'modern' ? 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 hover:bg-slate-700' : 'bg-slate-300 text-slate-700 hover:bg-slate-400 border border-slate-400'}`}
-            >
-              <ChevronLeft size={12} /> Prev
-            </button>
-            <button
-              onClick={() => {
-                const nextId = selectedId < channels.length ? selectedId + 1 : 1;
-                setSelectedId(nextId);
-              }}
-              className={`flex-1 py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg ${skin === 'modern' ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-600/20' : 'bg-slate-800 text-white hover:bg-slate-900 shadow-black/20'}`}
-            >
-              Next <ChevronRight size={12} />
-            </button>
           </div>
         </div>
       </div>

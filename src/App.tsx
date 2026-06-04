@@ -55,6 +55,65 @@ export default function App() {
 
   const selectedSection = GUIDE_SECTIONS.find(s => s.id === selectedSectionId);
 
+  const dashboardItems = [
+    {
+      id: 'mixer',
+      title: 'Practice Mixer',
+      icon: Sliders,
+      colorClass: 'from-[#f97316] to-[#ea580c] shadow-orange-500/25',
+      action: () => setActiveState('mixer')
+    },
+    {
+      id: 'frequency',
+      title: 'Frequency IQ',
+      icon: Activity,
+      colorClass: 'from-[#3b82f6] to-[#2563eb] shadow-blue-500/25',
+      action: () => setActiveState('frequency')
+    },
+    {
+      id: 'recorder',
+      title: 'Virtual Soundcheck',
+      icon: Mic,
+      colorClass: 'from-[#10b981] to-[#059669] shadow-emerald-500/25',
+      action: () => setActiveState('recorder')
+    },
+    {
+      id: 'mixing',
+      title: 'Mixing Basics',
+      icon: AudioLines,
+      colorClass: 'from-[#ec4899] to-[#db2777] shadow-pink-500/25',
+      action: () => { setSelectedSectionId('mixing'); setActiveState('guide'); }
+    },
+    {
+      id: 'mics',
+      title: 'Mic Placement',
+      icon: Mic2,
+      colorClass: 'from-[#8b5cf6] to-[#7c3aed] shadow-purple-500/25',
+      action: () => { setSelectedSectionId('mics'); setActiveState('guide'); }
+    },
+    {
+      id: 'troubleshooting',
+      title: 'Feedback Help!',
+      icon: Wrench,
+      colorClass: 'from-[#06b6d4] to-[#0891b2] shadow-cyan-500/25',
+      action: () => { setSelectedSectionId('troubleshooting'); setActiveState('guide'); }
+    },
+    {
+      id: 'hardware',
+      title: 'Cable Repair',
+      icon: Zap,
+      colorClass: 'from-[#f59e0b] to-[#d97706] shadow-amber-500/25',
+      action: () => { setSelectedSectionId('hardware'); setActiveState('guide'); }
+    },
+    {
+      id: 'checklist',
+      title: 'Sanity Kit',
+      icon: CheckSquare,
+      colorClass: 'from-[#14b8a6] to-[#0d9488] shadow-teal-500/25',
+      action: () => { setSelectedSectionId('checklist'); setActiveState('guide'); }
+    }
+  ];
+
   const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -283,78 +342,100 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.02 }}
-              className="space-y-12"
+              className="space-y-8 sm:space-y-10"
               id="home-content"
             >
-              <section className="bg-gradient-to-br from-slate-900 to-indigo-950 p-10 md:p-16 rounded-[3rem] text-white shadow-2xl relative overflow-hidden border border-slate-800">
-                <div className="relative z-10">
-                    <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 px-4 py-1.5 rounded-full mb-6">
-                        <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Training Mode Active</span>
+              {/* ── Modern Premium Top Banner ── */}
+              <section className="bg-gradient-to-br from-[#0c1329] via-[#0d1630] to-[#050b1a] p-6 sm:p-10 md:p-12 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border border-slate-800/80">
+                <div className="relative z-10 max-w-2xl">
+                    <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 px-3.5 py-1.5 rounded-full mb-4 sm:mb-6">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-400">Professional Audio Suite</span>
                     </div>
-                    <h2 className="text-4xl md:text-6xl font-black mb-4 tracking-tighter leading-none italic">MASTER THE<br /><span className="text-blue-500">SANCTUARY</span> SOUND.</h2>
-                    <p className="text-slate-400 max-w-md mb-10 text-lg leading-relaxed">The ultimate companion for church sound engineers. Practice, troubleshoot, and learn with a pro-grade virtual environment.</p>
-                    <div className="flex flex-wrap gap-4">
-                        <button onClick={() => setActiveState('mixer')} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 active:scale-95">Enter Console</button>
-                        <button onClick={() => setActiveState('recorder')} className="bg-slate-800 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-700 transition-all border border-slate-700 active:scale-95">Virtual Check</button>
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mb-3 tracking-tighter leading-[1.05] italic">
+                      MASTER THE <br />
+                      <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-200 bg-clip-text text-transparent">LIVE STAGE</span> SOUND.
+                    </h2>
+                    <p className="text-slate-400 text-xs sm:text-sm md:text-base max-w-md mb-6 leading-relaxed font-semibold">
+                      A professional audio engineering companion and interactive training suite tailored for live sound excellence.
+                    </p>
+                    <div className="flex gap-2.5">
+                        <span className="text-[10px] sm:text-xs font-mono font-black text-amber-500/90 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg">
+                          🎚️ 8 CORE SESSIONS INTEGRATED
+                        </span>
                     </div>
                 </div>
-                <div className="absolute right-[-10%] bottom-[-10%] opacity-10 pointer-events-none rotate-12">
-                    <Sliders size={400} />
+                <div className="absolute right-[-5%] bottom-[-5%] opacity-5 pointer-events-none rotate-12">
+                    <Sliders size={280} />
                 </div>
               </section>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="home-grid">
-                {/* Reference Tools */}
-                <button
-                  onClick={() => setActiveState('frequency')}
-                  className="bg-slate-900 p-8 rounded-[2rem] shadow-2xl border border-slate-800 text-left hover:shadow-blue-500/10 hover:-translate-y-1 transition-all group flex flex-col gap-6"
-                >
-                  <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-600/40 group-hover:scale-105 transition-transform">
-                    <Activity size={28} />
+              {/* ── 8 Core Launcher Cockpit Grid ── */}
+              <div className="space-y-5">
+                <div className="flex items-center justify-between px-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-orange-500 rounded-full animate-pulse" />
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#1e293b] font-mono">Core Dashboard Modules</h3>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-black mb-2 uppercase italic tracking-tighter text-white">Frequency IQ</h2>
-                    <p className="text-slate-500 text-sm leading-relaxed">Master the frequency spectrum and instrument footprints at a glance.</p>
-                  </div>
-                </button>
+                  <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">8 Core Sessional Launchers</span>
+                </div>
 
-                {GUIDE_SECTIONS.map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => {
-                      setSelectedSectionId(section.id);
-                      setActiveState('guide');
-                    }}
-                    className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 text-left hover:shadow-xl hover:border-blue-200 hover:-translate-y-1 transition-all group flex flex-col gap-6"
-                    id={`section-${section.id}`}
-                  >
-                    <div className="bg-slate-50 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner group-hover:scale-105">
-                      {section.icon === 'Sliders' && <Sliders size={28} />}
-                      {section.icon === 'Mic2' && <Mic2 size={28} />}
-                      {section.icon === 'Wrench' && <Wrench size={28} />}
-                      {section.icon === 'Zap' && <Zap size={28} />}
-                      {section.icon === 'CheckSquare' && <CheckSquare size={28} />}
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-black mb-2 uppercase italic tracking-tighter group-hover:text-blue-600 transition-colors">{section.title}</h2>
-                      <p className="text-slate-500 text-sm leading-relaxed">{section.description}</p>
-                    </div>
-                  </button>
-                ))}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6" id="home-grid">
+                  {dashboardItems.map((item, idx) => {
+                    const IconComp = item.icon;
+                    return (
+                      <motion.button
+                        key={item.id}
+                        onClick={item.action}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.04 }}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="bg-white hover:bg-slate-50/50 p-5 sm:p-7 rounded-[2rem] shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-slate-200/80 text-center flex flex-col items-center justify-center gap-4 group transition-all cursor-pointer relative overflow-hidden min-h-[140px] sm:min-h-[170px]"
+                        id={`dashboard-${item.id}`}
+                      >
+                        {/* Hover Ambient Circle Backlight */}
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-orange-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        
+                        {/* Tactile Circle Knob Button (업그레이드된 현대적 서클) */}
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-150 flex items-center justify-center p-1.5 border border-slate-200/80 shadow-md group-hover:border-orange-500/30 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.15)] transition-all shrink-0">
+                          <div className={`w-full h-full rounded-full bg-gradient-to-tr ${item.colorClass} flex items-center justify-center text-white shadow-inner group-hover:scale-105 transition-transform duration-300`}>
+                            <IconComp size={24} className="sm:w-7 sm:h-7" />
+                          </div>
+                        </div>
 
+                        {/* Title (Only Header label underneath) */}
+                        <div className="flex flex-col justify-center">
+                          <h4 className="font-sans font-black text-slate-800 text-xs sm:text-sm md:text-sm group-hover:text-amber-600 transition-colors tracking-wide uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">
+                            {item.title}
+                          </h4>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Auxiliary Advanced Wordbook link ── */}
+              <div className="border-t border-slate-200/60 pt-6">
                 <button
                   onClick={() => setActiveState('glossary')}
-                  className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 text-left hover:shadow-xl hover:border-blue-200 hover:-translate-y-1 transition-all group flex flex-col gap-6"
+                  className="w-full bg-gradient-to-r from-slate-900 to-[#101b33] p-5 sm:p-6 rounded-[2rem] border border-slate-800 flex flex-col sm:flex-row items-center justify-between text-left hover:border-blue-500/30 transition-all group gap-4 shadow-xl text-white"
                   id="section-glossary"
                 >
-                  <div className="bg-slate-50 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner group-hover:scale-105">
-                    <BookText size={28} />
+                  <div className="flex items-center gap-4">
+                    <div className="bg-blue-600/10 border border-blue-500/20 w-12 h-12 rounded-xl flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform shrink-0">
+                      <BookText size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-white text-sm sm:text-base font-black uppercase tracking-tight italic">AUDIO LEXICON GLOSSARY</h4>
+                      <p className="text-slate-400 text-xs font-semibold leading-relaxed mt-0.5">The ultimate technical audio terms and definitions dictionary for worship team engineers.</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-black mb-2 uppercase italic tracking-tighter group-hover:text-blue-600 transition-colors">Audio Lexicon</h2>
-                    <p className="text-slate-500 text-sm leading-relaxed">Expert technical terminology and deep-dive audio guides for beginners.</p>
-                  </div>
+                  <span className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all self-stretch sm:self-auto text-center shrink-0">
+                    Open Lexicon
+                  </span>
                 </button>
               </div>
             </motion.div>
