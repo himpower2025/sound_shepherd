@@ -1227,63 +1227,69 @@ export const VirtualMixer = () => {
                   <div className="flex gap-3 md:gap-4 flex-1">
                     
                     {/* ── Column 1: Input & Routing & Fader ── */}
-                    <div className="flex flex-col items-center gap-3 w-[64px] md:w-[74px]">
+                    <div className="flex flex-col items-center gap-2 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2 rounded-xl border border-white/5 self-stretch justify-between">
                       <div className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase tracking-wider mb-0.5">Strip</div>
                       
-                      {/* Trim (Input Level/Gain) */}
-                      <Knob
-                        label="Trim"
-                        value={ch.gain}
-                        min={0}
-                        max={100}
-                        onChange={(v) => updateChannel(ch.id, { gain: v })}
-                      />
+                      {/* Knob Group */}
+                      <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
+                        {/* Trim (Input Level/Gain) */}
+                        <Knob
+                          label="Trim"
+                          value={ch.gain}
+                          min={0}
+                          max={100}
+                          onChange={(v) => updateChannel(ch.id, { gain: v })}
+                        />
 
-                      {/* Reverb send level */}
-                      <Knob
-                        label="Reverb"
-                        value={ch.reverb}
-                        min={0}
-                        max={100}
-                        unit="%"
-                        onChange={(v) => updateChannel(ch.id, { reverb: v })}
-                      />
+                        {/* Reverb send level */}
+                        <Knob
+                          label="Reverb"
+                          value={ch.reverb}
+                          min={0}
+                          max={100}
+                          unit="%"
+                          onChange={(v) => updateChannel(ch.id, { reverb: v })}
+                        />
 
-                      {/* Panoramic positioning */}
-                      <Knob
-                        label="L Pan R"
-                        value={ch.pan}
-                        min={-100}
-                        max={100}
-                        onChange={(v) => updateChannel(ch.id, { pan: v })}
-                      />
+                        {/* Panoramic positioning */}
+                        <Knob
+                          label="L Pan R"
+                          value={ch.pan}
+                          min={-100}
+                          max={100}
+                          onChange={(v) => updateChannel(ch.id, { pan: v })}
+                        />
+                      </div>
 
-                      {/* Mute Button (Analog tactile look) */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { muted: !ch.muted }); }}
-                        className={`w-full py-1.5 md:py-2 rounded-lg font-black text-[9px] md:text-[10px] uppercase border transition-all ${
-                          ch.muted 
-                            ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30 font-black' 
-                            : (skin === 'modern' ? 'bg-slate-950 border-slate-800 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-700 hover:bg-slate-400')
-                        }`}
-                      >
-                        mute
-                      </button>
+                      {/* Mute & Solo Buttons Stack */}
+                      <div className="w-full flex flex-col gap-1 mt-1">
+                        {/* Mute Button (Analog tactile look) */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { muted: !ch.muted }); }}
+                          className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
+                            ch.muted 
+                              ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
+                              : (skin === 'modern' ? 'bg-slate-950 border-slate-801 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-705 hover:bg-slate-400')
+                          }`}
+                        >
+                          mute
+                        </button>
 
-                      {/* Solo Button */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { solo: !ch.solo }); }}
-                        className={`w-full py-1.5 md:py-2 rounded-lg font-black text-[9px] md:text-[10px] uppercase border transition-all ${
-                          ch.solo 
-                            ? 'bg-yellow-500 border-yellow-300 text-black shadow-md shadow-yellow-500/30' 
-                            : (skin === 'modern' ? 'bg-slate-950 border-slate-800 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-705 hover:bg-slate-400')
-                        }`}
-                      >
-                        solo
-                      </button>
+                        {/* Solo Button */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { solo: !ch.solo }); }}
+                          className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
+                            ch.solo 
+                              ? 'bg-yellow-500 border-yellow-300 text-black shadow-md shadow-yellow-500/30' 
+                              : (skin === 'modern' ? 'bg-slate-950 border-slate-801 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-705 hover:bg-slate-400')
+                          }`}
+                        >
+                          solo
+                        </button>
+                      </div>
 
                       {/* LED Meter + Vertical Fader Container */}
-                      <div className="flex gap-1 h-36 md:h-48 w-full mt-2">
+                      <div className="flex gap-1 h-32 md:h-40 w-full mt-2">
                         {/* Compact Channel Meter */}
                         <div className="h-full w-2 md:w-3 bg-[#0a0a0d] border border-slate-800/80 rounded-[4px] flex flex-col-reverse p-0.5 overflow-hidden gap-[1px]">
                           {[...Array(12)].map((_, i) => {
@@ -1323,7 +1329,7 @@ export const VirtualMixer = () => {
                           {/* Blue caps indicating level */}
                           <motion.div
                             animate={{ bottom: `${ch.fader}%` }}
-                            className="absolute w-full h-6 md:h-9 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-205 border-y-2 border-[#1e40af] rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
+                            className="absolute w-full h-6 md:h-9 bg-gradient-to-r from-slate-205 via-slate-100 to-slate-205 border-y-2 border-[#1e40af] rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
                             style={{ transform: 'translateY(50%)' }}
                           >
                             <div className="w-[12%] h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
@@ -1333,56 +1339,59 @@ export const VirtualMixer = () => {
                     </div>
 
                     {/* ── Column 2: Parametric Swept-Mid Equalizer ── */}
-                    <div className="flex flex-col items-center gap-3.5 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
+                    <div className="flex flex-col items-center gap-2 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
                       <div className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase tracking-wider mb-0.5">EQ</div>
                       
-                      {/* High Shelf EQ Gain */}
-                      <Knob
-                        label="High"
-                        value={ch.eq.high}
-                        min={-12}
-                        max={12}
-                        unit="dB"
-                        onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, high: v } })}
-                      />
+                      {/* Knob Group */}
+                      <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
+                        {/* High Shelf EQ Gain */}
+                        <Knob
+                          label="High"
+                          value={ch.eq.high}
+                          min={-12}
+                          max={12}
+                          unit="dB"
+                          onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, high: v } })}
+                        />
 
-                      {/* Mid Crossover sweepable center frequency */}
-                      <Knob
-                        label="Mid Freq"
-                        value={ch.eq.midFreq}
-                        min={250}
-                        max={5000}
-                        unit="Hz"
-                        onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, midFreq: Math.round(v) } })}
-                      />
+                        {/* Mid Crossover sweepable center frequency */}
+                        <Knob
+                          label="Mid Freq"
+                          value={ch.eq.midFreq}
+                          min={250}
+                          max={5000}
+                          unit="Hz"
+                          onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, midFreq: Math.round(v) } })}
+                        />
 
-                      {/* Mid Peaking EQ Gain */}
-                      <Knob
-                        label="Mid gain"
-                        value={ch.eq.mid}
-                        min={-12}
-                        max={12}
-                        unit="dB"
-                        onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, mid: v } })}
-                      />
+                        {/* Mid Peaking EQ Gain */}
+                        <Knob
+                          label="Mid gain"
+                          value={ch.eq.mid}
+                          min={-12}
+                          max={12}
+                          unit="dB"
+                          onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, mid: v } })}
+                        />
 
-                      {/* Low Shelf EQ Gain */}
-                      <Knob
-                        label="Low"
-                        value={ch.eq.low}
-                        min={-12}
-                        max={12}
-                        unit="dB"
-                        onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, low: v } })}
-                      />
+                        {/* Low Shelf EQ Gain */}
+                        <Knob
+                          label="Low"
+                          value={ch.eq.low}
+                          min={-12}
+                          max={12}
+                          unit="dB"
+                          onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, low: v } })}
+                        />
+                      </div>
 
                       {/* High Pass Filter rumble killer */}
                       <button
                         onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { hpf: !ch.hpf }); }}
-                        className={`w-full py-1 rounded text-[7px] md:text-[8px] font-black uppercase border transition-all ${
+                        className={`w-full py-1 rounded text-[7px] md:text-[8px] font-black uppercase border transition-all mt-auto ${
                           ch.hpf 
                             ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
-                            : (skin === 'modern' ? 'bg-slate-950 border-slate-805 text-slate-600' : 'bg-slate-350 border-slate-400 text-slate-600')
+                            : (skin === 'modern' ? 'bg-slate-950 border-slate-805 text-slate-600' : 'bg-slate-350 border-[#475569]/30 text-slate-600')
                         }`}
                       >
                         HPF
@@ -1390,38 +1399,44 @@ export const VirtualMixer = () => {
                     </div>
 
                     {/* ── Column 3: Dynamics Compressor ── */}
-                    <div className="flex flex-col items-center gap-3.5 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
-                      <div className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase tracking-wider mb-0.5">COMP</div>
+                    <div className="flex flex-col items-center gap-2 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
+                      <div className="text-[6px] md:text-[8px] font-black text-slate-550 uppercase tracking-wider mb-0.5">COMP</div>
                       
-                      {/* Comp Attack Speed */}
-                      <Knob
-                        label="Attack"
-                        value={ch.comp.attack}
-                        min={1}
-                        max={100}
-                        unit="ms"
-                        onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, attack: v } })}
-                      />
+                      {/* Knob Group */}
+                      <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
+                        {/* Comp Attack Speed */}
+                        <Knob
+                          label="Attack"
+                          value={ch.comp.attack}
+                          min={1}
+                          max={100}
+                          unit="ms"
+                          onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, attack: v } })}
+                        />
 
-                      {/* Comp Release Delay */}
-                      <Knob
-                        label="Release"
-                        value={ch.comp.release}
-                        min={10}
-                        max={1000}
-                        unit="ms"
-                        onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, release: v } })}
-                      />
+                        {/* Comp Release Delay */}
+                        <Knob
+                          label="Release"
+                          value={ch.comp.release}
+                          min={10}
+                          max={1000}
+                          unit="ms"
+                          onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, release: v } })}
+                        />
 
-                      {/* Comp Threshold trigger point */}
-                      <Knob
-                        label="Thresh"
-                        value={ch.comp.threshold}
-                        min={-60}
-                        max={0}
-                        unit="dB"
-                        onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, threshold: v } })}
-                      />
+                        {/* Comp Threshold trigger point */}
+                        <Knob
+                          label="Thresh"
+                          value={ch.comp.threshold}
+                          min={-60}
+                          max={0}
+                          unit="dB"
+                          onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, threshold: v } })}
+                        />
+
+                        {/* Perfect spacer to align with the 4th Knob of EQ */}
+                        <div className="h-[43px] md:h-[53px] w-full flex items-center justify-center opacity-0 pointer-events-none" />
+                      </div>
 
                       {/* Feedback Dynamics LEDs representing current GR */}
                       <div className="w-full flex flex-col items-center gap-1 mt-auto">
