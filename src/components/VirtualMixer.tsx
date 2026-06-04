@@ -1228,7 +1228,7 @@ export const VirtualMixer = () => {
                     
                     {/* ── Column 1: Input & Routing & Fader ── */}
                     <div className="flex flex-col items-center gap-2 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2 rounded-xl border border-white/5 self-stretch justify-between">
-                      <div className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase tracking-wider mb-0.5">Strip</div>
+                      <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">Strip</div>
                       
                       {/* Knob Group */}
                       <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
@@ -1259,33 +1259,33 @@ export const VirtualMixer = () => {
                           max={100}
                           onChange={(v) => updateChannel(ch.id, { pan: v })}
                         />
-                      </div>
 
-                      {/* Mute & Solo Buttons Stack */}
-                      <div className="w-full flex flex-col gap-1 mt-1">
-                        {/* Mute Button (Analog tactile look) */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { muted: !ch.muted }); }}
-                          className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
-                            ch.muted 
-                              ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
-                              : (skin === 'modern' ? 'bg-slate-950 border-slate-801 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-705 hover:bg-slate-400')
-                          }`}
-                        >
-                          mute
-                        </button>
+                        {/* Mute & Solo Buttons Stack (Integrated inside Knob Group vertically: Solo on top, Mute on bottom) */}
+                        <div className="w-full flex flex-col gap-1 mt-1">
+                          {/* Solo Button */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { solo: !ch.solo }); }}
+                            className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
+                              ch.solo 
+                                ? 'bg-yellow-500 border-yellow-300 text-black shadow-md shadow-yellow-500/30' 
+                                : (skin === 'modern' ? 'bg-slate-950 border-slate-801 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-705 hover:bg-slate-400')
+                            }`}
+                          >
+                            solo
+                          </button>
 
-                        {/* Solo Button */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { solo: !ch.solo }); }}
-                          className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
-                            ch.solo 
-                              ? 'bg-yellow-500 border-yellow-300 text-black shadow-md shadow-yellow-500/30' 
-                              : (skin === 'modern' ? 'bg-slate-950 border-slate-801 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-705 hover:bg-slate-400')
-                          }`}
-                        >
-                          solo
-                        </button>
+                          {/* Mute Button (Analog tactile look) */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { muted: !ch.muted }); }}
+                            className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
+                              ch.muted 
+                                ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
+                                : (skin === 'modern' ? 'bg-slate-950 border-slate-801 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-705 hover:bg-slate-400')
+                            }`}
+                          >
+                            mute
+                          </button>
+                        </div>
                       </div>
 
                       {/* LED Meter + Vertical Fader Container */}
@@ -1340,7 +1340,7 @@ export const VirtualMixer = () => {
 
                     {/* ── Column 2: Parametric Swept-Mid Equalizer ── */}
                     <div className="flex flex-col items-center gap-2 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
-                      <div className="text-[6px] md:text-[8px] font-black text-slate-500 uppercase tracking-wider mb-0.5">EQ</div>
+                      <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">EQ</div>
                       
                       {/* Knob Group */}
                       <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
@@ -1400,7 +1400,7 @@ export const VirtualMixer = () => {
 
                     {/* ── Column 3: Dynamics Compressor ── */}
                     <div className="flex flex-col items-center gap-2 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
-                      <div className="text-[6px] md:text-[8px] font-black text-slate-550 uppercase tracking-wider mb-0.5">COMP</div>
+                      <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">COMP</div>
                       
                       {/* Knob Group */}
                       <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
@@ -1457,7 +1457,7 @@ export const VirtualMixer = () => {
                   </div>
 
                   {/* Aesthetic Tape Scribble at Bottom of Channel strip */}
-                  <div className="mt-2 w-full px-2 py-2 bg-[#fef08a] border border-[#fef3c7] rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center -rotate-1 select-none">
+                  <div className="mt-2 w-full px-2 py-2 bg-[#fef08a] border border-[#fef3c7] rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center select-none">
                     <span className="text-[11px] md:text-[13px] font-sans italic font-black text-slate-800 tracking-tight leading-none text-center truncate">
                       {ch.name}
                     </span>
@@ -1502,7 +1502,7 @@ export const VirtualMixer = () => {
               </div>
 
               {/* Tape for Return */}
-              <div className="mt-auto w-full px-1 py-1.5 bg-[#cbd5e1] border border-slate-300 rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center rotate-1 select-none">
+              <div className="mt-auto w-full px-1 py-1.5 bg-[#cbd5e1] border border-slate-300 rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center select-none">
                 <span className="text-[9px] md:text-[10px] font-sans font-black text-slate-700 tracking-tight leading-none text-center truncate">
                   FX RET
                 </span>
@@ -1573,7 +1573,7 @@ export const VirtualMixer = () => {
                 </motion.div>
               </div>
 
-              <div className="w-full px-1 py-1.5 bg-[#fecaca] border border-red-200 rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center -rotate-1 select-none">
+              <div className="w-full px-1 py-1.5 bg-[#fecaca] border border-red-200 rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center select-none">
                 <span className="text-[9px] md:text-[10px] font-sans font-black text-red-800 tracking-tight leading-none text-center truncate">
                   STEREO
                 </span>
