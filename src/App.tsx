@@ -204,8 +204,8 @@ export default function App() {
           // Register push manager subscription
           let sub: PushSubscription | null = null;
           
-          // VAPID Public Key placeholder - User will configure this in Vercel env or code
-          const VAPID_PUBLIC_KEY = "BEl62iCIhp85J2kgUBGthcabc123_PLACEHOLDER_KEY";
+          // VAPID Public Key - Configured for Sound Shepherd PWA
+          const VAPID_PUBLIC_KEY = "BPK_UaJ32VndRn8srT9DoCpe_6MALEj3E15VM4_2rd1ddfUkPKnJKrT2fiADIZARhJ07PyHTeB-kFCdoKY_QYjQ";
           
           try {
             sub = await reg.pushManager.subscribe({

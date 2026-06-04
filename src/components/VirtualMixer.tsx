@@ -86,13 +86,14 @@ interface Song {
 //       Full EQ/Pan on YouTube blocked by browser same-origin policy.
 // ─────────────────────────────────────────────
 const SONGS: Song[] = [
-  {
-    id: 'demo-worship',
-    title: 'Glory Hallelujah (Demo)',
-    artist: 'Worship Team',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    type: 'file'
-  }
+  { id: 'guide-01', title: 'Guide Session 01 (Acoustic Folk)', artist: 'Session Guide', url: '', type: 'file' },
+  { id: 'guide-02', title: 'Guide Session 02 (Worship Piano)', artist: 'Session Guide', url: '', type: 'file' },
+  { id: 'guide-03', title: 'Guide Session 03 (Symphonic Organ)', artist: 'Session Guide', url: '', type: 'file' },
+  { id: 'guide-04', title: 'Guide Session 04 (Vocal Harmonics)', artist: 'Session Guide', url: '', type: 'file' },
+  { id: 'guide-05', title: 'Guide Session 05 (Worship Pad Intro)', artist: 'Session Guide', url: '', type: 'file' },
+  { id: 'guide-06', title: 'Guide Session 06 (Full Praise Band)', artist: 'Session Guide', url: '', type: 'file' },
+  { id: 'guide-07', title: 'Guide Session 07 (Speech Intelligibility)', artist: 'Session Guide', url: '', type: 'file' },
+  { id: 'guide-08', title: 'Guide Session 08 (Ambient Sanctuary Choir)', artist: 'Session Guide', url: '', type: 'file' }
 ];
 
 const INITIAL_CHANNELS: ChannelData[] = [
@@ -755,6 +756,10 @@ export const VirtualMixer = () => {
   // ─────────────────────────────────────────────
   const togglePlay = async () => {
     if (!currentSong) return;
+    if (currentSong.type === 'file' && !currentSong.url) {
+      alert("This is a pending Demo Guide track placeholder. Authentic high-fidelity sessional multitracks will be officially uploaded on client handover. In the meantime, please import your own audio files (up to 6 custom slots) using the import button to play and practice!");
+      return;
+    }
     // YouTube type: console/meter simulation only — user plays directly inside iframe
     if (currentSong.type === 'youtube') {
       setIsPlaying(prev => !prev);
@@ -799,6 +804,10 @@ export const VirtualMixer = () => {
     setShowPlaylist(false);
 
     if (song.type === 'file') {
+      if (!song.url) {
+        // Just select placeholder but do not play/init web audio
+        return;
+      }
       // Ensure Web Audio engine is ready
       initWebAudio();
       // audioElRef may now be set by initWebAudio; get fresh reference
@@ -821,6 +830,14 @@ export const VirtualMixer = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Check custom tracks limit (maximum of 6)
+    const customSongsCount = songs.filter(s => s.id.startsWith('custom-')).length;
+    if (customSongsCount >= 6) {
+      alert("A maximum of 6 uploaded custom songs is allowed to keep performance optimal and memory usage light. Please delete one of your uploaded tracks from the media source playlist first.");
+      return;
+    }
+
     initWebAudio();
     const url = URL.createObjectURL(file);
     // Blob URLs are always same-origin — CORS never an issue
