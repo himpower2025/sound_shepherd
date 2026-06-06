@@ -1021,7 +1021,7 @@ export const VirtualMixer = () => {
   // Render
   // ─────────────────────────────────────────────
   return (
-    <div className={`transition-all duration-500 flex flex-col h-full min-h-[480px] md:min-h-[700px] relative overflow-hidden rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 ${
+    <div className={`transition-all duration-500 flex flex-col h-auto lg:h-[840px] xl:h-[880px] min-h-[480px] relative overflow-visible lg:overflow-hidden rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 ${
       skin === 'modern'
         ? 'bg-[#1a1c23] border-[#252833] p-1.5 md:p-3'
         : 'bg-[#d1d5db] border-[#9ca3af] p-2 md:p-4 text-slate-900'
@@ -1217,26 +1217,27 @@ export const VirtualMixer = () => {
       </div>
 
       {/* ── Main Layout ── */}
-      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 h-full overflow-hidden w-full max-w-full min-w-0">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full overflow-visible lg:overflow-hidden">
 
         {/* Left: Console Desk Container */}
         <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-2 lg:order-1">
           
           {/* Desk Navigation Controller Ribbon */}
-          <div className={`p-2 rounded-2xl flex flex-col sm:flex-row gap-3 items-center justify-between border ${
+          <div className={`p-2 rounded-2xl flex flex-col sm:flex-row gap-2 sm:gap-3 items-center justify-between border ${
             skin === 'modern' 
               ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-white/5 shadow-md' 
               : 'bg-[#cbd5e1] border-slate-400 shadow-sm'
           }`}>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-start sm:self-auto pl-1 sm:pl-0">
               <span className={`w-1.5 h-3.5 rounded-full ${skin === 'modern' ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'}`} />
               <span className={`text-[9px] md:text-xs font-black uppercase tracking-widest ${skin === 'modern' ? 'text-slate-400' : 'text-slate-700'}`}>
-                Console Strip Navigator
+                <span className="hidden min-[380px]:inline">Console Strip Navigator</span>
+                <span className="min-[380px]:hidden">Strip Navigator</span>
               </span>
             </div>
 
             {/* Selector Buttons */}
-            <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto py-0.5 justify-center">
+            <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto py-1 justify-start sm:justify-center flex-nowrap scroll-smooth scrollbar-none">
               {/* Prev Button */}
               <button
                 onClick={handlePrevStrip}
@@ -1252,14 +1253,14 @@ export const VirtualMixer = () => {
               </button>
 
               {/* Channel chips */}
-              <div className="flex gap-1 items-center px-1">
+              <div className="flex gap-1 items-center px-1 shrink-0 flex-nowrap">
                 {channels.map(ch => {
                   const isFocused = focusedStripId === ch.id;
                   return (
                     <button
                       key={ch.id}
                       onClick={() => handleStripSelect(ch.id)}
-                      className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all truncate border ${
+                      className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all truncate border shrink-0 ${
                         isFocused
                           ? (skin === 'modern' ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]' : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]')
                           : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-200 border-transparent text-slate-600 hover:bg-white/40')
@@ -1273,7 +1274,7 @@ export const VirtualMixer = () => {
                 {/* FX Return */}
                 <button
                   onClick={() => handleStripSelect(5)}
-                  className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all border ${
+                  className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all border shrink-0 ${
                     focusedStripId === 5
                       ? (skin === 'modern' ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]' : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]')
                       : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-200 border-transparent text-slate-600 hover:bg-white/40')
@@ -1285,7 +1286,7 @@ export const VirtualMixer = () => {
                 {/* Main Stereo */}
                 <button
                   onClick={() => handleStripSelect(6)}
-                  className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all border ${
+                  className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all border shrink-0 ${
                     focusedStripId === 6
                       ? (skin === 'modern' ? 'bg-red-650 border-red-500 text-white shadow shadow-red-500/25 scale-[1.03]' : 'bg-rose-100 border-red-500 text-red-650 font-bold shadow-sm scale-[1.03]')
                       : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-200 border-transparent text-slate-600 hover:bg-white/40')
@@ -1331,7 +1332,7 @@ export const VirtualMixer = () => {
           </div>
 
           {/* Left: Scrollable Console Desk */}
-          <div ref={scrollContainerRef} className="flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0">
+          <div ref={scrollContainerRef} className="flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 scroll-smooth content-start">
             <div className={`flex gap-4 min-w-max p-4 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
             {channels.map(ch => {
@@ -1345,7 +1346,7 @@ export const VirtualMixer = () => {
                       ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white/95 shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
                       : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/80 border border-white/5' : 'bg-slate-205/90 hover:bg-white/60 border border-slate-400')
                   }`}
-                  onClick={() => setSelectedId(ch.id)}
+                  onClick={() => handleStripSelect(ch.id)}
                 >
                   {/* Channel Header */}
                   <div className={`w-full py-1 rounded-md text-[10px] md:text-[11px] font-black uppercase text-center tracking-widest ${isSelected ? 'bg-blue-600 text-white animate-pulse' : (skin === 'modern' ? 'bg-slate-950 text-slate-500' : 'bg-slate-400 text-slate-700')}`}>
