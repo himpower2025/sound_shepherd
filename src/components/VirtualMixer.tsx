@@ -1021,7 +1021,7 @@ export const VirtualMixer = () => {
   // Render
   // ─────────────────────────────────────────────
   return (
-    <div className={`transition-all duration-500 flex flex-col h-auto lg:h-[840px] xl:h-[880px] min-h-[480px] relative overflow-visible lg:overflow-hidden rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 ${
+    <div className={`transition-all duration-500 flex flex-col h-auto lg:h-[840px] xl:h-[880px] min-h-[480px] relative overflow-x-hidden overflow-y-visible lg:overflow-hidden rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 w-full max-w-full ${
       skin === 'modern'
         ? 'bg-[#1a1c23] border-[#252833] p-1.5 md:p-3'
         : 'bg-[#d1d5db] border-[#9ca3af] p-2 md:p-4 text-slate-900'
@@ -1217,53 +1217,74 @@ export const VirtualMixer = () => {
       </div>
 
       {/* ── Main Layout ── */}
-      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full overflow-visible lg:overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full overflow-x-hidden overflow-y-visible lg:overflow-hidden">
 
         {/* Left: Console Desk Container */}
-        <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-2 lg:order-1">
+        <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-1 lg:order-1">
           
-          {/* Desk Navigation Controller Ribbon */}
-          <div className={`p-2 rounded-2xl flex flex-col sm:flex-row gap-2 sm:gap-3 items-center justify-between border ${
+          {/* Desk Navigation Controller Ribbon (완벽한 대칭형 8열 그리드로 리디자인) */}
+          <div className={`p-2 rounded-2xl flex flex-col sm:flex-row gap-2 sm:gap-4 items-center justify-between border ${
             skin === 'modern' 
-              ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-white/5 shadow-md' 
+              ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-white/5 shadow-md shadow-black/30' 
               : 'bg-[#cbd5e1] border-slate-400 shadow-sm'
           }`}>
-            <div className="flex items-center gap-2 self-start sm:self-auto pl-1 sm:pl-0">
-              <span className={`w-1.5 h-3.5 rounded-full ${skin === 'modern' ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'}`} />
-              <span className={`text-[9px] md:text-xs font-black uppercase tracking-widest ${skin === 'modern' ? 'text-slate-400' : 'text-slate-700'}`}>
-                <span className="hidden min-[380px]:inline">Console Strip Navigator</span>
-                <span className="min-[380px]:hidden">Strip Navigator</span>
-              </span>
+            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto px-1 border-b border-white/5 pb-1 sm:border-b-0 sm:pb-0">
+              <div className="flex items-center gap-2 pl-0.5">
+                <span className={`w-1.5 h-3.5 rounded-full ${skin === 'modern' ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'}`} />
+                <span className={`text-[9.5px] md:text-xs font-black uppercase tracking-widest ${skin === 'modern' ? 'text-slate-400' : 'text-slate-700'}`}>
+                  Strip Navigator
+                </span>
+              </div>
+              
+              {/* Active strip helper visualizer shown on mobile right next to TITLE */}
+              <div className="flex sm:hidden items-center gap-1 shrink-0">
+                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                  focusedStripId === 5 ? 'bg-blue-500/20 text-blue-400 animate-pulse' :
+                  focusedStripId === 6 ? 'bg-red-500/20 text-red-400 animate-pulse' :
+                  'bg-orange-500/15 text-orange-400'
+                }`}>
+                  {focusedStripId === 1 && "Vocal"}
+                  {focusedStripId === 2 && "Acoustic"}
+                  {focusedStripId === 3 && "Bass"}
+                  {focusedStripId === 4 && "Drums"}
+                  {focusedStripId === 5 && "Reverb"}
+                  {focusedStripId === 6 && "Stereo Out"}
+                </span>
+              </div>
             </div>
 
-            {/* Selector Buttons */}
-            <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto py-1 justify-start sm:justify-center flex-nowrap scroll-smooth scrollbar-none">
-              {/* Prev Button */}
-              <button
-                onClick={handlePrevStrip}
-                className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center gap-1 border transition-all shrink-0 active:scale-95 ${
-                  skin === 'modern'
-                    ? 'bg-slate-900/60 hover:bg-slate-800 border-white/5 text-slate-300 hover:text-white'
-                    : 'bg-slate-300 hover:bg-slate-200 border-slate-400 text-slate-700'
-                }`}
-                title="Previous Column"
-              >
-                <ChevronLeft size={10} strokeWidth={3} />
-                <span>Prev</span>
-              </button>
+            {/* Symmetrical Controls Grid (No overflow, always perfectly aligned and visible) */}
+            <div className="w-full sm:w-auto flex justify-center">
+              <div className="grid grid-cols-8 gap-1 w-full max-w-sm sm:max-w-[420px] shrink-0">
+                {/* Prev Column Button */}
+                <button
+                  onClick={handlePrevStrip}
+                  className={`px-1 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-0.5 border transition-all active:scale-95 shrink-0 select-none ${
+                    skin === 'modern'
+                      ? 'bg-slate-900 border-white/5 text-slate-300 hover:bg-slate-800'
+                      : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-200'
+                  }`}
+                  title="Previous Column"
+                >
+                  <ChevronLeft size={10} strokeWidth={3} />
+                  <span className="hidden min-[360px]:inline">PREV</span>
+                </button>
 
-              {/* Channel chips */}
-              <div className="flex gap-1 items-center px-1 shrink-0 flex-nowrap">
-                {channels.map(ch => {
+                {/* Channels 1-4 */}
+                {channels.map((ch) => {
                   const isFocused = focusedStripId === ch.id;
                   return (
                     <button
                       key={ch.id}
                       onClick={() => handleStripSelect(ch.id)}
-                      className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all truncate border shrink-0 ${
+                      className={`py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                         isFocused
-                          ? (skin === 'modern' ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]' : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]')
-                          : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-200 border-transparent text-slate-600 hover:bg-white/40')
+                          ? skin === 'modern'
+                            ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]'
+                            : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]'
+                          : skin === 'modern'
+                          ? 'bg-slate-950/60 border-white/10 text-slate-500 hover:text-slate-350'
+                          : 'bg-slate-200 border-slate-300 text-slate-650 hover:bg-white/40 shadow-inner'
                       }`}
                     >
                       CH{ch.id}
@@ -1271,48 +1292,56 @@ export const VirtualMixer = () => {
                   );
                 })}
 
-                {/* FX Return */}
+                {/* FX Return (Reverb Return) */}
                 <button
                   onClick={() => handleStripSelect(5)}
-                  className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all border shrink-0 ${
+                  className={`py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                     focusedStripId === 5
-                      ? (skin === 'modern' ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]' : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]')
-                      : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-200 border-transparent text-slate-600 hover:bg-white/40')
+                      ? skin === 'modern'
+                        ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]'
+                        : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]'
+                      : skin === 'modern'
+                      ? 'bg-slate-950/60 border-white/10 text-slate-500 hover:text-slate-350'
+                      : 'bg-slate-200 border-slate-300 text-slate-650 hover:bg-white/40 shadow-inner'
                   }`}
                 >
-                  FX RET
+                  FX
                 </button>
 
-                {/* Main Stereo */}
+                {/* Stereo Master */}
                 <button
                   onClick={() => handleStripSelect(6)}
-                  className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all border shrink-0 ${
+                  className={`py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                     focusedStripId === 6
-                      ? (skin === 'modern' ? 'bg-red-650 border-red-500 text-white shadow shadow-red-500/25 scale-[1.03]' : 'bg-rose-100 border-red-500 text-red-650 font-bold shadow-sm scale-[1.03]')
-                      : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-200 border-transparent text-slate-600 hover:bg-white/40')
+                      ? skin === 'modern'
+                        ? 'bg-red-650 border-red-500 text-white shadow shadow-red-500/25 scale-[1.03]'
+                        : 'bg-rose-100 border-red-500 text-red-650 font-bold shadow-sm scale-[1.03]'
+                      : skin === 'modern'
+                      ? 'bg-slate-950/60 border-white/10 text-slate-500 hover:text-slate-350'
+                      : 'bg-slate-200 border-slate-300 text-slate-650 hover:bg-white/40 shadow-inner'
                   }`}
                 >
                   MAIN
                 </button>
-              </div>
 
-              {/* Next Button */}
-              <button
-                onClick={handleNextStrip}
-                className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center gap-1 border transition-all shrink-0 active:scale-95 ${
-                  skin === 'modern'
-                    ? 'bg-slate-900/60 hover:bg-slate-800 border-white/5 text-slate-300 hover:text-white'
-                    : 'bg-slate-300 hover:bg-slate-200 border-slate-400 text-slate-700'
-                }`}
-                title="Next Column"
-              >
-                <span>Next</span>
-                <ChevronRight size={10} strokeWidth={3} />
-              </button>
+                {/* Next Column Button */}
+                <button
+                  onClick={handleNextStrip}
+                  className={`px-1 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-0.5 border transition-all active:scale-95 shrink-0 select-none ${
+                    skin === 'modern'
+                      ? 'bg-slate-900 border-white/5 text-slate-300 hover:bg-slate-800'
+                      : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-200'
+                  }`}
+                  title="Next Column"
+                >
+                  <span className="hidden min-[360px]:inline">NEXT</span>
+                  <ChevronRight size={10} strokeWidth={3} />
+                </button>
+              </div>
             </div>
 
-            {/* Active strip helper visualizer */}
-            <div className="hidden md:flex items-center gap-1.5 shrink-0">
+            {/* Active strip helper visualizer shown on desktop */}
+            <div className="hidden lg:flex items-center gap-1.5 shrink-0">
               <span className={`text-[8px] md:text-[9px] font-mono font-bold leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>
                 FOCUS:
               </span>
@@ -1452,6 +1481,7 @@ export const VirtualMixer = () => {
                           <input
                             type="range" min="0" max="100" value={ch.fader}
                             onChange={(e) => updateChannel(ch.id, { fader: parseInt(e.target.value) })}
+                            onClick={(e) => e.stopPropagation()}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                             style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
                           />
@@ -1704,9 +1734,10 @@ export const VirtualMixer = () => {
                 <div className="absolute inset-y-0 inset-x-0.5 flex flex-col justify-between py-3 pointer-events-none opacity-20">
                   {[...Array(9)].map((_, i) => <div key={i} className="h-[1px] w-full bg-slate-400" />)}
                 </div>
-                <input
+                 <input
                   type="range" min="0" max="100" value={masterFader}
                   onChange={(e) => setMasterFader(parseInt(e.target.value))}
+                  onClick={(e) => e.stopPropagation()}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                   style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
                 />
@@ -1731,7 +1762,7 @@ export const VirtualMixer = () => {
         </div>
 
         {/* Right Panel: Console Monitor & Training Handbook */}
-        <div className={`lg:w-[320px] xl:w-[350px] shrink-0 rounded-[1.5rem] border overflow-hidden flex flex-col min-w-full lg:min-w-0 order-1 lg:order-2 mb-2 lg:mb-0 transition-colors ${skin === 'modern' ? 'bg-slate-800/40 border-white/5' : 'bg-slate-200 border-black/10'}`}>
+        <div className={`lg:w-[320px] xl:w-[350px] shrink-0 rounded-[1.5rem] border overflow-hidden flex flex-col min-w-full lg:min-w-0 order-2 lg:order-2 mt-4 lg:mt-0 transition-colors ${skin === 'modern' ? 'bg-slate-800/40 border-white/5' : 'bg-slate-200 border-black/10'}`}>
           <div className={`p-2 md:p-3 border-b flex items-center justify-between shrink-0 ${skin === 'modern' ? 'bg-slate-900 border-white/5' : 'bg-slate-400 border-black/10'}`}>
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-blue-600/20 flex items-center justify-center text-blue-400 shadow-inner">
