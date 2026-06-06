@@ -295,11 +295,29 @@ export const VirtualMixer = () => {
   // Multi-device responsive layout & scrolling helpers
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const channelRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const [focusedStripId, setFocusedStripId] = useState<number>(1);
 
-  // Auto-scroll selected channel into view centered horizontally
+  const handleStripSelect = (id: number) => {
+    setFocusedStripId(id);
+    if (id >= 1 && id <= 4) {
+      setSelectedId(id);
+    }
+  };
+
+  const handlePrevStrip = () => {
+    const nextId = focusedStripId === 1 ? 6 : focusedStripId - 1;
+    handleStripSelect(nextId);
+  };
+
+  const handleNextStrip = () => {
+    const nextId = focusedStripId === 6 ? 1 : focusedStripId + 1;
+    handleStripSelect(nextId);
+  };
+
+  // Auto-scroll focused console strip into view centered horizontally
   useEffect(() => {
     const container = scrollContainerRef.current;
-    const activeCh = channelRefs.current[selectedId];
+    const activeCh = channelRefs.current[focusedStripId];
     if (container && activeCh) {
       const scrollLeft = activeCh.offsetLeft - (container.clientWidth / 2) + (activeCh.clientWidth / 2);
       container.scrollTo({
@@ -307,7 +325,7 @@ export const VirtualMixer = () => {
         behavior: 'smooth'
       });
     }
-  }, [selectedId]);
+  }, [focusedStripId]);
 
   // ── Web Audio Engine ──────────────────────────
   // Used only for type==='file' tracks.
@@ -1199,11 +1217,122 @@ export const VirtualMixer = () => {
       </div>
 
       {/* ── Main Layout ── */}
-      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 h-full overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 h-full overflow-hidden w-full max-w-full min-w-0">
 
-        {/* Left: Scrollable Console Desk */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-x-auto pb-2 custom-scrollbar lg:max-w-none order-2 lg:order-1">
-          <div className={`flex gap-4 min-w-max p-4 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
+        {/* Left: Console Desk Container */}
+        <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-2 lg:order-1">
+          
+          {/* Desk Navigation Controller Ribbon */}
+          <div className={`p-2 rounded-2xl flex flex-col sm:flex-row gap-3 items-center justify-between border ${
+            skin === 'modern' 
+              ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-white/5 shadow-md' 
+              : 'bg-[#cbd5e1] border-slate-400 shadow-sm'
+          }`}>
+            <div className="flex items-center gap-2">
+              <span className={`w-1.5 h-3.5 rounded-full ${skin === 'modern' ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'}`} />
+              <span className={`text-[9px] md:text-xs font-black uppercase tracking-widest ${skin === 'modern' ? 'text-slate-400' : 'text-slate-700'}`}>
+                Console Strip Navigator
+              </span>
+            </div>
+
+            {/* Selector Buttons */}
+            <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto py-0.5 justify-center">
+              {/* Prev Button */}
+              <button
+                onClick={handlePrevStrip}
+                className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center gap-1 border transition-all shrink-0 active:scale-95 ${
+                  skin === 'modern'
+                    ? 'bg-slate-900/60 hover:bg-slate-800 border-white/5 text-slate-300 hover:text-white'
+                    : 'bg-slate-300 hover:bg-slate-200 border-slate-400 text-slate-700'
+                }`}
+                title="Previous Column"
+              >
+                <ChevronLeft size={10} strokeWidth={3} />
+                <span>Prev</span>
+              </button>
+
+              {/* Channel chips */}
+              <div className="flex gap-1 items-center px-1">
+                {channels.map(ch => {
+                  const isFocused = focusedStripId === ch.id;
+                  return (
+                    <button
+                      key={ch.id}
+                      onClick={() => handleStripSelect(ch.id)}
+                      className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all truncate border ${
+                        isFocused
+                          ? (skin === 'modern' ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]' : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]')
+                          : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-200 border-transparent text-slate-600 hover:bg-white/40')
+                      }`}
+                    >
+                      CH{ch.id}
+                    </button>
+                  );
+                })}
+
+                {/* FX Return */}
+                <button
+                  onClick={() => handleStripSelect(5)}
+                  className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all border ${
+                    focusedStripId === 5
+                      ? (skin === 'modern' ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]' : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]')
+                      : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-200 border-transparent text-slate-600 hover:bg-white/40')
+                  }`}
+                >
+                  FX RET
+                </button>
+
+                {/* Main Stereo */}
+                <button
+                  onClick={() => handleStripSelect(6)}
+                  className={`px-2.5 py-1 rounded text-[8px] md:text-[9.5px] font-black uppercase tracking-tight transition-all border ${
+                    focusedStripId === 6
+                      ? (skin === 'modern' ? 'bg-red-650 border-red-500 text-white shadow shadow-red-500/25 scale-[1.03]' : 'bg-rose-100 border-red-500 text-red-650 font-bold shadow-sm scale-[1.03]')
+                      : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-200 border-transparent text-slate-600 hover:bg-white/40')
+                  }`}
+                >
+                  MAIN
+                </button>
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={handleNextStrip}
+                className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center gap-1 border transition-all shrink-0 active:scale-95 ${
+                  skin === 'modern'
+                    ? 'bg-slate-900/60 hover:bg-slate-800 border-white/5 text-slate-300 hover:text-white'
+                    : 'bg-slate-300 hover:bg-slate-200 border-slate-400 text-slate-700'
+                }`}
+                title="Next Column"
+              >
+                <span>Next</span>
+                <ChevronRight size={10} strokeWidth={3} />
+              </button>
+            </div>
+
+            {/* Active strip helper visualizer */}
+            <div className="hidden md:flex items-center gap-1.5 shrink-0">
+              <span className={`text-[8px] md:text-[9px] font-mono font-bold leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>
+                FOCUS:
+              </span>
+              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                focusedStripId === 5 ? 'bg-blue-500/20 text-blue-400 animate-pulse' :
+                focusedStripId === 6 ? 'bg-red-500/20 text-red-400 animate-pulse' :
+                'bg-orange-500/10 text-orange-400'
+              }`}>
+                {focusedStripId === 1 && "Vocals"}
+                {focusedStripId === 2 && "Guitar/Piano"}
+                {focusedStripId === 3 && "Bass Guitar"}
+                {focusedStripId === 4 && "Drums"}
+                {focusedStripId === 5 && "SPX Reverb"}
+                {focusedStripId === 6 && "Stereo Out"}
+              </span>
+            </div>
+          </div>
+
+          {/* Left: Scrollable Console Desk */}
+          <div ref={scrollContainerRef} className="flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0">
+            <div className={`flex gap-4 min-w-max p-4 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
             {channels.map(ch => {
               const isSelected = selectedId === ch.id;
@@ -1470,7 +1599,15 @@ export const VirtualMixer = () => {
             <div className="w-[1px] self-stretch bg-slate-700/20 dark:bg-white/5 my-2 animate-pulse" />
 
             {/* Yamaha SPX Reverb Return Strip */}
-            <div className={`w-[78px] md:w-[90px] flex flex-col items-center gap-2 p-1.5 rounded-2xl border border-blue-500/10 ${skin === 'modern' ? 'bg-blue-950/10' : 'bg-slate-350 shadow-inner'}`}>
+            <div 
+              ref={el => { channelRefs.current[5] = el; }}
+              onClick={() => handleStripSelect(5)}
+              className={`w-[78px] md:w-[90px] flex flex-col items-center gap-2 p-1.5 rounded-2xl border cursor-pointer select-none transition-all ${
+                focusedStripId === 5 
+                  ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
+                  : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/85 border border-white/5' : 'bg-slate-200 border border-slate-400')
+              }`}
+            >
               <div className="w-full text-center text-[7px] md:text-[8px] font-black uppercase tracking-wider text-blue-400 bg-blue-950/40 py-1 rounded leading-none">
                 SPX Return
               </div>
@@ -1512,7 +1649,15 @@ export const VirtualMixer = () => {
             <div className="w-[1px] self-stretch bg-slate-700/20 dark:bg-white/5 my-2" />
 
             {/* Stereo Master Out Strip */}
-            <div className="w-[84px] md:w-[102px] border-l border-white/5 pl-1.5 ml-0.5 flex flex-col items-center gap-2 bg-black/5 rounded-2xl p-1.5 self-stretch">
+            <div 
+              ref={el => { channelRefs.current[6] = el; }}
+              onClick={() => handleStripSelect(6)}
+              className={`w-[84px] md:w-[102px] border-l border-white/5 pl-1.5 ml-0.5 flex flex-col items-center gap-2 rounded-2xl p-1.5 self-stretch cursor-pointer select-none transition-all ${
+                focusedStripId === 6 
+                  ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
+                  : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/85 border border-white/5' : 'bg-slate-200 border border-slate-400')
+              }`}
+            >
               
               {user && (
                 <div className="flex gap-1 w-full">
@@ -1581,6 +1726,7 @@ export const VirtualMixer = () => {
             </div>
 
           </div>
+        </div>
         </div>
 
         {/* Right Panel: Console Monitor & Training Handbook */}
