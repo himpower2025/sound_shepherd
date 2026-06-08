@@ -216,6 +216,7 @@ const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClas
   const knobRef = useRef<HTMLDivElement>(null);
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation(); // Prevent scroll-dragging of the outer console desk
     e.preventDefault();
     const startY = e.clientY;
     const startVal = value;
@@ -242,7 +243,7 @@ const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClas
   const angle = -135 + percent * 270;
 
   return (
-    <div className="flex flex-col items-center select-none group">
+    <div className="flex flex-col items-center select-none group knob-container">
       <div 
         ref={knobRef}
         onPointerDown={handlePointerDown}
@@ -296,6 +297,63 @@ export const VirtualMixer = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const channelRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [focusedStripId, setFocusedStripId] = useState<number>(1);
+
+  // Drag-scrolling state & event references
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDeskPointerDown = (e: React.PointerEvent) => {
+    // Only support mouse left-clicks or touch events
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    const target = e.target as HTMLElement;
+
+    // Strict escape if the user clicks any interactive components or buttons
+    if (
+      target.closest('input') ||
+      target.closest('button') ||
+      target.closest('select') ||
+      target.closest('textarea') ||
+      target.closest('.knob-container') ||
+      target.closest('.knob-element') ||
+      target.classList.contains('cursor-pointer') ||
+      target.closest('[role="slider"]')
+    ) {
+      return;
+    }
+
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    startXRef.current = e.clientX;
+    scrollLeftRef.current = scrollContainerRef.current?.scrollLeft || 0;
+
+    // Intercept event streams elegantly
+    try {
+      scrollContainerRef.current?.setPointerCapture(e.pointerId);
+    } catch (_) {}
+  };
+
+  const handleDeskPointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current || !scrollContainerRef.current) return;
+    
+    const currentX = e.clientX;
+    const deltaX = currentX - startXRef.current;
+    
+    // Natural responsive scrolling mechanics
+    scrollContainerRef.current.scrollLeft = scrollLeftRef.current - deltaX;
+  };
+
+  const handleDeskPointerUp = (e: React.PointerEvent) => {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      try {
+        scrollContainerRef.current?.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+    }
+  };
 
   const handleStripSelect = (id: number) => {
     setFocusedStripId(id);
@@ -1361,7 +1419,14 @@ export const VirtualMixer = () => {
           </div>
 
           {/* Left: Scrollable Console Desk */}
-          <div ref={scrollContainerRef} className="flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 scroll-smooth content-start">
+          <div 
+            ref={scrollContainerRef} 
+            onPointerDown={handleDeskPointerDown}
+            onPointerMove={handleDeskPointerMove}
+            onPointerUp={handleDeskPointerUp}
+            onPointerCancel={handleDeskPointerUp}
+            className={`flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 scroll-smooth content-start touch-pan-x select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          >
             <div className={`flex gap-4 min-w-max p-4 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
             {channels.map(ch => {
@@ -1482,6 +1547,7 @@ export const VirtualMixer = () => {
                             type="range" min="0" max="100" value={ch.fader}
                             onChange={(e) => updateChannel(ch.id, { fader: parseInt(e.target.value) })}
                             onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                             style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
                           />
@@ -1738,6 +1804,7 @@ export const VirtualMixer = () => {
                   type="range" min="0" max="100" value={masterFader}
                   onChange={(e) => setMasterFader(parseInt(e.target.value))}
                   onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                   style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
                 />
