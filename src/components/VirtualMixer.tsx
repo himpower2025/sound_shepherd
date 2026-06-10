@@ -297,6 +297,8 @@ export const VirtualMixer = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const channelRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [focusedStripId, setFocusedStripId] = useState<number>(1);
+  const mobileCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const desktopCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Drag-scrolling state & event references
   const isDraggingRef = useRef(false);
@@ -818,6 +820,69 @@ export const VirtualMixer = () => {
     return () => cancelAnimationFrame(raf);
   }, [isPlaying, currentSong, channels]);
 
+  // Real-time audio frequency visualizer canvas renderer
+  useEffect(() => {
+    if (!isPlaying || currentSong?.type !== 'file' || !masterAnalyserRef.current) return;
+    
+    let rafId: number;
+    const analyser = masterAnalyserRef.current;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const draw = () => {
+      rafId = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArray);
+
+      const canvases = [mobileCanvasRef.current, desktopCanvasRef.current].filter(Boolean) as HTMLCanvasElement[];
+      
+      canvases.forEach(canvas => {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
+          canvas.width = canvas.offsetWidth;
+          canvas.height = canvas.offsetHeight;
+        }
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.35)'; // Slate 900
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Grid lines
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        const gridRows = 3;
+        for (let i = 1; i < gridRows; i++) {
+          const y = (canvas.height / gridRows) * i;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
+
+        const barWidth = (canvas.width / bufferLength) * 0.8;
+        const barGap = (canvas.width / bufferLength) * 0.2;
+        
+        for (let i = 0; i < bufferLength; i++) {
+          const percent = dataArray[i] / 255;
+          const barHeight = percent * canvas.height * 0.9;
+          const x = i * (barWidth + barGap);
+          const y = canvas.height - barHeight;
+
+          const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+          gradient.addColorStop(0, '#2563eb');
+          gradient.addColorStop(0.5, '#db2777');
+          gradient.addColorStop(1, '#ea580c');
+          
+          ctx.fillStyle = gradient;
+          ctx.fillRect(x, y, barWidth, barHeight);
+        }
+      });
+    };
+
+    draw();
+    return () => cancelAnimationFrame(rafId);
+  }, [isPlaying, currentSong, masterAnalyserRef]);
+
   // ── Cleanup ─────────────────────────────────────
   useEffect(() => {
     return () => {
@@ -1075,6 +1140,120 @@ export const VirtualMixer = () => {
     return () => window.removeEventListener('mousedown', handler);
   }, [info]);
 
+  const renderVisualizerScreen = (isMobile: boolean = false) => {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[7px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest italic leading-none flex items-center gap-1.5">
+            <Activity size={10} className="text-blue-500" /> Live worship scene
+          </span>
+          <span className="text-[6px] md:text-[8px] font-bold text-slate-600 uppercase">Interactive Screen</span>
+        </div>
+
+        <div className={`rounded-xl border overflow-hidden relative ${
+          isMobile ? 'h-[90px] xs:h-[110px] sm:h-[130px] md:h-[150px]' : 'aspect-video'
+        } ${skin === 'modern' ? 'bg-black border-white/10' : 'bg-slate-900 border-black/20'}`}>
+          {currentSong ? (
+            currentSong.type === 'youtube' ? (
+              <div className="w-full h-full relative">
+                <iframe
+                  key={currentSong.id}
+                  src={getYouTubeEmbedUrl(currentSong.url)}
+                  className="w-full h-full"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                  title={currentSong.title}
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-black/85 text-center py-1 pointer-events-none">
+                  <span className="text-[7px] text-blue-300 font-bold uppercase tracking-widest">
+                    ▶ Press Play inside the video container
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/60 p-2 text-center gap-1">
+                <div className="flex items-center gap-2 justify-center w-full min-w-0">
+                  <Waves size={14} className={isPlaying ? 'text-blue-500 animate-pulse shrink-0' : 'text-blue-500/20 shrink-0'} />
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] truncate max-w-[80%]">
+                    {isPlaying ? `Playing: ${currentSong.title}` : 'Audio Idle'}
+                  </span>
+                </div>
+                <canvas ref={isMobile ? mobileCanvasRef : desktopCanvasRef} className="w-full flex-1 min-h-[30px] bg-black/40 rounded-lg border border-white/5" />
+              </div>
+            )
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-slate-950/60 text-center gap-1.5">
+              <Music size={14} className="animate-pulse text-blue-500/30" />
+              <span className="text-[8px] font-black text-white uppercase">No Practice Track</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderHandbookAndIndicator = () => {
+    return (
+      <div className="space-y-4">
+        {/* ── Active Channel Indicator Helper ── */}
+        <div className={`p-3 rounded-xl border ${skin === 'modern' ? 'bg-slate-955/40 border-white/5' : 'bg-white border-black/10 shadow-sm'}`}>
+          <div className="flex items-center gap-2.5 mb-2 border-b border-dashed pb-1.5 border-slate-705/30">
+            <span className={`w-5 h-5 rounded flex items-center justify-center text-white font-black text-[10px] leading-none ${selectedChannel.color}`}>{selectedChannel.id}</span>
+            <div>
+              <h4 className="text-[10px] font-black uppercase text-blue-400 tracking-wide">Selected: {selectedChannel.name}</h4>
+              <p className="text-[7px] text-slate-500 font-bold uppercase leading-none">Tuning active console strip</p>
+            </div>
+          </div>
+          
+          <div className="space-y-2 text-[10px] text-slate-400 font-medium leading-relaxed">
+            <p>You can adjust this channel's <strong className="text-white">Trim, Reverb, Pan, custom fine-swept EQ</strong>, and <strong className="text-white">dynamic Compression threshold</strong> directly on the mixer desk in parallel.</p>
+            <div className="grid grid-cols-2 gap-1.5 pt-1">
+              <div className="bg-slate-900/60 p-1.5 rounded border border-white/5 text-center">
+                <span className="block text-[6px] text-slate-500 uppercase font-black">HPF state</span>
+                <span className={`text-[8px] font-bold ${selectedChannel.hpf ? 'text-green-400' : 'text-slate-600'}`}>{selectedChannel.hpf ? 'ON (80Hz Cut)' : 'OFF (Full Bypass)'}</span>
+              </div>
+              <div className="bg-slate-900/60 p-1.5 rounded border border-white/5 text-center">
+                <span className="block text-[6px] text-slate-500 uppercase font-black">Swept Mid Range</span>
+                <span className="text-[8px] font-black text-blue-400">{selectedChannel.eq.midFreq}Hz</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── SOUND ENGINEER HANDBOOK (Interactive help panel) ── */}
+        <div className={`p-3 rounded-xl border ${skin === 'modern' ? 'bg-slate-900/50 border-white/5' : 'bg-slate-300 border-black/10'}`}>
+          <h4 className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1.5 italic">SOUND TRAINING METHOD</h4>
+          
+          <div className="space-y-3">
+            {/* Topic 1: Gain Structure */}
+            <div className="space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">1. Gain (Trim) structure</span>
+              <p className="text-[9px] text-slate-400 leading-snug">Set the top **Trim** knob so that loud vocal snaps bounce the channel meter primarily in the green and yellow zones. Don't hit red peak zone to avoid harsh clipping distortion.</p>
+            </div>
+
+            {/* Topic 2: High Pass Filter */}
+            <div className="space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">2. Low-frequency Mud Cut (HPF)</span>
+              <p className="text-[9px] text-slate-400 leading-snug">Press **HPF** to dynamically clean low end rumble on Vocals & Guitars. Keep HPF off on Bass Instrument to retain natural punchy power.</p>
+            </div>
+
+            {/* Topic 3: 3-Band Swept EQ */}
+            <div className="space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">3. Parametric Vocal Tuning</span>
+              <p className="text-[9px] text-slate-400 leading-snug">Adjust **Mid Crossover Freq** (e.g., 2000Hz for speech presence, 500Hz for guitar scoop) and apply safe cut/boost gains to sculpt a beautifully transparent frequency room mix.</p>
+            </div>
+
+            {/* Topic 4: Dynamic Control */}
+            <div className="space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">4. Dynamic Compression (COMP)</span>
+              <p className="text-[9px] text-slate-400 leading-snug">Turn down **Thresh** and dial in custom **Attack & Release** times to cleanly compress highly dynamic singers and level out inconsistent worship transients.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ─────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────
@@ -1277,8 +1456,12 @@ export const VirtualMixer = () => {
       {/* ── Main Layout ── */}
       <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full overflow-x-hidden overflow-y-visible lg:overflow-hidden">
 
-        {/* Left: Console Desk Container */}
-        <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-1 lg:order-1">
+        {/* Left: Console Desk Container (rendered below visualizer on mobile, but first on desktop) */}
+        <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-2 lg:order-1">
+          {/* Mobile-only Visualizer Screen (rendered above Strip Navigator on mobile, hidden on desktop) */}
+          <div className="block lg:hidden w-full mb-1">
+            {renderVisualizerScreen(true)}
+          </div>
           
           {/* Desk Navigation Controller Ribbon (완벽한 대칭형 8열 그리드로 리디자인) */}
           <div className={`p-2 rounded-2xl flex flex-col sm:flex-row gap-2 sm:gap-4 items-center justify-between border ${
@@ -1826,139 +2009,32 @@ export const VirtualMixer = () => {
 
           </div>
         </div>
-        </div>
 
-        {/* Right Panel: Console Monitor & Training Handbook */}
-        <div className={`lg:w-[320px] xl:w-[350px] shrink-0 rounded-[1.5rem] border overflow-hidden flex flex-col min-w-full lg:min-w-0 order-2 lg:order-2 mt-4 lg:mt-0 transition-colors ${skin === 'modern' ? 'bg-slate-800/40 border-white/5' : 'bg-slate-200 border-black/10'}`}>
-          <div className={`p-2 md:p-3 border-b flex items-center justify-between shrink-0 ${skin === 'modern' ? 'bg-slate-900 border-white/5' : 'bg-slate-400 border-black/10'}`}>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-blue-600/20 flex items-center justify-center text-blue-400 shadow-inner">
-                <Activity size={13} />
-              </div>
-              <div>
-                <h3 className={`text-[10px] md:text-sm font-bold uppercase italic ${skin === 'modern' ? 'text-white' : 'text-slate-900'}`}>CONSOLE MONITOR</h3>
-                <p className={`text-[7px] md:text-[10px] font-black tracking-widest leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-700'}`}>TRAINING SUITE</p>
-              </div>
+        {/* Mobile-only Handbook & Channel Indicator (rendered below Scrollable Console Desk on mobile, hidden on desktop) */}
+        <div className="block lg:hidden mt-4">
+          {renderHandbookAndIndicator()}
+        </div>
+      </div>
+
+      {/* Right Panel: Console Monitor & Training Handbook (Desktop only, hidden on mobile/tablet) */}
+      <div className={`hidden lg:flex lg:w-[320px] xl:w-[350px] shrink-0 rounded-[1.5rem] border overflow-hidden flex-col lg:min-w-0 transition-colors ${skin === 'modern' ? 'bg-slate-800/40 border-white/5' : 'bg-slate-200 border-black/10'}`}>
+        <div className={`p-2 md:p-3 border-b flex items-center justify-between shrink-0 ${skin === 'modern' ? 'bg-slate-900 border-white/5' : 'bg-slate-400 border-black/10'}`}>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-blue-600/20 flex items-center justify-center text-blue-400 shadow-inner">
+              <Activity size={13} />
+            </div>
+            <div>
+              <h3 className={`text-[10px] md:text-sm font-bold uppercase italic ${skin === 'modern' ? 'text-white' : 'text-slate-900'}`}>CONSOLE MONITOR</h3>
+              <p className={`text-[7px] md:text-[10px] font-black tracking-widest leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-700'}`}>TRAINING SUITE</p>
             </div>
           </div>
-
-          <div className="p-3 md:p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
-
-            {/* ── Stage Monitor (Always visualizes the sound) ── */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[7px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest italic leading-none flex items-center gap-1.5">
-                  <Activity size={10} className="text-blue-500" /> Live worship scene
-                </span>
-                <span className="text-[6px] md:text-[8px] font-bold text-slate-600 uppercase">Interactive Screen</span>
-              </div>
-
-              <div className={`aspect-video rounded-xl border overflow-hidden relative ${skin === 'modern' ? 'bg-black border-white/10' : 'bg-slate-900 border-black/20'}`}>
-                {currentSong ? (
-                  currentSong.type === 'youtube' ? (
-                    <div className="w-full h-full relative">
-                      <iframe
-                        key={currentSong.id}
-                        src={getYouTubeEmbedUrl(currentSong.url)}
-                        className="w-full h-full"
-                        allow="autoplay; encrypted-media"
-                        allowFullScreen
-                        title={currentSong.title}
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/85 text-center py-1.5 pointer-events-none">
-                        <span className="text-[8px] text-blue-300 font-bold uppercase tracking-widest">
-                          ▶ Press Play inside the video container
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/60 p-3 text-center gap-2">
-                      <Waves size={24} className={isPlaying ? 'text-blue-500 animate-pulse' : 'text-blue-500/20'} />
-                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                        {isPlaying ? `Playing: ${currentSong.title}` : 'Audio Idle'}
-                      </span>
-                      {isPlaying && (
-                        <div className="flex gap-0.5 items-end h-6">
-                          {[...Array(15)].map((_, i) => (
-                            <motion.div
-                              key={i}
-                              animate={{ height: [`${15 + Math.random() * 85}%`, `${15 + Math.random() * 85}%`] }}
-                              transition={{ duration: 0.2 + Math.random() * 0.4, repeat: Infinity, repeatType: 'reverse' }}
-                              className="w-1 bg-blue-500/60 rounded-full"
-                              style={{ height: '30%' }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-slate-950/60 text-center gap-2">
-                    <Music size={18} className="animate-pulse text-blue-500/30" />
-                    <span className="text-[9px] font-black text-white uppercase">No Practice Track</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ── Active Channel Indicator Helper ── */}
-            <div className={`p-3 rounded-xl border ${skin === 'modern' ? 'bg-slate-950/40 border-white/5' : 'bg-white border-black/10 shadow-sm'}`}>
-              <div className="flex items-center gap-2.5 mb-2 border-b border-dashed pb-1.5 border-slate-705/30">
-                <span className={`w-5 h-5 rounded flex items-center justify-center text-white font-black text-[10px] leading-none ${selectedChannel.color}`}>{selectedChannel.id}</span>
-                <div>
-                  <h4 className="text-[10px] font-black uppercase text-blue-400 tracking-wide">Selected: {selectedChannel.name}</h4>
-                  <p className="text-[7px] text-slate-500 font-bold uppercase leading-none">Tuning active console strip</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2 text-[10px] text-slate-400 font-medium leading-relaxed">
-                <p>You can adjust this channel's <strong className="text-white">Trim, Reverb, Pan, custom fine-swept EQ</strong>, and <strong className="text-white">dynamic Compression threshold</strong> directly on the mixer desk in parallel.</p>
-                <div className="grid grid-cols-2 gap-1.5 pt-1">
-                  <div className="bg-slate-900/60 p-1.5 rounded border border-white/5 text-center">
-                    <span className="block text-[6px] text-slate-500 uppercase font-black">HPF state</span>
-                    <span className={`text-[8px] font-bold ${selectedChannel.hpf ? 'text-green-400' : 'text-slate-600'}`}>{selectedChannel.hpf ? 'ON (80Hz Cut)' : 'OFF (Full Bypass)'}</span>
-                  </div>
-                  <div className="bg-slate-900/60 p-1.5 rounded border border-white/5 text-center">
-                    <span className="block text-[6px] text-slate-500 uppercase font-black">Swept Mid Range</span>
-                    <span className="text-[8px] font-black text-blue-400">{selectedChannel.eq.midFreq}Hz</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── SOUND ENGINEER HANDBOOK (Interactive help panel) ── */}
-            <div className={`p-3 rounded-xl border ${skin === 'modern' ? 'bg-slate-900/50 border-white/5' : 'bg-slate-300 border-black/10'}`}>
-              <h4 className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1.5 italic">SOUND TRAINING METHOD</h4>
-              
-              <div className="space-y-3">
-                {/* Topic 1: Gain Structure */}
-                <div className="space-y-1">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">1. Gain (Trim) structure</span>
-                  <p className="text-[9px] text-slate-400 leading-snug">Set the top **Trim** knob so that loud vocal snaps bounce the channel meter primarily in the green and yellow zones. Don't hit red peak zone to avoid harsh clipping distortion.</p>
-                </div>
-
-                {/* Topic 2: High Pass Filter */}
-                <div className="space-y-1">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">2. Low-frequency Mud Cut (HPF)</span>
-                  <p className="text-[9px] text-slate-400 leading-snug">Press **HPF** to dynamically clean low end rumble on Vocals & Guitars. Keep HPF off on Bass Instrument to retain natural punchy power.</p>
-                </div>
-
-                {/* Topic 3: 3-Band Swept EQ */}
-                <div className="space-y-1">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">3. Parametric Vocal Tuning</span>
-                  <p className="text-[9px] text-slate-400 leading-snug">Adjust **Mid Crossover Freq** (e.g., 2000Hz for speech presence, 500Hz for guitar scoop) and apply safe cut/boost gains to sculpt a beautifully transparent frequency room mix.</p>
-                </div>
-
-                {/* Topic 4: Dynamic Control */}
-                <div className="space-y-1">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">4. Dynamic Compression (COMP)</span>
-                  <p className="text-[9px] text-slate-400 leading-snug">Turn down **Thresh** and dial in custom **Attack & Release** times to cleanly compress highly dynamic singers and level out inconsistent worship transients.</p>
-                </div>
-              </div>
-            </div>
-
-          </div>
         </div>
+
+        <div className="p-3 md:p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
+          {renderVisualizerScreen(false)}
+          {renderHandbookAndIndicator()}
+        </div>
+      </div>
       </div>
 
       {/* ── Tooltip ── */}
