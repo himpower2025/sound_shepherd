@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "625085868246",
+    "project_id": "sound-shepherd",
+    "storage_bucket": "sound-shepherd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:625085868246:android:3cdfe65db34adb85810177",
+        "android_client_info": {
+          "package_name": "com.himpower.soundshepherd"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "625085868246-p4imspchpka2ojk9el1iccurc57uiq2l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEcMn_gSY7ROtMgcN-FyWBNdjoMC7DxXg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "625085868246-p4imspchpka2ojk9el1iccurc57uiq2l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

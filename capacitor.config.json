@@ -1,0 +1,8 @@
+{
+  "appId": "com.himpower.soundshepherd",
+  "appName": "Sound Shepherd",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

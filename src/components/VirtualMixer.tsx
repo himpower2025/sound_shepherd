@@ -307,8 +307,9 @@ export const VirtualMixer = () => {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDeskPointerDown = (e: React.PointerEvent) => {
-    // Only support mouse left-clicks or touch events
+    // Only support mouse left-clicks
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.pointerType === 'touch') return; // Allow native touch scrolling
 
     const target = e.target as HTMLElement;
 
@@ -376,14 +377,10 @@ export const VirtualMixer = () => {
 
   // Auto-scroll focused console strip into view centered horizontally
   useEffect(() => {
-    const container = scrollContainerRef.current;
     const activeCh = channelRefs.current[focusedStripId];
-    if (container && activeCh) {
-      const scrollLeft = activeCh.offsetLeft - (container.clientWidth / 2) + (activeCh.clientWidth / 2);
-      container.scrollTo({
-        left: Math.max(0, scrollLeft),
-        behavior: 'smooth'
-      });
+    if (activeCh) {
+      // Use scrollIntoView for reliable cross-browser auto-scrolling
+      activeCh.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   }, [focusedStripId]);
 
@@ -1495,12 +1492,12 @@ export const VirtualMixer = () => {
             </div>
 
             {/* Symmetrical Controls Grid (No overflow, always perfectly aligned and visible) */}
-            <div className="w-full sm:w-auto flex justify-center">
-              <div className="grid grid-cols-8 gap-1 w-full max-w-sm sm:max-w-[420px] shrink-0">
+            <div className="w-full sm:w-auto flex overflow-x-auto custom-scrollbar pb-1 -mb-1">
+              <div className="flex gap-1 w-max px-1 shrink-0 mx-auto">
                 {/* Prev Column Button */}
                 <button
                   onClick={handlePrevStrip}
-                  className={`px-1 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-0.5 border transition-all active:scale-95 shrink-0 select-none ${
+                  className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-0.5 border transition-all active:scale-95 shrink-0 select-none ${
                     skin === 'modern'
                       ? 'bg-slate-900 border-white/5 text-slate-300 hover:bg-slate-800'
                       : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-200'
@@ -1518,7 +1515,7 @@ export const VirtualMixer = () => {
                     <button
                       key={ch.id}
                       onClick={() => handleStripSelect(ch.id)}
-                      className={`py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
+                      className={`px-2 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                         isFocused
                           ? skin === 'modern'
                             ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]'
@@ -1536,7 +1533,7 @@ export const VirtualMixer = () => {
                 {/* FX Return (Reverb Return) */}
                 <button
                   onClick={() => handleStripSelect(5)}
-                  className={`py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
+                  className={`px-2 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                     focusedStripId === 5
                       ? skin === 'modern'
                         ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]'
@@ -1552,7 +1549,7 @@ export const VirtualMixer = () => {
                 {/* Stereo Master */}
                 <button
                   onClick={() => handleStripSelect(6)}
-                  className={`py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
+                  className={`px-2 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                     focusedStripId === 6
                       ? skin === 'modern'
                         ? 'bg-red-650 border-red-500 text-white shadow shadow-red-500/25 scale-[1.03]'
@@ -1568,7 +1565,7 @@ export const VirtualMixer = () => {
                 {/* Next Column Button */}
                 <button
                   onClick={handleNextStrip}
-                  className={`px-1 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-0.5 border transition-all active:scale-95 shrink-0 select-none ${
+                  className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-0.5 border transition-all active:scale-95 shrink-0 select-none ${
                     skin === 'modern'
                       ? 'bg-slate-900 border-white/5 text-slate-300 hover:bg-slate-800'
                       : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-200'
@@ -1608,7 +1605,7 @@ export const VirtualMixer = () => {
             onPointerMove={handleDeskPointerMove}
             onPointerUp={handleDeskPointerUp}
             onPointerCancel={handleDeskPointerUp}
-            className={`flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 scroll-smooth content-start touch-pan-x select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            className={`flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 scroll-smooth content-start select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           >
             <div className={`flex gap-4 min-w-max p-4 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
