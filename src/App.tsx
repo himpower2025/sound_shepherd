@@ -248,7 +248,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] text-slate-900 font-sans overflow-x-hidden flex flex-col">
+    <div className="min-h-screen bg-[#f4f7fb] text-slate-900 font-sans overflow-x-hidden flex flex-col">
       <header className="bg-gradient-to-r from-[#0c1e3d] via-[#102a54] to-[#0c1e3d] text-white p-3 sm:p-4 sticky top-0 z-30 shadow-[0_4px_20px_rgba(30,58,138,0.25)] border-b border-blue-500/20">
         <div className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto flex items-center justify-between transition-all duration-300`}>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -392,14 +392,14 @@ export default function App() {
                         transition={{ delay: idx * 0.04 }}
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
-                        className="bg-[#edf1f5] hover:bg-[#f5f8fa] p-5 sm:p-7 rounded-[2rem] shadow-[0_5px_15px_rgba(15,23,42,0.03)] border border-slate-250 text-center flex flex-col items-center justify-center gap-4 group transition-all cursor-pointer relative overflow-hidden min-h-[140px] sm:min-h-[170px]"
+                        className="bg-white hover:bg-[#f8fbfd] p-5 sm:p-7 rounded-[2rem] shadow-[0_8px_25px_rgba(148,163,184,0.08)] border border-slate-200/50 text-center flex flex-col items-center justify-center gap-4 group transition-all cursor-pointer relative overflow-hidden min-h-[140px] sm:min-h-[170px]"
                         id={`dashboard-${item.id}`}
                       >
                         {/* Hover Ambient Circle Backlight */}
                         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         
                         {/* Tactile Circle Knob Button (업그레이드된 현대적 서클) */}
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white flex items-center justify-center p-1.5 border border-slate-250 shadow-sm group-hover:border-slate-300 group-hover:shadow-md transition-all shrink-0">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#f1f5f9] flex items-center justify-center p-1.5 border border-slate-200/50 shadow-sm group-hover:border-slate-300/40 group-hover:shadow-md transition-all shrink-0">
                           <div className={`w-full h-full rounded-full bg-gradient-to-tr ${item.colorClass} flex items-center justify-center text-white shadow-inner group-hover:scale-105 transition-transform duration-300`}>
                             <IconComp size={24} className="sm:w-7 sm:h-7" />
                           </div>
