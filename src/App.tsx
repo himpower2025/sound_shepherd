@@ -60,56 +60,56 @@ export default function App() {
       id: 'mixer',
       title: 'Practice Mixer',
       icon: Sliders,
-      colorClass: 'from-[#f97316] to-[#ea580c] shadow-orange-500/25',
+      colorClass: 'from-[#e06d3b] to-[#b34c1b] shadow-orange-750/20',
       action: () => setActiveState('mixer')
     },
     {
       id: 'frequency',
       title: 'Frequency IQ',
       icon: Activity,
-      colorClass: 'from-[#3b82f6] to-[#2563eb] shadow-blue-500/25',
+      colorClass: 'from-[#4b79b7] to-[#1e3c72] shadow-blue-900/20',
       action: () => setActiveState('frequency')
     },
     {
       id: 'recorder',
       title: 'Virtual Soundcheck',
       icon: Mic,
-      colorClass: 'from-[#10b981] to-[#059669] shadow-emerald-500/25',
+      colorClass: 'from-[#3b9c7f] to-[#125c45] shadow-emerald-900/20',
       action: () => setActiveState('recorder')
     },
     {
       id: 'mixing',
       title: 'Mixing Basics',
       icon: AudioLines,
-      colorClass: 'from-[#ec4899] to-[#db2777] shadow-pink-500/25',
+      colorClass: 'from-[#c55d8c] to-[#802451] shadow-pink-950/20',
       action: () => { setSelectedSectionId('mixing'); setActiveState('guide'); }
     },
     {
       id: 'mics',
       title: 'Mic Placement',
       icon: Mic2,
-      colorClass: 'from-[#8b5cf6] to-[#7c3aed] shadow-purple-500/25',
+      colorClass: 'from-[#785fb3] to-[#432371] shadow-purple-950/20',
       action: () => { setSelectedSectionId('mics'); setActiveState('guide'); }
     },
     {
       id: 'troubleshooting',
       title: 'Feedback Help!',
       icon: Wrench,
-      colorClass: 'from-[#06b6d4] to-[#0891b2] shadow-cyan-500/25',
+      colorClass: 'from-[#499ca8] to-[#1b5d69] shadow-cyan-950/20',
       action: () => { setSelectedSectionId('troubleshooting'); setActiveState('guide'); }
     },
     {
       id: 'hardware',
       title: 'Cable Repair',
       icon: Zap,
-      colorClass: 'from-[#f59e0b] to-[#d97706] shadow-amber-500/25',
+      colorClass: 'from-[#cf8d3c] to-[#854d0e] shadow-amber-950/20',
       action: () => { setSelectedSectionId('hardware'); setActiveState('guide'); }
     },
     {
       id: 'checklist',
       title: 'Sanity Kit',
       icon: CheckSquare,
-      colorClass: 'from-[#14b8a6] to-[#0d9488] shadow-teal-500/25',
+      colorClass: 'from-[#3ea699] to-[#115e55] shadow-teal-950/20',
       action: () => { setSelectedSectionId('checklist'); setActiveState('guide'); }
     }
   ];
@@ -248,7 +248,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans overflow-x-hidden flex flex-col">
+    <div className="min-h-screen bg-[#f4f6f9] text-slate-900 font-sans overflow-x-hidden flex flex-col">
       <header className="bg-gradient-to-r from-[#0c1e3d] via-[#102a54] to-[#0c1e3d] text-white p-3 sm:p-4 sticky top-0 z-30 shadow-[0_4px_20px_rgba(30,58,138,0.25)] border-b border-blue-500/20">
         <div className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto flex items-center justify-between transition-all duration-300`}>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -392,14 +392,14 @@ export default function App() {
                         transition={{ delay: idx * 0.04 }}
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
-                        className="bg-white hover:bg-slate-50/50 p-5 sm:p-7 rounded-[2rem] shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-slate-200/80 text-center flex flex-col items-center justify-center gap-4 group transition-all cursor-pointer relative overflow-hidden min-h-[140px] sm:min-h-[170px]"
+                        className="bg-[#edf1f5] hover:bg-[#f5f8fa] p-5 sm:p-7 rounded-[2rem] shadow-[0_5px_15px_rgba(15,23,42,0.03)] border border-slate-250 text-center flex flex-col items-center justify-center gap-4 group transition-all cursor-pointer relative overflow-hidden min-h-[140px] sm:min-h-[170px]"
                         id={`dashboard-${item.id}`}
                       >
                         {/* Hover Ambient Circle Backlight */}
-                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-orange-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         
                         {/* Tactile Circle Knob Button (업그레이드된 현대적 서클) */}
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-150 flex items-center justify-center p-1.5 border border-slate-200/80 shadow-md group-hover:border-orange-500/30 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.15)] transition-all shrink-0">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white flex items-center justify-center p-1.5 border border-slate-250 shadow-sm group-hover:border-slate-300 group-hover:shadow-md transition-all shrink-0">
                           <div className={`w-full h-full rounded-full bg-gradient-to-tr ${item.colorClass} flex items-center justify-center text-white shadow-inner group-hover:scale-105 transition-transform duration-300`}>
                             <IconComp size={24} className="sm:w-7 sm:h-7" />
                           </div>
