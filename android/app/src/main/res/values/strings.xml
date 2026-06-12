@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sound Shepherd</string>
+    <string name="title_activity_main">Sound Shepherd</string>
+    <string name="package_name">com.himpower.soundshepherd</string>
+    <string name="custom_url_scheme">com.himpower.soundshepherd</string>
+</resources>
