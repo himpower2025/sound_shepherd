@@ -1103,7 +1103,7 @@ export const VirtualMixer = () => {
   // Render
   // ─────────────────────────────────────────────
   return (
-    <div className={`transition-all duration-500 flex flex-col h-auto lg:h-[840px] xl:h-[880px] min-h-[480px] relative overflow-x-hidden overflow-y-visible lg:overflow-hidden rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 w-full max-w-full ${
+    <div className={`transition-all duration-500 flex flex-col h-auto lg:h-[840px] xl:h-[880px] min-h-[480px] relative overflow-hidden rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 w-full max-w-full ${
       skin === 'modern'
         ? 'bg-[#1a1c23] border-[#252833] p-1.5 md:p-3'
         : 'bg-[#d1d5db] border-[#9ca3af] p-2 md:p-4 text-slate-900'
@@ -1299,10 +1299,10 @@ export const VirtualMixer = () => {
       </div>
 
       {/* ── Main Layout ── */}
-      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full overflow-x-hidden overflow-y-visible lg:overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full overflow-visible lg:overflow-hidden">
 
         {/* Left: Console Desk Container */}
-        <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-1 lg:order-1">
+        <div className="flex-1 flex flex-col gap-3 min-w-0 min-h-0 w-full max-w-full order-1 lg:order-1">
           
           {/* Desk Navigation Controller Ribbon (완벽한 대칭형 8열 그리드로 리디자인) */}
           <div className={`p-2 rounded-2xl flex flex-col sm:flex-row gap-2 sm:gap-4 items-center justify-between border ${
@@ -1449,7 +1449,8 @@ export const VirtualMixer = () => {
             onPointerMove={handleDeskPointerMove}
             onPointerUp={handleDeskPointerUp}
             onPointerCancel={handleDeskPointerUp}
-            className={`flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 content-start touch-pan-x select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            className={`flex-1 w-full overflow-x-auto overflow-y-hidden pb-2 mixer-scrollbar min-w-0 touch-pan-x select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            style={{ WebkitOverflowScrolling: 'touch', minHeight: '420px' } as React.CSSProperties}
           >
             <div className={`flex gap-4 min-w-max p-4 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
@@ -2038,6 +2039,11 @@ export const VirtualMixer = () => {
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .mixer-scrollbar { scrollbar-width: thin; scrollbar-color: #334155 rgba(0,0,0,0.15); }
+        .mixer-scrollbar::-webkit-scrollbar { height: 10px; width: 10px; }
+        .mixer-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.15); border-radius: 6px; margin: 0 8px; }
+        .mixer-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; border: 2px solid transparent; background-clip: content-box; }
+        .mixer-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; background-clip: content-box; border: 2px solid transparent; }
       `}</style>
     </div>
   );
