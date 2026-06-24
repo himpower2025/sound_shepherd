@@ -216,15 +216,19 @@ const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClas
   const knobRef = useRef<HTMLDivElement>(null);
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    e.stopPropagation(); // Prevent scroll-dragging of the outer console desk
+    // On touch devices, let the browser handle horizontal pan natively.
+    // Only intercept mouse/pen for the knob drag-to-adjust interaction.
+    if (e.pointerType === 'touch') return;
+
+    e.stopPropagation();
     e.preventDefault();
     const startY = e.clientY;
     const startVal = value;
     const range = max - min;
-    const speed = 0.5; // Drag sensitivity multiplier
+    const speed = 0.5;
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
-      const deltaY = startY - moveEvent.clientY; // Dragging UP increases value
+      const deltaY = startY - moveEvent.clientY;
       const newVal = Math.min(max, Math.max(min, startVal + (deltaY * (range / 150)) * speed));
       onChange(Math.round(newVal * 10) / 10);
     };
@@ -248,6 +252,7 @@ const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClas
         ref={knobRef}
         onPointerDown={handlePointerDown}
         className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-b from-slate-700 to-slate-900 border-2 border-slate-600/40 shadow-md cursor-ns-resize flex items-center justify-center active:scale-95 transition-transform"
+        style={{ touchAction: 'pan-x' }}
       >
         {/* Notch indicator line */}
         <motion.div 
@@ -1302,7 +1307,7 @@ export const VirtualMixer = () => {
       <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full overflow-visible lg:overflow-hidden">
 
         {/* Left: Console Desk Container */}
-        <div className="flex-1 flex flex-col gap-3 min-w-0 min-h-0 w-full max-w-full order-1 lg:order-1">
+        <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-1 lg:order-1">
           
           {/* Desk Navigation Controller Ribbon (완벽한 대칭형 8열 그리드로 리디자인) */}
           <div className={`p-2 rounded-2xl flex flex-col sm:flex-row gap-2 sm:gap-4 items-center justify-between border ${
@@ -1449,8 +1454,8 @@ export const VirtualMixer = () => {
             onPointerMove={handleDeskPointerMove}
             onPointerUp={handleDeskPointerUp}
             onPointerCancel={handleDeskPointerUp}
-            className={`flex-1 w-full overflow-x-auto overflow-y-hidden pb-2 mixer-scrollbar min-w-0 touch-pan-x select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-            style={{ WebkitOverflowScrolling: 'touch', minHeight: '420px' } as React.CSSProperties}
+            className={`flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 content-start select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            style={{ touchAction: 'pan-x', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
           >
             <div className={`flex gap-4 min-w-max p-4 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
@@ -1579,9 +1584,9 @@ export const VirtualMixer = () => {
                             type="range" min="0" max="100" value={ch.fader}
                             onChange={(e) => updateChannel(ch.id, { fader: parseInt(e.target.value) })}
                             onClick={(e) => e.stopPropagation()}
-                            onPointerDown={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => { if (e.pointerType !== 'touch') e.stopPropagation(); }}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                            style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
+                            style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'none' } as any}
                           />
 
                           {/* Blue caps indicating level */}
@@ -1850,9 +1855,9 @@ export const VirtualMixer = () => {
                   type="range" min="0" max="100" value={masterFader}
                   onChange={(e) => setMasterFader(parseInt(e.target.value))}
                   onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => { if (e.pointerType !== 'touch') e.stopPropagation(); }}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                  style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
+                  style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'none' } as any}
                 />
                 <motion.div
                   animate={{ bottom: `${masterFader}%` }}
@@ -2039,11 +2044,6 @@ export const VirtualMixer = () => {
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
-        .mixer-scrollbar { scrollbar-width: thin; scrollbar-color: #334155 rgba(0,0,0,0.15); }
-        .mixer-scrollbar::-webkit-scrollbar { height: 10px; width: 10px; }
-        .mixer-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.15); border-radius: 6px; margin: 0 8px; }
-        .mixer-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; border: 2px solid transparent; background-clip: content-box; }
-        .mixer-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; background-clip: content-box; border: 2px solid transparent; }
       `}</style>
     </div>
   );
