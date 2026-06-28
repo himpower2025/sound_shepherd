@@ -216,19 +216,17 @@ const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClas
   const knobRef = useRef<HTMLDivElement>(null);
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    // On touch devices, let the browser handle horizontal pan natively.
-    // Only intercept mouse/pen for the knob drag-to-adjust interaction.
+    // Touch: let the browser handle pan-x natively — don't intercept.
     if (e.pointerType === 'touch') return;
-
     e.stopPropagation();
     e.preventDefault();
     const startY = e.clientY;
     const startVal = value;
     const range = max - min;
-    const speed = 0.5;
+    const speed = 0.5; // Drag sensitivity multiplier
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
-      const deltaY = startY - moveEvent.clientY;
+      const deltaY = startY - moveEvent.clientY; // Dragging UP increases value
       const newVal = Math.min(max, Math.max(min, startVal + (deltaY * (range / 150)) * speed));
       onChange(Math.round(newVal * 10) / 10);
     };
@@ -1108,7 +1106,9 @@ export const VirtualMixer = () => {
   // Render
   // ─────────────────────────────────────────────
   return (
-    <div className={`transition-all duration-500 flex flex-col h-auto lg:h-[840px] xl:h-[880px] min-h-[480px] relative overflow-hidden rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 w-full max-w-full ${
+    <div
+      style={{ overflow: 'clip' }}
+      className={`transition-all duration-500 flex flex-col h-auto lg:h-[840px] xl:h-[880px] min-h-[480px] relative rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 w-full max-w-full ${
       skin === 'modern'
         ? 'bg-[#1a1c23] border-[#252833] p-1.5 md:p-3'
         : 'bg-[#d1d5db] border-[#9ca3af] p-2 md:p-4 text-slate-900'
@@ -1304,7 +1304,7 @@ export const VirtualMixer = () => {
       </div>
 
       {/* ── Main Layout ── */}
-      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full overflow-visible lg:overflow-hidden">
+      <div style={{ overflow: 'clip' }} className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full">
 
         {/* Left: Console Desk Container */}
         <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-1 lg:order-1">
@@ -1586,7 +1586,7 @@ export const VirtualMixer = () => {
                             onClick={(e) => e.stopPropagation()}
                             onPointerDown={(e) => { if (e.pointerType !== 'touch') e.stopPropagation(); }}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                            style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'none' } as any}
+                            style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'pan-x' } as any}
                           />
 
                           {/* Blue caps indicating level */}
@@ -1857,7 +1857,7 @@ export const VirtualMixer = () => {
                   onClick={(e) => e.stopPropagation()}
                   onPointerDown={(e) => { if (e.pointerType !== 'touch') e.stopPropagation(); }}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                  style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'none' } as any}
+                  style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'pan-x' } as any}
                 />
                 <motion.div
                   animate={{ bottom: `${masterFader}%` }}
