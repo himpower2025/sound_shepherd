@@ -23,7 +23,17 @@ import {
   LogIn,
   LogOut,
   Bell,
-  BellOff
+  BellOff,
+  Headphones,
+  Smartphone,
+  Network,
+  Cpu,
+  Speaker,
+  Lightbulb,
+  Usb,
+  Disc,
+  Music,
+  Radio
 } from 'lucide-react';
 import { 
   signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser 
@@ -31,12 +41,15 @@ import {
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './lib/firebase';
 import { AppState } from './types';
-import { GUIDE_SECTIONS, GLOSSARY } from './constants';
+import { GUIDE_SECTIONS, GLOSSARY, CABLE_CHEAT_SHEET } from './constants';
 import { askSoundAssistant } from './services/geminiService';
 import { VirtualMixer } from './components/VirtualMixer';
 import { AudioRecorder } from './components/AudioRecorder';
 import { FrequencyReference } from './components/FrequencyReference';
 import { Logo } from './components/Logo';
+import { CableConnectorVisual } from './components/CableConnectorVisual';
+import { PASystemSetup } from './components/PASystemSetup';
+import { EQGuide } from './components/EQGuide';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -48,6 +61,21 @@ function urlBase64ToUint8Array(base64String: string) {
   }
   return outputArray;
 }
+
+const colorMap: Record<string, { bg: string, text: string, border: string }> = {
+  emerald: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  blue: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  amber: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  rose: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  purple: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  orange: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+  cyan: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
+  sky: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  indigo: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+  violet: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
+  teal: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' },
+  pink: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' }
+};
 
 export default function App() {
   const [activeState, setActiveState] = useState<AppState>('home');
@@ -79,15 +107,15 @@ export default function App() {
     },
     {
       id: 'mixing',
-      title: 'Mixing Basics',
+      title: 'Audio EQ Guide',
       icon: AudioLines,
       colorClass: 'from-[#c55d8c] to-[#802451] shadow-pink-950/20',
       action: () => { setSelectedSectionId('mixing'); setActiveState('guide'); }
     },
     {
       id: 'mics',
-      title: 'Mic Placement',
-      icon: Mic2,
+      title: 'PA System Setup',
+      icon: Radio,
       colorClass: 'from-[#785fb3] to-[#432371] shadow-purple-950/20',
       action: () => { setSelectedSectionId('mics'); setActiveState('guide'); }
     },
@@ -100,7 +128,7 @@ export default function App() {
     },
     {
       id: 'hardware',
-      title: 'Cable Repair',
+      title: 'Cables & Pinouts',
       icon: Zap,
       colorClass: 'from-[#cf8d3c] to-[#854d0e] shadow-amber-950/20',
       action: () => { setSelectedSectionId('hardware'); setActiveState('guide'); }
@@ -133,6 +161,8 @@ export default function App() {
   };
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [cableSearchTerm, setCableSearchTerm] = useState('');
+  
   const filteredGlossary = GLOSSARY.filter(item => 
     item.term.toLowerCase().includes(searchTerm.toLowerCase()) || 
     item.definition.toLowerCase().includes(searchTerm.toLowerCase())
@@ -471,7 +501,7 @@ export default function App() {
               <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-10 rounded-[3rem] text-white shadow-xl">
                  <div className="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
                     {selectedSection.icon === 'Sliders' && <Sliders size={24} />}
-                    {selectedSection.icon === 'Mic2' && <Mic2 size={24} />}
+                    {selectedSection.icon === 'Radio' && <Radio size={24} />}
                     {selectedSection.icon === 'Wrench' && <Wrench size={24} />}
                     {selectedSection.icon === 'Zap' && <Zap size={24} />}
                     {selectedSection.icon === 'CheckSquare' && <CheckSquare size={24} />}
@@ -480,41 +510,197 @@ export default function App() {
                  <p className="text-blue-100 font-medium leading-relaxed max-w-xl">{selectedSection.description}</p>
               </div>
 
-              <div className="grid gap-6">
-                {selectedSection.content.map((block, idx) => (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    key={idx} 
-                    className={`bg-white p-8 rounded-[2.5rem] shadow-sm border ${block.type === 'warning' ? 'border-amber-200 bg-amber-50/20' : 'border-slate-200'} hover:shadow-md transition-shadow`}
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      {block.type === 'warning' ? (
-                         <div className="bg-amber-500 p-1.5 rounded-lg text-white">
-                            <Info size={18} />
-                         </div>
-                      ) : (
-                         <div className="bg-blue-600 w-2 h-6 rounded-full" />
-                      )}
-                      <h3 className="text-xl font-black uppercase italic tracking-tighter">{block.title}</h3>
-                    </div>
-                    
-                    <p className="text-slate-600 leading-relaxed mb-6 font-medium">{block.text}</p>
-                    
-                    {block.tips && block.tips.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {block.tips.map((tip, tIdx) => (
-                          <div key={tIdx} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex gap-3 items-start group hover:bg-white transition-colors">
-                            <div className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 group-hover:scale-125 transition-transform" />
-                            <span className="text-xs text-slate-500 leading-normal font-bold">{tip}</span>
-                          </div>
-                        ))}
+              {selectedSectionId === 'hardware' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  {/* Left Column: Cable Cheat Sheet Card */}
+                  <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-widest">PRO INFO</span>
+                          <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-widest">CABLE CHEAT SHEET</span>
+                        </div>
+                        <h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-800">Essential Audio Cables</h3>
                       </div>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
+                      
+                      {/* Search Filter */}
+                      <div className="relative w-full sm:w-48">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                        <input
+                          type="text"
+                          placeholder="Filter cables..."
+                          value={cableSearchTerm}
+                          onChange={(e) => setCableSearchTerm(e.target.value)}
+                          className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {CABLE_CHEAT_SHEET.filter(c => 
+                        c.name.toLowerCase().includes(cableSearchTerm.toLowerCase()) ||
+                        c.subtitle.toLowerCase().includes(cableSearchTerm.toLowerCase()) ||
+                        c.desc.toLowerCase().includes(cableSearchTerm.toLowerCase()) ||
+                        c.signal.toLowerCase().includes(cableSearchTerm.toLowerCase())
+                      ).map((cable) => {
+                        const mappedColors = colorMap[cable.color] || { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' };
+                        return (
+                          <motion.div
+                            whileHover={{ y: -2 }}
+                            key={cable.name}
+                            className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 flex flex-col justify-between hover:bg-white hover:border-slate-200 hover:shadow-sm transition-all"
+                          >
+                            <div>
+                              {/* Card Header */}
+                              <div className="flex items-start justify-between gap-2 mb-3">
+                                <div>
+                                  <h4 className="font-black text-slate-800 tracking-tight text-sm">{cable.name}</h4>
+                                  <span className="text-[10px] text-slate-400 font-bold block leading-none">{cable.subtitle}</span>
+                                </div>
+                                <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                  cable.signal === 'Balanced' 
+                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                                    : cable.signal === 'Unbalanced'
+                                      ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                                      : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
+                                }`}>
+                                  {cable.signal}
+                                </span>
+                              </div>
+
+                              {/* Physical Connector Visual Model (Real shape diagram) */}
+                              <div className="w-full h-32 mb-3 rounded-xl overflow-hidden shadow-inner border border-slate-100 bg-slate-50/20">
+                                <CableConnectorVisual name={cable.name} />
+                              </div>
+
+                              <p className="text-xs text-slate-500 leading-normal font-medium mb-3">{cable.desc}</p>
+                            </div>
+                            
+                            {/* Pinout Visualization */}
+                            <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100/50">
+                              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide">PINOUT:</span>
+                              {cable.name === 'XLR' && (
+                                <div className="flex gap-1 items-center">
+                                  <div className="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center gap-0.5 p-0.5 bg-slate-100">
+                                    <span className="w-1 h-1 rounded-full bg-slate-600 block" />
+                                    <span className="w-1 h-1 rounded-full bg-slate-600 block" />
+                                    <span className="w-1 h-1 rounded-full bg-slate-600 block" />
+                                  </div>
+                                  <span className="text-[8px] text-slate-400 font-semibold">1:GND, 2:Hot(+), 3:Cold(-)</span>
+                                </div>
+                              )}
+                              {cable.name === '1/4" TRS' && (
+                                <span className="text-[8px] text-indigo-500 font-black">Tip (+), Ring (-), Sleeve (GND)</span>
+                              )}
+                              {cable.name === '1/4" TS' && (
+                                <span className="text-[8px] text-amber-500 font-black">Tip (Signal), Sleeve (GND)</span>
+                              )}
+                              {cable.name === 'RCA' && (
+                                <span className="text-[8px] text-rose-500 font-black">Center Pin (Sig), Outer Shell (GND)</span>
+                              )}
+                              {cable.name === '3.5mm AUX' && (
+                                <span className="text-[8px] text-purple-500 font-black">Tip (L), Ring (R), Sleeve (GND)</span>
+                              )}
+                              {cable.name === 'SPEAKON' && (
+                                <span className="text-[8px] text-orange-500 font-black">1+ / 1- (Ch1), 2+ / 2- (Ch2) Locking</span>
+                              )}
+                              {cable.name === 'USB (Type-A/B)' && (
+                                <span className="text-[8px] text-cyan-500 font-black">4-Pin (VCC, D-, D+, GND)</span>
+                              )}
+                              {cable.name === 'USB-C' && (
+                                <span className="text-[8px] text-sky-500 font-black">24-Pin Reversible High-Speed</span>
+                              )}
+                              {cable.name === 'ETHERNET' && (
+                                <span className="text-[8px] text-indigo-500 font-black">RJ45 8-Pin (T568B Standard)</span>
+                              )}
+                              {cable.name === 'MIDI' && (
+                                <span className="text-[8px] text-violet-500 font-black">5-Pin DIN (Pin 4-5 Active)</span>
+                              )}
+                              {cable.name === 'Coaxial Digital' && (
+                                <span className="text-[8px] text-teal-500 font-black">75-Ohm Digital Audio Cable</span>
+                              )}
+                              {cable.name === 'DMX' && (
+                                <span className="text-[8px] text-pink-500 font-black">3/5-Pin XLR (Lighting Protocol)</span>
+                              )}
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Existing Guides Stacked */}
+                  <div className="lg:col-span-5 space-y-6">
+                    {selectedSection.content.map((block, idx) => (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        key={idx} 
+                        className="bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="bg-blue-600 w-2 h-6 rounded-full" />
+                          <h3 className="text-xl font-black uppercase italic tracking-tighter">{block.title}</h3>
+                        </div>
+                        
+                        <p className="text-slate-600 leading-relaxed mb-6 font-medium">{block.text}</p>
+                        
+                        {block.tips && block.tips.length > 0 && (
+                          <div className="space-y-2">
+                            {block.tips.map((tip, tIdx) => (
+                              <div key={tIdx} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex gap-3 items-start group hover:bg-white transition-colors">
+                                <div className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 group-hover:scale-125 transition-transform shrink-0" />
+                                <span className="text-xs text-slate-500 leading-normal font-bold">{tip}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              ) : selectedSectionId === 'mics' ? (
+                <PASystemSetup />
+              ) : selectedSectionId === 'mixing' ? (
+                <EQGuide />
+              ) : (
+                <div className="grid gap-6">
+                  {selectedSection.content.map((block, idx) => (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      key={idx} 
+                      className={`bg-white p-8 rounded-[2.5rem] shadow-sm border ${block.type === 'warning' ? 'border-amber-200 bg-amber-50/20' : 'border-slate-200'} hover:shadow-md transition-shadow`}
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        {block.type === 'warning' ? (
+                           <div className="bg-amber-500 p-1.5 rounded-lg text-white">
+                              <Info size={18} />
+                           </div>
+                        ) : (
+                           <div className="bg-blue-600 w-2 h-6 rounded-full" />
+                        )}
+                        <h3 className="text-xl font-black uppercase italic tracking-tighter">{block.title}</h3>
+                      </div>
+                      
+                      <p className="text-slate-600 leading-relaxed mb-6 font-medium">{block.text}</p>
+                      
+                      {block.tips && block.tips.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {block.tips.map((tip, tIdx) => (
+                            <div key={tIdx} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex gap-3 items-start group hover:bg-white transition-colors">
+                              <div className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 group-hover:scale-125 transition-transform" />
+                              <span className="text-xs text-slate-500 leading-normal font-bold">{tip}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 

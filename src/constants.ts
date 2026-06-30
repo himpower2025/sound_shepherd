@@ -3,34 +3,17 @@ import { GuideSection, GlossaryItem } from './types';
 export const GUIDE_SECTIONS: GuideSection[] = [
   {
     id: 'mixing',
-    title: 'Mixing & DSP Basics',
-    description: 'Core principles of channel strips, gain staging, EQ, and dynamics compression.',
+    title: 'Audio EQ Guide',
+    description: 'Interactive guide covering EQ pillars, live frequency mapping, and genre-specific vocal presets.',
     icon: 'Sliders',
-    content: [
-      {
-        title: 'Gain Staging',
-        text: 'The process of managing signal levels at each stage of a system. It is the most critical first step to minimize noise and prevent distortion.',
-        tips: ['Ensure sufficient headroom.', 'In digital consoles, avoid peaking above 0 dBFS at all costs.']
-      },
-      {
-        title: 'Compression Tips',
-        text: 'Reduces dynamic range by attenuating loud peaks and bringing up quiet details. Essential for consistent vocal presence and balancing live bands.',
-        tips: ['Threshold: The level where compression begins.', 'Ratio: Compression strength. Start at 3:1 for most vocals.']
-      }
-    ]
+    content: []
   },
   {
     id: 'mics',
-    title: 'Input & Mic Placement',
-    description: 'Understanding microphone types, polar patterns, and optimal placement for instruments.',
-    icon: 'Mic2',
-    content: [
-      {
-        title: 'Polar Patterns',
-        text: 'Refers to a microphone\'s sensitivity to sound from different directions. Key to controlling feedback on stage.',
-        tips: ['Cardioid: Picks up sound from the front. The standard choice for most church applications.', 'Super Cardioid: Narrower front pickup, but has high sensitivity at the rear. Be mindful of monitor placement.']
-      }
-    ]
+    title: 'PA System Setup Flow',
+    description: 'Interactive checklist guide detailing stages from audio sources to console, processing, and speakers.',
+    icon: 'Radio',
+    content: []
   },
   {
     id: 'troubleshooting',
@@ -48,8 +31,8 @@ export const GUIDE_SECTIONS: GuideSection[] = [
   },
   {
     id: 'hardware',
-    title: 'Cables & Hardware Repair',
-    description: 'Pro guide for soldering connectors and basic hardware maintenance.',
+    title: 'Cables, Pinouts & Repair',
+    description: 'Interactive audio cable cheat sheet, connector pinouts, and professional soldering maintenance guide.',
     icon: 'Zap',
     content: [
       {
@@ -92,4 +75,125 @@ export const GLOSSARY: GlossaryItem[] = [
   { term: 'TRS (Tip-Ring-Sleeve)', definition: 'A 1/4" connector capable of stereo or balanced mono transmission.' },
   { term: 'Clipping', definition: 'Audio distortion occurring when the signal exceeds the maximum level a device can handle.' },
   { term: 'Aux Send', definition: 'A separate output path used for monitors, recording, or external effects processors.' }
+];
+
+export interface CableInfo {
+  name: string;
+  subtitle: string;
+  type: 'analog' | 'data' | 'control';
+  signal: 'Balanced' | 'Unbalanced' | 'Digital';
+  desc: string;
+  color: string;
+  iconName: string;
+}
+
+export const CABLE_CHEAT_SHEET: CableInfo[] = [
+  {
+    name: 'XLR',
+    subtitle: 'The Festival Standard',
+    type: 'analog',
+    signal: 'Balanced',
+    desc: 'Delivers interference-free master audio straight to the main stage PA. Uses a 3-pin locking design.',
+    color: 'emerald',
+    iconName: 'Mic'
+  },
+  {
+    name: '1/4" TRS',
+    subtitle: 'Pro Audio Routing',
+    type: 'analog',
+    signal: 'Balanced',
+    desc: 'Pure, noise-cancelling audio routing for professional mixers, interfaces, and studio monitors.',
+    color: 'blue',
+    iconName: 'Music'
+  },
+  {
+    name: '1/4" TS',
+    subtitle: 'Instrument & Line Out',
+    type: 'analog',
+    signal: 'Unbalanced',
+    desc: 'Durable unbalanced mono connection for instruments (like guitars), hardware gear, and booth monitors.',
+    color: 'amber',
+    iconName: 'Zap'
+  },
+  {
+    name: 'RCA',
+    subtitle: 'Turntables & Media Players',
+    type: 'analog',
+    signal: 'Unbalanced',
+    desc: 'Indispensable and low-latency. Your go-to connection for turntables, consumer gear, and media players.',
+    color: 'rose',
+    iconName: 'Disc'
+  },
+  {
+    name: '3.5mm AUX',
+    subtitle: 'Universal Playback',
+    type: 'analog',
+    signal: 'Unbalanced',
+    desc: 'Universal playback for quick track previews, mobile devices, headphones, and backup audio sources.',
+    color: 'purple',
+    iconName: 'Headphones'
+  },
+  {
+    name: 'SPEAKON',
+    subtitle: 'Heavy-Duty Speaker Connection',
+    type: 'analog',
+    signal: 'Balanced',
+    desc: 'Heavy-duty, twist-lock security built specifically to drive massive club subwoofers and amplifiers safely.',
+    color: 'orange',
+    iconName: 'Sliders'
+  },
+  {
+    name: 'USB (Type-A/B)',
+    subtitle: 'The Club Standard Link',
+    type: 'data',
+    signal: 'Digital',
+    desc: 'The trusted club standard for rock-solid connection between software (DJ apps, DAWs) and hardware.',
+    color: 'cyan',
+    iconName: 'Usb'
+  },
+  {
+    name: 'USB-C',
+    subtitle: 'Future-Proof Data',
+    type: 'data',
+    signal: 'Digital',
+    desc: 'High-speed, future-proof data connection for modern laptops, controllers, and iOS setups.',
+    color: 'sky',
+    iconName: 'Smartphone'
+  },
+  {
+    name: 'ETHERNET',
+    subtitle: 'The Nervous System',
+    type: 'data',
+    signal: 'Digital',
+    desc: 'Syncs multi-players, shares databases, and locks in lighting rigs. The backbone of modern booths.',
+    color: 'indigo',
+    iconName: 'Network'
+  },
+  {
+    name: 'MIDI',
+    subtitle: 'Synthesizer Sync',
+    type: 'control',
+    signal: 'Digital',
+    desc: '5-pin classic connector that syncs hardware synthesizers, MIDI controllers, and drum machines.',
+    color: 'violet',
+    iconName: 'Cpu'
+  },
+  {
+    name: 'Coaxial Digital',
+    subtitle: 'High-Fidelity Digital',
+    type: 'data',
+    signal: 'Digital',
+    desc: 'Perfect for connecting high-fidelity subwoofer speakers to digital-to-analog audio components.',
+    color: 'teal',
+    iconName: 'Speaker'
+  },
+  {
+    name: 'DMX',
+    subtitle: 'Stage Light & FX Control',
+    type: 'control',
+    signal: 'Digital',
+    desc: 'Controls stage moving heads, par cans, smoke machines, and atmospheric effects over 3-pin or 5-pin cables.',
+    color: 'pink',
+    iconName: 'Lightbulb'
+  }
 ];
