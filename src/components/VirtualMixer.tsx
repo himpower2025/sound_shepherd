@@ -305,6 +305,7 @@ export const VirtualMixer = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const channelRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [focusedStripId, setFocusedStripId] = useState<number>(1);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   // Drag-scrolling state & event references
   const isDraggingRef = useRef(false);
@@ -315,12 +316,21 @@ export const VirtualMixer = () => {
   const blockNextClickRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleDeskPointerDown = (e: React.PointerEvent) => {
-    // Let mobile and tablet native touch swiping and gestures handle scrolling natively and smoothly
-    if (e.pointerType === 'touch') {
-      return;
+  // Tracks scrollbar thumb percentage
+  const handleDeskScroll = () => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      const totalScrollable = scrollWidth - clientWidth;
+      if (totalScrollable > 0) {
+        setScrollProgress(scrollLeft / totalScrollable);
+      } else {
+        setScrollProgress(0);
+      }
     }
+  };
 
+  const handleDeskPointerDown = (e: React.PointerEvent) => {
     // Only support mouse left-clicks
     if (e.pointerType === 'mouse' && e.button !== 0) return;
 
@@ -344,11 +354,6 @@ export const VirtualMixer = () => {
     startXRef.current = e.clientX;
     startYRef.current = e.clientY;
     scrollLeftRef.current = scrollContainerRef.current?.scrollLeft || 0;
-
-    // Intercept event streams elegantly
-    try {
-      scrollContainerRef.current?.setPointerCapture(e.pointerId);
-    } catch (_) {}
   };
 
   const handleDeskPointerMove = (e: React.PointerEvent) => {
@@ -359,14 +364,26 @@ export const VirtualMixer = () => {
     
     // Set dragging mode threshold of 5 pixels to differentiate from a static click
     if (!hasMovedRef.current && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+      // If the gesture is mostly vertical, let the native vertical scrolling handle it
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        isDraggingRef.current = false;
+        return;
+      }
+      
       hasMovedRef.current = true;
       setIsDragging(true);
       blockNextClickRef.current = true;
+
+      // Capture pointer exclusively for horizontal sliding
+      try {
+        scrollContainerRef.current?.setPointerCapture(e.pointerId);
+      } catch (_) {}
     }
 
     if (hasMovedRef.current) {
       // Natural responsive scrolling mechanics
       scrollContainerRef.current.scrollLeft = scrollLeftRef.current - deltaX;
+      handleDeskScroll();
     }
   };
 
@@ -404,14 +421,20 @@ export const VirtualMixer = () => {
     handleStripSelect(nextId);
   };
 
-  // Auto-scroll focused console strip into view centered horizontally
+  // Auto-scroll focused console strip into view centered horizontally without buggy scrollIntoView page shifts
   useEffect(() => {
+    const container = scrollContainerRef.current;
     const activeCh = channelRefs.current[focusedStripId];
-    if (activeCh) {
-      activeCh.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center'
+    if (container && activeCh) {
+      const containerWidth = container.clientWidth;
+      const channelLeft = activeCh.offsetLeft;
+      const channelWidth = activeCh.clientWidth;
+      
+      const targetScrollLeft = channelLeft - (containerWidth / 2) + (channelWidth / 2);
+      
+      container.scrollTo({
+        left: targetScrollLeft,
+        behavior: 'smooth'
       });
     }
   }, [focusedStripId]);
@@ -1403,22 +1426,23 @@ export const VirtualMixer = () => {
 
           </div>
           
-          {/* Desk Navigation Controller Ribbon (완벽한 대칭형 8열 그리드로 리디자인) */}
-          <div className={`p-2 rounded-2xl flex flex-col sm:flex-row gap-2 sm:gap-4 items-center justify-between border ${
+          {/* Desk Navigation Controller Ribbon (완벽한 대칭형 8열 그리드로 리디자인 및 중간 정렬 완료) */}
+          <div className={`p-3 rounded-2xl flex flex-col md:flex-row gap-3 items-center justify-between border w-full ${
             skin === 'modern' 
               ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-white/5 shadow-md shadow-black/30' 
               : 'bg-[#cbd5e1] border-slate-400 shadow-sm'
           }`}>
-            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto px-1 border-b border-white/5 pb-1 sm:border-b-0 sm:pb-0">
-              <div className="flex items-center gap-2 pl-0.5">
+            {/* Left Portion: Status (Centered on mobile/tablet, left-aligned on desktop) */}
+            <div className="flex items-center justify-center md:justify-start gap-2.5 w-full md:w-auto px-1">
+              <div className="flex items-center gap-1.5 pl-0.5">
                 <span className={`w-1.5 h-3.5 rounded-full ${skin === 'modern' ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'}`} />
-                <span className={`text-[9.5px] md:text-xs font-black uppercase tracking-widest ${skin === 'modern' ? 'text-slate-400' : 'text-slate-700'}`}>
+                <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest ${skin === 'modern' ? 'text-slate-400' : 'text-slate-700'}`}>
                   Strip Navigator
                 </span>
               </div>
               
-              {/* Active strip helper visualizer shown on mobile right next to TITLE */}
-              <div className="flex sm:hidden items-center gap-1 shrink-0">
+              {/* Active strip status label */}
+              <div className="flex items-center gap-1 shrink-0">
                 <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
                   focusedStripId === 5 ? 'bg-blue-500/20 text-blue-400 animate-pulse' :
                   focusedStripId === 6 ? 'bg-red-500/20 text-red-400 animate-pulse' :
@@ -1434,8 +1458,8 @@ export const VirtualMixer = () => {
               </div>
             </div>
 
-            {/* Symmetrical Controls Grid (No overflow, always perfectly aligned and visible) */}
-            <div className="w-full sm:w-auto flex justify-center">
+            {/* Middle Portion: Symmetrical Controls Grid (Perfect center placement for easy thumb access on landscape mobile/tablet) */}
+            <div className="w-full md:flex-1 flex justify-center">
               <div className="grid grid-cols-8 gap-1 w-full max-w-sm sm:max-w-[420px] shrink-0">
                 {/* Prev Column Button */}
                 <button
@@ -1521,22 +1545,13 @@ export const VirtualMixer = () => {
               </div>
             </div>
 
-            {/* Active strip helper visualizer shown on desktop */}
-            <div className="hidden lg:flex items-center gap-1.5 shrink-0">
-              <span className={`text-[8px] md:text-[9px] font-mono font-bold leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>
-                FOCUS:
+            {/* Right Portion: Contextual Help Indicator (Hidden on mobile/tablet, right-aligned on desktop) */}
+            <div className="hidden md:flex items-center justify-end gap-1.5 shrink-0 px-1">
+              <span className={`text-[8.5px] font-mono font-bold leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>
+                FOCUSING STRIP:
               </span>
-              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                focusedStripId === 5 ? 'bg-blue-500/20 text-blue-400 animate-pulse' :
-                focusedStripId === 6 ? 'bg-red-500/20 text-red-400 animate-pulse' :
-                'bg-orange-500/10 text-orange-400'
-              }`}>
-                {focusedStripId === 1 && "Vocals"}
-                {focusedStripId === 2 && "Guitar/Piano"}
-                {focusedStripId === 3 && "Bass Guitar"}
-                {focusedStripId === 4 && "Drums"}
-                {focusedStripId === 5 && "SPX Reverb"}
-                {focusedStripId === 6 && "Stereo Out"}
+              <span className="text-[9px] font-black uppercase text-blue-400">
+                CH {focusedStripId}
               </span>
             </div>
           </div>
@@ -1548,8 +1563,9 @@ export const VirtualMixer = () => {
             onPointerMove={handleDeskPointerMove}
             onPointerUp={handleDeskPointerUp}
             onPointerCancel={handleDeskPointerUp}
-            className={`flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 content-start select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-            style={{ touchAction: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+            onScroll={handleDeskScroll}
+            className={`flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 content-start ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
           >
             <div className={`flex gap-3 min-w-max p-3 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
@@ -1970,7 +1986,23 @@ export const VirtualMixer = () => {
             </div>
 
           </div>
-        </div>
+          </div>
+
+          {/* Symmetrical Scroll progress tracking indicator (visible on touch devices & desktops as visual navigation cue) */}
+          <div className="w-full flex items-center justify-center gap-2.5 px-6 py-1.5 shrink-0 select-none">
+            <span className={`text-[8px] font-mono font-bold uppercase tracking-widest ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>CONSOLE PAN</span>
+            <div className={`flex-1 max-w-[160px] h-1.5 rounded-full relative overflow-hidden ${skin === 'modern' ? 'bg-white/5 border border-white/5' : 'bg-slate-350'}`}>
+              <div 
+                className={`h-full rounded-full transition-all duration-75 ${skin === 'modern' ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-blue-600'}`}
+                style={{ 
+                  width: '35%', 
+                  left: `${scrollProgress * 65}%`,
+                  position: 'absolute'
+                }}
+              />
+            </div>
+            <span className="text-[8px] font-mono text-slate-500">{Math.round(scrollProgress * 100)}%</span>
+          </div>
         </div>
 
         {/* Right Panel: Console Monitor & Training Handbook */}

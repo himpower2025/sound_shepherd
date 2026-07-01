@@ -178,6 +178,28 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
   }
 ];
 
+interface MicrophoneImageProps {
+  mic: MicrophoneType;
+}
+
+const MicrophoneImage: React.FC<MicrophoneImageProps> = ({ mic }) => {
+  const base = import.meta.env.BASE_URL || '/';
+  const baseUrl = base.endsWith('/') ? base : `${base}/`;
+  
+  // Extract filename from mic.imageUrl (e.g. "/dynamic-microphone.png" -> "dynamic-microphone.png")
+  const filename = mic.imageUrl.startsWith('/') ? mic.imageUrl.substring(1) : mic.imageUrl;
+  const src = `${baseUrl}${filename}`;
+
+  return (
+    <img 
+      src={src} 
+      alt={mic.title}
+      referrerPolicy="no-referrer"
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" 
+    />
+  );
+};
+
 export const MicrophonesExplained: React.FC = () => {
   const [selectedMic, setSelectedMic] = useState<MicrophoneType>(MICROPHONE_TYPES_DATA[0]);
   const [filterType, setFilterType] = useState<string>('All');
@@ -324,6 +346,15 @@ export const MicrophonesExplained: React.FC = () => {
             <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.4" />
             <stop offset="100%" stopColor="#0891b2" stopOpacity="0.05" />
           </linearGradient>
+          <linearGradient id="metalSilver" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#f8fafc" />
+            <stop offset="50%" stopColor="#94a3b8" />
+            <stop offset="100%" stopColor="#475569" />
+          </linearGradient>
+          <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#fbbf24" />
+            <stop offset="100%" stopColor="#b45309" />
+          </linearGradient>
         </defs>
       </svg>
 
@@ -467,12 +498,7 @@ export const MicrophonesExplained: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
             {/* Actual HD Image */}
             <div className="relative group rounded-3xl overflow-hidden aspect-[4/3] border border-slate-200 bg-slate-900 shadow-md">
-              <img 
-                src={selectedMic.imageUrl} 
-                alt={selectedMic.title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" 
-              />
+              <MicrophoneImage mic={selectedMic} />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-4">
                 <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 bg-slate-950/40 backdrop-blur-sm px-2.5 py-1 rounded-lg">
                   Real Equipment Visual
