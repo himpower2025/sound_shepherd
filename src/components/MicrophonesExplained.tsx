@@ -45,7 +45,7 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
       'No external phantom power required'
     ],
     bestFor: ['Live Vocals', 'Drums', 'Guitar Amps'],
-    imageUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd6a?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/dynamic-microphone.png',
     polarPattern: 'Cardioid',
     polarPatternDesc: 'Picks up sound from the front while rejecting ambient noise from the rear. Ideal for noisy stages.',
     proTips: 'The absolute workhorse for live stages. If you are mic’ing a loud snare drum or a screaming vocalist, this is your safest choice. It resists feedback incredibly well.'
@@ -59,7 +59,7 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
       'Requires +48V phantom power to operate'
     ],
     bestFor: ['Studio Vocals', 'Acoustic Instruments', 'Podcasts'],
-    imageUrl: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/condenser-microphone.png',
     polarPattern: 'Cardioid',
     polarPatternDesc: 'Highly sensitive heart-shaped pickup area. Captures subtle room acoustics along with the direct signal.',
     proTips: 'Perfect for controlled environments like recording studios. Because they are so sensitive, avoid using them on loud live stages near heavy monitor wedges to prevent feedback.'
@@ -73,7 +73,7 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
       'Highly responsive to transients and high-frequency details'
     ],
     bestFor: ['Guitar Cabinets', 'Brass', 'Strings', 'Vintage Recordings'],
-    imageUrl: 'https://images.unsplash.com/photo-1482440308425-276ad0f28b19?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/ribbon-microphone.png',
     polarPattern: 'Figure-8',
     polarPatternDesc: 'Picks up sound equally from the front and back, while completely rejecting sounds coming from the sides.',
     proTips: 'Ribbon mics have a vintage vibe. Never apply +48V phantom power to passive ribbon mics as it can permanently damage or tear the delicate aluminum ribbon element.'
@@ -87,7 +87,7 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
       'Highly portable and easy to hide in clothing'
     ],
     bestFor: ['Interviews', 'Presentations', 'YouTube Videos', 'TV Broadcasting'],
-    imageUrl: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/lavalier-microphone.png',
     polarPattern: 'Omnidirectional',
     polarPatternDesc: 'Picks up sound from all directions (360 degrees) evenly, allowing consistent voice capture during body movement.',
     proTips: 'Position the mic about 6-8 inches below the chin. Placing it too high results in a boomy "chest-resonance" sound, while placing it too low sounds thin and distant.'
@@ -101,7 +101,7 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
       'Excellent rejection of side-axis ambient noises'
     ],
     bestFor: ['Filmmaking', 'Broadcasting', 'Outdoor Recording'],
-    imageUrl: 'https://images.unsplash.com/photo-1601506521937-0121a7fc2a6b?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/shotgun-microphone.png',
     polarPattern: 'Shotgun',
     polarPatternDesc: 'Uses an interference tube to cancel out side-axis sounds, resulting in a razor-sharp front-focused beam.',
     proTips: 'Ensure you point the shotgun mic directly at the speaker’s mouth. Even a slight angle off-axis can cause severe high-frequency loss due to the narrow beam.'
@@ -115,7 +115,7 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
       'No external mixers or audio interfaces needed'
     ],
     bestFor: ['Streaming', 'Gaming', 'Podcasts', 'Online Meetings'],
-    imageUrl: 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/usb-microphone.png',
     polarPattern: 'Cardioid',
     polarPatternDesc: 'Heart-shaped pickup, perfect for single users speaking directly into the microphone on a desk.',
     proTips: 'Ideal for beginners and home offices. Use a pop filter and keep the mic close (4-6 inches) to reduce keyboard tapping noises and room echoes.'
@@ -129,7 +129,7 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
       'Eliminates phase cancellation from table surface bounces'
     ],
     bestFor: ['Conference Rooms', 'Theater Stages', 'Board Meetings'],
-    imageUrl: 'https://images.unsplash.com/photo-1517502884422-41eaaced0168?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/boundary-microphone.png',
     polarPattern: 'Omnidirectional',
     polarPatternDesc: 'Hemispherical pattern. Picks up all sounds in the hemisphere above the flat mounting surface.',
     proTips: 'Place these in the center of conference tables or at the front edge of theater stages. They capture voices naturally without needing a forest of visible stands.'
@@ -143,7 +143,7 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
       'Very high gain-before-feedback due to ultra-close mouth proximity'
     ],
     bestFor: ['Fitness Instructors', 'Public Speaking', 'Live Stage Performances'],
-    imageUrl: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/headset-microphone.png',
     polarPattern: 'Cardioid',
     polarPatternDesc: 'Cardioid or Hypercardioid element placed inches from the mouth to isolate the voice from PA speaker bleed.',
     proTips: 'Make sure the capsule is positioned slightly to the side of the mouth, not directly in front of it. This prevents harsh "pop" wind noises when speaking.'
@@ -157,7 +157,7 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
       'Reliable RF transmitter and receiver synchronization'
     ],
     bestFor: ['Stage Performances', 'Live Events', 'Presentations'],
-    imageUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/wireless-microphone.png',
     polarPattern: 'Cardioid',
     polarPatternDesc: 'Usually cardioid capsules, designed to reject stage monitors and focus purely on the performer’s voice.',
     proTips: 'Always use fresh batteries and check RF frequencies before the show to avoid interference. Keep a clear, unobstructed line-of-sight between transmitter and receiver antennas.'
@@ -171,7 +171,7 @@ const MICROPHONE_TYPES_DATA: MicrophoneType[] = [
       'Saves setup time compared to aligning two separate mics'
     ],
     bestFor: ['Live Concerts', 'Choirs', 'Acoustic Performances', 'Ambient Recording'],
-    imageUrl: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/stereo-microphone.png',
     polarPattern: 'Stereo',
     polarPatternDesc: 'Combines two cardiod capsules arranged in specialized stereo configurations (like XY or Mid-Side).',
     proTips: 'Perfect for choir ensembles or acoustic guitar tracking where you want an immersive, wide soundstage without phase cancellation headaches.'
