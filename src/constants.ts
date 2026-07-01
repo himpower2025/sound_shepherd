@@ -46,6 +46,20 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     description: 'A comprehensive interactive guide to 10 essential microphone types, their polar patterns, and pro usage.',
     icon: 'Mic2',
     content: []
+  },
+  {
+    id: 'speaker-wiring',
+    title: 'Speaker Wiring',
+    description: 'Interactive speaker impedance matching guide and wiring calculator (Parallel vs Series vs Series-Parallel).',
+    icon: 'Tv',
+    content: []
+  },
+  {
+    id: 'snare-gate',
+    title: 'Snare Noise Gate',
+    description: 'An interactive simulator for configuring live snare drum noise gate settings and preserving dynamic playing.',
+    icon: 'AudioLines',
+    content: []
   }
 ];
 

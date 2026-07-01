@@ -53,6 +53,8 @@ import { PASystemSetup } from './components/PASystemSetup';
 import { EQGuide } from './components/EQGuide';
 import { AudioEffectsGuide } from './components/AudioEffectsGuide';
 import { MicrophonesExplained } from './components/MicrophonesExplained';
+import { SpeakerWiringGuide } from './components/SpeakerWiringGuide';
+import { SnareGateGuide } from './components/SnareGateGuide';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -142,6 +144,20 @@ export default function App() {
       icon: Mic2,
       colorClass: 'from-[#3ea699] to-[#115e55] shadow-teal-950/20',
       action: () => { setSelectedSectionId('mics-guide'); setActiveState('guide'); }
+    },
+    {
+      id: 'speaker-wiring',
+      title: 'Speaker Wiring',
+      icon: Speaker,
+      colorClass: 'from-[#4f46e5] to-[#312e81] shadow-indigo-950/20',
+      action: () => { setSelectedSectionId('speaker-wiring'); setActiveState('guide'); }
+    },
+    {
+      id: 'snare-gate',
+      title: 'Snare Noise Gate',
+      icon: AudioLines,
+      colorClass: 'from-[#ec4899] to-[#9d174d] shadow-rose-950/20',
+      action: () => { setSelectedSectionId('snare-gate'); setActiveState('guide'); }
     }
   ];
 
@@ -394,7 +410,7 @@ export default function App() {
                     </p>
                     <div className="flex gap-2.5">
                         <span className="text-[10px] sm:text-xs font-mono font-black text-amber-500/90 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg">
-                          🎚️ 8 CORE SESSIONS INTEGRATED
+                          🎚️ 10 CORE SESSIONS INTEGRATED
                         </span>
                     </div>
                 </div>
@@ -403,14 +419,14 @@ export default function App() {
                 </div>
               </section>
 
-              {/* ── 8 Core Launcher Cockpit Grid ── */}
+              {/* ── 10 Core Launcher Cockpit Grid ── */}
               <div className="space-y-5">
                 <div className="flex items-center justify-between px-1.5">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-orange-500 rounded-full animate-pulse" />
                     <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#1e293b] font-mono">Core Dashboard Modules</h3>
                   </div>
-                  <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">8 Core Sessional Launchers</span>
+                  <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">10 Core Sessional Launchers</span>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6" id="home-grid">
@@ -673,6 +689,10 @@ export default function App() {
                 <AudioEffectsGuide />
               ) : selectedSectionId === 'mics-guide' ? (
                 <MicrophonesExplained />
+              ) : selectedSectionId === 'speaker-wiring' ? (
+                <SpeakerWiringGuide />
+              ) : selectedSectionId === 'snare-gate' ? (
+                <SnareGateGuide />
               ) : (
                 <div className="grid gap-6">
                   {selectedSection.content.map((block, idx) => (
