@@ -254,25 +254,25 @@ const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClas
       <div 
         ref={knobRef}
         onPointerDown={handlePointerDown}
-        className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-b from-slate-700 to-slate-900 border-2 border-slate-600/40 shadow-md cursor-ns-resize flex items-center justify-center active:scale-95 transition-transform"
+        className="relative w-7 h-7 md:w-9 md:h-9 rounded-full bg-gradient-to-b from-slate-700 to-slate-900 border-2 border-slate-600/40 shadow-md cursor-ns-resize flex items-center justify-center active:scale-95 transition-transform"
         style={{ touchAction: 'none' }}
       >
         {/* Notch indicator line */}
         <motion.div 
-          className="absolute w-0.5 h-3 bg-blue-400 rounded-full origin-bottom"
+          className="absolute w-0.5 h-2.5 bg-blue-400 rounded-full origin-bottom"
           style={{ 
             transform: `rotate(${angle}deg)`, 
-            top: '4px',
+            top: '3px',
             boxShadow: '0 0 4px rgba(96,165,250,0.8)'
           }} 
         />
         {/* Metal Cap center */}
-        <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-slate-800 border border-slate-705 shadow-inner flex items-center justify-center pointer-events-none">
+        <div className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 rounded-full bg-slate-800 border border-slate-705 shadow-inner flex items-center justify-center pointer-events-none">
           <div className="w-1 h-1 rounded-full bg-slate-600/50" />
         </div>
       </div>
-      <span className="text-[7px] md:text-[8px] font-black uppercase tracking-tight text-slate-500 mt-1 leading-none">{label}</span>
-      <span className="text-[6px] md:text-[7px] font-mono font-bold text-blue-400/80 leading-none mt-0.5">{value}{unit}</span>
+      <span className="text-[6px] md:text-[7.5px] font-black uppercase tracking-tight text-slate-500 mt-0.5 leading-none">{label}</span>
+      <span className="text-[5.5px] md:text-[6.5px] font-mono font-bold text-blue-400/80 leading-none mt-0.5">{value}{unit}</span>
     </div>
   );
 };
@@ -406,13 +406,12 @@ export const VirtualMixer = () => {
 
   // Auto-scroll focused console strip into view centered horizontally
   useEffect(() => {
-    const container = scrollContainerRef.current;
     const activeCh = channelRefs.current[focusedStripId];
-    if (container && activeCh) {
-      const scrollLeft = activeCh.offsetLeft - (container.clientWidth / 2) + (activeCh.clientWidth / 2);
-      container.scrollTo({
-        left: Math.max(0, scrollLeft),
-        behavior: 'smooth'
+    if (activeCh) {
+      activeCh.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
       });
     }
   }, [focusedStripId]);
@@ -1112,8 +1111,7 @@ export const VirtualMixer = () => {
   // ─────────────────────────────────────────────
   return (
     <div
-      style={{ overflow: 'clip' }}
-      className={`transition-all duration-500 flex flex-col h-auto lg:h-[840px] xl:h-[880px] min-h-[480px] relative rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 w-full max-w-full ${
+      className={`transition-all duration-500 flex flex-col h-auto lg:h-[780px] xl:h-[820px] min-h-[480px] overflow-hidden lg:overflow-visible relative rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 w-full max-w-full ${
       skin === 'modern'
         ? 'bg-[#1a1c23] border-[#252833] p-1.5 md:p-3'
         : 'bg-[#d1d5db] border-[#9ca3af] p-2 md:p-4 text-slate-900'
@@ -1309,10 +1307,101 @@ export const VirtualMixer = () => {
       </div>
 
       {/* ── Main Layout ── */}
-      <div style={{ overflow: 'clip' }} className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full overflow-visible">
 
         {/* Left: Console Desk Container */}
         <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-1 lg:order-1">
+          
+          {/* ── DSP Meter Bridge & Monitor Rack (Live Screen + Selected Channel info) ── */}
+          <div className={`grid grid-cols-1 md:grid-cols-12 gap-3 p-2.5 rounded-2xl border shrink-0 ${
+            skin === 'modern' ? 'bg-[#12141a] border-white/5 shadow-md shadow-black/40' : 'bg-slate-300 border-slate-400 shadow-sm'
+          }`}>
+            
+            {/* Left Column: Live Screen (Stage Monitor) - Takes 7/12 cols on desktop */}
+            <div className="md:col-span-7 flex flex-col gap-1 min-w-0">
+              <div className="flex items-center justify-between px-1 mb-0.5">
+                <span className="text-[7.5px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest italic leading-none flex items-center gap-1.5">
+                  <Activity size={10} className="text-blue-500 animate-pulse" /> Live Worship Scene
+                </span>
+                <span className={`text-[6.5px] md:text-[8px] font-bold uppercase ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>Interactive Screen</span>
+              </div>
+
+              <div className={`aspect-video rounded-xl border overflow-hidden relative max-h-[140px] md:max-h-[160px] ${skin === 'modern' ? 'bg-black border-white/10' : 'bg-slate-900 border-black/20'}`}>
+                {currentSong ? (
+                  currentSong.type === 'youtube' ? (
+                    <div className="w-full h-full relative">
+                      <iframe
+                        key={currentSong.id}
+                        src={getYouTubeEmbedUrl(currentSong.url)}
+                        className="w-full h-full"
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen
+                        title={currentSong.title}
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/85 text-center py-1 pointer-events-none">
+                        <span className="text-[7.5px] text-blue-300 font-bold uppercase tracking-widest">
+                          ▶ Press Play inside video
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/60 p-2 text-center gap-1">
+                      <Waves size={16} className={isPlaying ? 'text-blue-500 animate-pulse' : 'text-blue-500/20'} />
+                      <span className="text-[7px] md:text-[8.5px] font-black text-slate-455 uppercase tracking-[0.15em] truncate max-w-full px-2">
+                        {isPlaying ? `Playing: ${currentSong.title}` : 'Audio Idle'}
+                      </span>
+                      {isPlaying && (
+                        <div className="flex gap-0.5 items-end h-4">
+                          {[...Array(12)].map((_, i) => (
+                            <motion.div
+                              key={i}
+                              animate={{ height: [`${15 + Math.random() * 85}%`, `${15 + Math.random() * 85}%`] }}
+                              transition={{ duration: 0.2 + Math.random() * 0.4, repeat: Infinity, repeatType: 'reverse' }}
+                              className="w-0.5 sm:w-1 bg-blue-500/60 rounded-full"
+                              style={{ height: '30%' }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-slate-950/60 text-center gap-1">
+                    <Music size={14} className="animate-pulse text-blue-500/30" />
+                    <span className="text-[7.5px] font-black text-white uppercase">No Practice Track</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column: Selected Channel Indicator - Takes 5/12 cols on desktop */}
+            <div className="md:col-span-5 flex flex-col gap-1 min-w-0 justify-between">
+              <div className="flex items-center gap-2 px-1 mb-0.5">
+                <span className={`w-3.5 h-3.5 rounded flex items-center justify-center text-white font-black text-[8px] leading-none ${selectedChannel.color}`}>{selectedChannel.id}</span>
+                <div>
+                  <h4 className="text-[8.5px] md:text-[10px] font-black uppercase text-blue-400 tracking-wide">Selected: {selectedChannel.name}</h4>
+                  <p className="text-[6px] md:text-[7px] text-slate-500 font-bold uppercase leading-none">Tuning active console strip</p>
+                </div>
+              </div>
+
+              <div className={`p-2 rounded-xl border flex-1 flex flex-col justify-between text-[8.5px] md:text-[9.5px] leading-normal ${skin === 'modern' ? 'bg-slate-950/40 border-white/5 text-slate-400' : 'bg-white border-black/10 shadow-sm text-slate-700'}`}>
+                <p className="line-clamp-2 md:line-clamp-none">
+                  Adjust <strong className="text-white">Trim, Reverb, Pan, fine-swept EQ</strong>, and <strong className="text-white">COMP</strong> directly on the mixer.
+                </p>
+                <div className="grid grid-cols-2 gap-1.5 pt-1.5 mt-auto">
+                  <div className="bg-slate-900/60 p-1 rounded border border-white/5 text-center">
+                    <span className="block text-[5px] md:text-[6px] text-slate-500 uppercase font-black">HPF state</span>
+                    <span className={`text-[7px] md:text-[8px] font-bold ${selectedChannel.hpf ? 'text-green-400' : 'text-slate-500'}`}>{selectedChannel.hpf ? 'ON (80Hz)' : 'OFF'}</span>
+                  </div>
+                  <div className="bg-slate-900/60 p-1 rounded border border-white/5 text-center">
+                    <span className="block text-[5px] md:text-[6px] text-slate-500 uppercase font-black">Swept Mid</span>
+                    <span className="text-[7px] md:text-[8px] font-black text-blue-400">{selectedChannel.eq.midFreq}Hz</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
           
           {/* Desk Navigation Controller Ribbon (완벽한 대칭형 8열 그리드로 리디자인) */}
           <div className={`p-2 rounded-2xl flex flex-col sm:flex-row gap-2 sm:gap-4 items-center justify-between border ${
@@ -1460,9 +1549,9 @@ export const VirtualMixer = () => {
             onPointerUp={handleDeskPointerUp}
             onPointerCancel={handleDeskPointerUp}
             className={`flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 content-start select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-            style={{ touchAction: 'pan-x', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+            style={{ touchAction: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
           >
-            <div className={`flex gap-4 min-w-max p-4 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
+            <div className={`flex gap-3 min-w-max p-3 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
             {channels.map(ch => {
               const isSelected = selectedId === ch.id;
@@ -1493,7 +1582,7 @@ export const VirtualMixer = () => {
                   <div className="flex gap-3 md:gap-4 flex-1">
                     
                     {/* ── Column 1: Input & Routing & Fader ── */}
-                    <div className="flex flex-col items-center gap-2 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2 rounded-xl border border-white/5 self-stretch justify-between">
+                    <div className="flex flex-col items-center gap-2 w-[58px] md:w-[68px] bg-black/15 p-1.5 md:p-2 rounded-xl border border-white/5 self-stretch justify-between">
                       <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">Strip</div>
                       
                       {/* Knob Group */}
@@ -1555,7 +1644,7 @@ export const VirtualMixer = () => {
                       </div>
 
                       {/* LED Meter + Vertical Fader Container */}
-                      <div className="flex gap-1 h-32 md:h-40 w-full mt-2">
+                      <div className="flex gap-1 h-26 md:h-32 w-full mt-2">
                         {/* Compact Channel Meter */}
                         <div className="h-full w-2 md:w-3 bg-[#0a0a0d] border border-slate-800/80 rounded-[4px] flex flex-col-reverse p-0.5 overflow-hidden gap-[1px]">
                           {[...Array(12)].map((_, i) => {
@@ -1597,7 +1686,7 @@ export const VirtualMixer = () => {
                           {/* Blue caps indicating level */}
                           <motion.div
                             animate={{ bottom: `${ch.fader}%` }}
-                            className="absolute w-full h-6 md:h-9 bg-gradient-to-r from-slate-205 via-slate-100 to-slate-205 border-y-2 border-[#1e40af] rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
+                            className="absolute w-full h-5 md:h-7 bg-gradient-to-r from-slate-205 via-slate-100 to-slate-205 border-y-2 border-[#1e40af] rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
                             style={{ transform: 'translateY(50%)' }}
                           >
                             <div className="w-[12%] h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
@@ -1607,7 +1696,7 @@ export const VirtualMixer = () => {
                     </div>
 
                     {/* ── Column 2: Parametric Swept-Mid Equalizer ── */}
-                    <div className="flex flex-col items-center gap-2 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
+                    <div className="flex flex-col items-center gap-2 w-[58px] md:w-[68px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
                       <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">EQ</div>
                       
                       {/* Knob Group */}
@@ -1667,7 +1756,7 @@ export const VirtualMixer = () => {
                     </div>
 
                     {/* ── Column 3: Dynamics Compressor ── */}
-                    <div className="flex flex-col items-center gap-2 w-[64px] md:w-[74px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
+                    <div className="flex flex-col items-center gap-2 w-[58px] md:w-[68px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
                       <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">COMP</div>
                       
                       {/* Knob Group */}
@@ -1703,7 +1792,7 @@ export const VirtualMixer = () => {
                         />
 
                         {/* Perfect spacer to align with the 4th Knob of EQ */}
-                        <div className="h-[43px] md:h-[53px] w-full flex items-center justify-center opacity-0 pointer-events-none" />
+                        <div className="h-[34px] md:h-[44px] w-full flex items-center justify-center opacity-0 pointer-events-none" />
                       </div>
 
                       {/* Feedback Dynamics LEDs representing current GR */}
@@ -1737,7 +1826,7 @@ export const VirtualMixer = () => {
             {/* SPACER */}
             <div className="w-[1px] self-stretch bg-slate-700/20 dark:bg-white/5 my-2 animate-pulse" />
 
-            {/* Yamaha SPX Reverb Return Strip */}
+             {/* Yamaha SPX Reverb Return Strip */}
             <div 
               ref={el => { channelRefs.current[5] = el; }}
               onClick={(e) => {
@@ -1748,7 +1837,7 @@ export const VirtualMixer = () => {
                 }
                 handleStripSelect(5);
               }}
-              className={`w-[78px] md:w-[90px] flex flex-col items-center gap-2 p-1.5 rounded-2xl border cursor-pointer select-none transition-all ${
+              className={`w-[68px] md:w-[80px] flex flex-col items-center gap-2 p-1.5 rounded-2xl border cursor-pointer select-none transition-all ${
                 focusedStripId === 5 
                   ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
                   : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/85 border border-white/5' : 'bg-slate-200 border border-slate-400')
@@ -1805,7 +1894,7 @@ export const VirtualMixer = () => {
                 }
                 handleStripSelect(6);
               }}
-              className={`w-[84px] md:w-[102px] border-l border-white/5 pl-1.5 ml-0.5 flex flex-col items-center gap-2 rounded-2xl p-1.5 self-stretch cursor-pointer select-none transition-all ${
+              className={`w-[74px] md:w-[92px] border-l border-white/5 pl-1.5 ml-0.5 flex flex-col items-center gap-2 rounded-2xl p-1.5 self-stretch cursor-pointer select-none transition-all ${
                 focusedStripId === 6 
                   ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
                   : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/85 border border-white/5' : 'bg-slate-200 border border-slate-400')
@@ -1832,7 +1921,7 @@ export const VirtualMixer = () => {
               </button>
 
               {/* Stereo Output dual VUs */}
-              <div className="flex gap-1 h-32 md:h-44 w-7 md:w-9 bg-black rounded p-0.5 overflow-hidden border border-slate-800">
+              <div className="flex gap-1 h-26 md:h-34 w-7 md:w-9 bg-black rounded p-0.5 overflow-hidden border border-slate-800">
                 <div className="flex-1 bg-green-500/5 rounded-sm relative overflow-hidden flex flex-col-reverse gap-[1px]">
                   {[...Array(12)].map((_, i) => {
                     const level = (i / 11) * 100;
@@ -1852,7 +1941,7 @@ export const VirtualMixer = () => {
               </div>
 
               {/* Master Stereo Fader cap */}
-              <div className={`relative h-36 md:h-48 w-8 md:w-10 rounded-xl border flex items-center justify-center p-0.5 shadow-inner mt-auto ${skin === 'modern' ? 'bg-[#08080b] border-slate-800' : 'bg-slate-800'}`}>
+              <div className={`relative h-28 md:h-38 w-8 md:w-10 rounded-xl border flex items-center justify-center p-0.5 shadow-inner mt-auto ${skin === 'modern' ? 'bg-[#08080b] border-slate-800' : 'bg-slate-800'}`}>
                 <div className="absolute inset-y-0 inset-x-0.5 flex flex-col justify-between py-3 pointer-events-none opacity-20">
                   {[...Array(9)].map((_, i) => <div key={i} className="h-[1px] w-full bg-slate-400" />)}
                 </div>
@@ -1866,7 +1955,7 @@ export const VirtualMixer = () => {
                  />
                 <motion.div
                   animate={{ bottom: `${masterFader}%` }}
-                  className="absolute w-full h-6 md:h-10 bg-gradient-to-r from-red-200 via-red-100 to-red-205 border-y-2 border-red-750 rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
+                  className="absolute w-full h-5 md:h-7 bg-gradient-to-r from-red-200 via-red-100 to-red-205 border-y-2 border-red-750 rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
                   style={{ transform: 'translateY(50%)' }}
                 >
                   <div className="w-[12%] h-full bg-red-650 shadow-[0_0_8px_#dc2626]" />
@@ -1889,98 +1978,16 @@ export const VirtualMixer = () => {
           <div className={`p-2 md:p-3 border-b flex items-center justify-between shrink-0 ${skin === 'modern' ? 'bg-slate-900 border-white/5' : 'bg-slate-400 border-black/10'}`}>
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-blue-600/20 flex items-center justify-center text-blue-400 shadow-inner">
-                <Activity size={13} />
+                <HelpCircle size={13} />
               </div>
               <div>
-                <h3 className={`text-[10px] md:text-sm font-bold uppercase italic ${skin === 'modern' ? 'text-white' : 'text-slate-900'}`}>CONSOLE MONITOR</h3>
+                <h3 className={`text-[10px] md:text-sm font-bold uppercase italic ${skin === 'modern' ? 'text-white' : 'text-slate-900'}`}>ENGINEER HANDBOOK</h3>
                 <p className={`text-[7px] md:text-[10px] font-black tracking-widest leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-700'}`}>TRAINING SUITE</p>
               </div>
             </div>
           </div>
 
           <div className="p-3 md:p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
-
-            {/* ── Stage Monitor (Always visualizes the sound) ── */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[7px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest italic leading-none flex items-center gap-1.5">
-                  <Activity size={10} className="text-blue-500" /> Live worship scene
-                </span>
-                <span className="text-[6px] md:text-[8px] font-bold text-slate-600 uppercase">Interactive Screen</span>
-              </div>
-
-              <div className={`aspect-video rounded-xl border overflow-hidden relative ${skin === 'modern' ? 'bg-black border-white/10' : 'bg-slate-900 border-black/20'}`}>
-                {currentSong ? (
-                  currentSong.type === 'youtube' ? (
-                    <div className="w-full h-full relative">
-                      <iframe
-                        key={currentSong.id}
-                        src={getYouTubeEmbedUrl(currentSong.url)}
-                        className="w-full h-full"
-                        allow="autoplay; encrypted-media"
-                        allowFullScreen
-                        title={currentSong.title}
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/85 text-center py-1.5 pointer-events-none">
-                        <span className="text-[8px] text-blue-300 font-bold uppercase tracking-widest">
-                          ▶ Press Play inside the video container
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/60 p-3 text-center gap-2">
-                      <Waves size={24} className={isPlaying ? 'text-blue-500 animate-pulse' : 'text-blue-500/20'} />
-                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                        {isPlaying ? `Playing: ${currentSong.title}` : 'Audio Idle'}
-                      </span>
-                      {isPlaying && (
-                        <div className="flex gap-0.5 items-end h-6">
-                          {[...Array(15)].map((_, i) => (
-                            <motion.div
-                              key={i}
-                              animate={{ height: [`${15 + Math.random() * 85}%`, `${15 + Math.random() * 85}%`] }}
-                              transition={{ duration: 0.2 + Math.random() * 0.4, repeat: Infinity, repeatType: 'reverse' }}
-                              className="w-1 bg-blue-500/60 rounded-full"
-                              style={{ height: '30%' }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-slate-950/60 text-center gap-2">
-                    <Music size={18} className="animate-pulse text-blue-500/30" />
-                    <span className="text-[9px] font-black text-white uppercase">No Practice Track</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ── Active Channel Indicator Helper ── */}
-            <div className={`p-3 rounded-xl border ${skin === 'modern' ? 'bg-slate-950/40 border-white/5' : 'bg-white border-black/10 shadow-sm'}`}>
-              <div className="flex items-center gap-2.5 mb-2 border-b border-dashed pb-1.5 border-slate-705/30">
-                <span className={`w-5 h-5 rounded flex items-center justify-center text-white font-black text-[10px] leading-none ${selectedChannel.color}`}>{selectedChannel.id}</span>
-                <div>
-                  <h4 className="text-[10px] font-black uppercase text-blue-400 tracking-wide">Selected: {selectedChannel.name}</h4>
-                  <p className="text-[7px] text-slate-500 font-bold uppercase leading-none">Tuning active console strip</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2 text-[10px] text-slate-400 font-medium leading-relaxed">
-                <p>You can adjust this channel's <strong className="text-white">Trim, Reverb, Pan, custom fine-swept EQ</strong>, and <strong className="text-white">dynamic Compression threshold</strong> directly on the mixer desk in parallel.</p>
-                <div className="grid grid-cols-2 gap-1.5 pt-1">
-                  <div className="bg-slate-900/60 p-1.5 rounded border border-white/5 text-center">
-                    <span className="block text-[6px] text-slate-500 uppercase font-black">HPF state</span>
-                    <span className={`text-[8px] font-bold ${selectedChannel.hpf ? 'text-green-400' : 'text-slate-600'}`}>{selectedChannel.hpf ? 'ON (80Hz Cut)' : 'OFF (Full Bypass)'}</span>
-                  </div>
-                  <div className="bg-slate-900/60 p-1.5 rounded border border-white/5 text-center">
-                    <span className="block text-[6px] text-slate-500 uppercase font-black">Swept Mid Range</span>
-                    <span className="text-[8px] font-black text-blue-400">{selectedChannel.eq.midFreq}Hz</span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* ── SOUND ENGINEER HANDBOOK (Interactive help panel) ── */}
             <div className={`p-3 rounded-xl border ${skin === 'modern' ? 'bg-slate-900/50 border-white/5' : 'bg-slate-300 border-black/10'}`}>
