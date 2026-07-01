@@ -283,41 +283,47 @@ export const EQGuide: React.FC = () => {
           </p>
 
           {/* Interactive Menu Tabs */}
-          <div className="flex p-1 bg-slate-900/80 rounded-2xl border border-slate-800/80 max-w-lg mt-6">
+          <div className="flex flex-wrap sm:flex-nowrap p-1 bg-slate-900/80 rounded-2xl border border-slate-800/80 max-w-lg mt-6 gap-1 sm:gap-0">
             <button
               onClick={() => setActiveTab('basics')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[90px] sm:min-w-0 py-2 sm:py-3 px-2 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
                 activeTab === 'basics' 
                   ? 'bg-cyan-600 text-white shadow-md shadow-cyan-900/30' 
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <Sliders size={14} />
-              <span>1. EQ Controls</span>
+              <Sliders size={14} className="shrink-0" />
+              <span className="truncate">
+                <span className="hidden sm:inline">1. </span>EQ Controls
+              </span>
             </button>
 
             <button
               onClick={() => setActiveTab('live')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[90px] sm:min-w-0 py-2 sm:py-3 px-2 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
                 activeTab === 'live' 
                   ? 'bg-cyan-600 text-white shadow-md shadow-cyan-900/30' 
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <Radio size={14} />
-              <span>2. Live Moves</span>
+              <Radio size={14} className="shrink-0" />
+              <span className="truncate">
+                <span className="hidden sm:inline">2. </span>Live Moves
+              </span>
             </button>
 
             <button
               onClick={() => setActiveTab('genre')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[90px] sm:min-w-0 py-2 sm:py-3 px-2 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
                 activeTab === 'genre' 
                   ? 'bg-cyan-600 text-white shadow-md shadow-cyan-900/30' 
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <Music size={14} />
-              <span>3. Vocal Presets</span>
+              <Music size={14} className="shrink-0" />
+              <span className="truncate">
+                <span className="hidden sm:inline">3. </span>Vocal Presets
+              </span>
             </button>
           </div>
         </div>

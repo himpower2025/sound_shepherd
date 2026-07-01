@@ -216,10 +216,12 @@ const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClas
   const knobRef = useRef<HTMLDivElement>(null);
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Touch: let the browser handle pan-x natively — don't intercept.
-    if (e.pointerType === 'touch') return;
     e.stopPropagation();
-    e.preventDefault();
+    const target = e.currentTarget as HTMLDivElement;
+    try {
+      target.setPointerCapture(e.pointerId);
+    } catch (err) {}
+
     const startY = e.clientY;
     const startVal = value;
     const range = max - min;
@@ -231,9 +233,12 @@ const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClas
       onChange(Math.round(newVal * 10) / 10);
     };
 
-    const handlePointerUp = () => {
+    const handlePointerUp = (upEvent: PointerEvent) => {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
+      try {
+        target.releasePointerCapture(upEvent.pointerId);
+      } catch (err) {}
     };
 
     window.addEventListener('pointermove', handlePointerMove);
@@ -250,7 +255,7 @@ const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClas
         ref={knobRef}
         onPointerDown={handlePointerDown}
         className="relative w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-b from-slate-700 to-slate-900 border-2 border-slate-600/40 shadow-md cursor-ns-resize flex items-center justify-center active:scale-95 transition-transform"
-        style={{ touchAction: 'pan-x' }}
+        style={{ touchAction: 'none' }}
       >
         {/* Notch indicator line */}
         <motion.div 
@@ -1584,9 +1589,9 @@ export const VirtualMixer = () => {
                             type="range" min="0" max="100" value={ch.fader}
                             onChange={(e) => updateChannel(ch.id, { fader: parseInt(e.target.value) })}
                             onClick={(e) => e.stopPropagation()}
-                            onPointerDown={(e) => { if (e.pointerType !== 'touch') e.stopPropagation(); }}
+                            onPointerDown={(e) => e.stopPropagation()}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                            style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'pan-x' } as any}
+                            style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'none' } as any}
                           />
 
                           {/* Blue caps indicating level */}
@@ -1851,14 +1856,14 @@ export const VirtualMixer = () => {
                 <div className="absolute inset-y-0 inset-x-0.5 flex flex-col justify-between py-3 pointer-events-none opacity-20">
                   {[...Array(9)].map((_, i) => <div key={i} className="h-[1px] w-full bg-slate-400" />)}
                 </div>
-                 <input
-                  type="range" min="0" max="100" value={masterFader}
-                  onChange={(e) => setMasterFader(parseInt(e.target.value))}
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => { if (e.pointerType !== 'touch') e.stopPropagation(); }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                  style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'pan-x' } as any}
-                />
+                  <input
+                   type="range" min="0" max="100" value={masterFader}
+                   onChange={(e) => setMasterFader(parseInt(e.target.value))}
+                   onClick={(e) => e.stopPropagation()}
+                   onPointerDown={(e) => e.stopPropagation()}
+                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                   style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'none' } as any}
+                 />
                 <motion.div
                   animate={{ bottom: `${masterFader}%` }}
                   className="absolute w-full h-6 md:h-10 bg-gradient-to-r from-red-200 via-red-100 to-red-205 border-y-2 border-red-750 rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"

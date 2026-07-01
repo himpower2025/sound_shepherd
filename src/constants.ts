@@ -17,17 +17,10 @@ export const GUIDE_SECTIONS: GuideSection[] = [
   },
   {
     id: 'troubleshooting',
-    title: 'Feedback & Troubleshooting',
-    description: 'How to solve feedback loops, eliminate noise, and handle emergency situations.',
-    icon: 'Wrench',
-    content: [
-      {
-        title: 'Feedback Suppression',
-        text: 'A high-pitched squeal caused by a loop between a microphone and a speaker.',
-        type: 'warning',
-        tips: ['Offending Frequency: Use a narrow EQ cut to "ring out" the feedback.', 'Placement: Mics should always be located behind the main speakers.', 'Gain: Check if pre-amp gain is set too high for the environment.']
-      }
-    ]
+    title: 'Popular FX Explained',
+    description: 'A quick reference guide to the 20 most common audio effects used in music production.',
+    icon: 'Sparkles',
+    content: []
   },
   {
     id: 'hardware',
@@ -48,17 +41,11 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     ]
   },
   {
-    id: 'checklist',
-    title: 'Sanity Kit (Checklist)',
-    description: 'Step-by-step checklists for before, during, and after the service.',
-    icon: 'CheckSquare',
-    content: [
-      {
-        title: 'Soundcheck Order',
-        text: 'Start with Drums -> Bass -> Guitars -> Keys -> Vocals, then finish with full rehearsal.',
-        tips: ['Prioritize monitor mixes to make musicians comfortable.', 'Remember: The preacher\'s voice must always be the most intelligible element.']
-      }
-    ]
+    id: 'mics-guide',
+    title: 'Mics Explained',
+    description: 'A comprehensive interactive guide to 10 essential microphone types, their polar patterns, and pro usage.',
+    icon: 'Mic2',
+    content: []
   }
 ];
 

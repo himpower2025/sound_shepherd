@@ -33,7 +33,8 @@ import {
   Usb,
   Disc,
   Music,
-  Radio
+  Radio,
+  Sparkles
 } from 'lucide-react';
 import { 
   signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser 
@@ -50,6 +51,8 @@ import { Logo } from './components/Logo';
 import { CableConnectorVisual } from './components/CableConnectorVisual';
 import { PASystemSetup } from './components/PASystemSetup';
 import { EQGuide } from './components/EQGuide';
+import { AudioEffectsGuide } from './components/AudioEffectsGuide';
+import { MicrophonesExplained } from './components/MicrophonesExplained';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -121,9 +124,9 @@ export default function App() {
     },
     {
       id: 'troubleshooting',
-      title: 'Feedback Help!',
-      icon: Wrench,
-      colorClass: 'from-[#499ca8] to-[#1b5d69] shadow-cyan-950/20',
+      title: 'FX Explained',
+      icon: Sparkles,
+      colorClass: 'from-[#8b5cf6] to-[#5b21b6] shadow-purple-950/20',
       action: () => { setSelectedSectionId('troubleshooting'); setActiveState('guide'); }
     },
     {
@@ -134,11 +137,11 @@ export default function App() {
       action: () => { setSelectedSectionId('hardware'); setActiveState('guide'); }
     },
     {
-      id: 'checklist',
-      title: 'Sanity Kit',
-      icon: CheckSquare,
+      id: 'mics-guide',
+      title: 'Mics Explained',
+      icon: Mic2,
       colorClass: 'from-[#3ea699] to-[#115e55] shadow-teal-950/20',
-      action: () => { setSelectedSectionId('checklist'); setActiveState('guide'); }
+      action: () => { setSelectedSectionId('mics-guide'); setActiveState('guide'); }
     }
   ];
 
@@ -503,8 +506,10 @@ export default function App() {
                     {selectedSection.icon === 'Sliders' && <Sliders size={24} />}
                     {selectedSection.icon === 'Radio' && <Radio size={24} />}
                     {selectedSection.icon === 'Wrench' && <Wrench size={24} />}
+                    {selectedSection.icon === 'Sparkles' && <Sparkles size={24} />}
                     {selectedSection.icon === 'Zap' && <Zap size={24} />}
                     {selectedSection.icon === 'CheckSquare' && <CheckSquare size={24} />}
+                    {selectedSection.icon === 'Mic2' && <Mic2 size={24} />}
                  </div>
                  <h2 className="text-4xl font-black mb-3 italic tracking-tighter uppercase">{selectedSection.title}</h2>
                  <p className="text-blue-100 font-medium leading-relaxed max-w-xl">{selectedSection.description}</p>
@@ -664,6 +669,10 @@ export default function App() {
                 <PASystemSetup />
               ) : selectedSectionId === 'mixing' ? (
                 <EQGuide />
+              ) : selectedSectionId === 'troubleshooting' ? (
+                <AudioEffectsGuide />
+              ) : selectedSectionId === 'mics-guide' ? (
+                <MicrophonesExplained />
               ) : (
                 <div className="grid gap-6">
                   {selectedSection.content.map((block, idx) => (

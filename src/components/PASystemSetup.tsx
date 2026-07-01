@@ -172,7 +172,7 @@ export const PASystemSetup: React.FC = () => {
               <span className="text-[10px] text-indigo-400 font-medium lowercase italic">(tap a node to jump to that stage)</span>
             </h4>
             
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-2">
               {steps.map((step, idx) => {
                 const StepIcon = step.icon;
                 const isActive = step.id === activeStep;
@@ -205,7 +205,7 @@ export const PASystemSetup: React.FC = () => {
                     </button>
 
                     {idx < steps.length - 1 && (
-                      <div className="hidden md:flex items-center justify-center text-indigo-700 mx-1">
+                      <div className="hidden lg:flex items-center justify-center text-indigo-700 mx-1">
                         <ArrowRight size={16} className="animate-pulse" />
                       </div>
                     )}
