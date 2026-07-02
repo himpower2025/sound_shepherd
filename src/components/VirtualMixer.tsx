@@ -424,21 +424,38 @@ export const VirtualMixer = () => {
 
   // Auto-scroll focused console strip into view centered horizontally without buggy scrollIntoView page shifts
   useEffect(() => {
-    if (autoFit) return;
     const container = scrollContainerRef.current;
-    const activeCh = channelRefs.current[focusedStripId];
-    if (container && activeCh) {
-      const containerWidth = container.clientWidth;
-      const channelLeft = activeCh.offsetLeft;
-      const channelWidth = activeCh.clientWidth;
-      
-      const targetScrollLeft = channelLeft - (containerWidth / 2) + (channelWidth / 2);
-      
-      container.scrollTo({
-        left: targetScrollLeft,
-        behavior: 'smooth'
-      });
-    }
+    if (!container) return;
+
+    const performScroll = () => {
+      const activeCh = channelRefs.current[focusedStripId];
+      if (activeCh) {
+        const containerWidth = container.clientWidth;
+        const channelLeft = activeCh.offsetLeft;
+        const channelWidth = activeCh.clientWidth;
+        
+        const targetScrollLeft = channelLeft - (containerWidth / 2) + (channelWidth / 2);
+        
+        container.scrollTo({
+          left: targetScrollLeft,
+          behavior: 'smooth'
+        });
+      }
+    };
+
+    // 1. Scroll immediately for responsive instant feedback
+    performScroll();
+
+    // 2. Scroll again at intervals to handle dynamic flex layout adjustments (autoFit transitions)
+    const timer1 = setTimeout(performScroll, 60);
+    const timer2 = setTimeout(performScroll, 150);
+    const timer3 = setTimeout(performScroll, 300);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
   }, [focusedStripId, autoFit]);
 
   // ── Web Audio Engine ──────────────────────────

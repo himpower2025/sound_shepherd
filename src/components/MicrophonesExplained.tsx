@@ -410,7 +410,7 @@ const MicrophoneImage: React.FC<MicrophoneImageProps> = ({ mic }) => {
       src={src} 
       alt={mic.title}
       referrerPolicy="no-referrer"
-      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" 
+      className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out" 
     />
   );
 };
@@ -712,10 +712,10 @@ export const MicrophonesExplained: React.FC = () => {
           {/* Image & Pattern Split Display */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
             {/* Actual HD Image */}
-            <div className="relative group rounded-3xl overflow-hidden aspect-[4/3] border border-slate-200 bg-slate-900 shadow-md">
+            <div className="relative group rounded-3xl overflow-hidden aspect-[4/3] border border-slate-200 bg-slate-50 p-6 shadow-md flex items-center justify-center">
               <MicrophoneImage mic={selectedMic} />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 bg-slate-950/40 backdrop-blur-sm px-2.5 py-1 rounded-lg">
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/10 to-transparent flex items-end p-4 pointer-events-none">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 bg-white/90 shadow-sm border border-slate-100 px-2.5 py-1 rounded-lg">
                   Real Equipment Visual
                 </span>
               </div>
