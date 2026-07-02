@@ -434,10 +434,20 @@ export const VirtualMixer = () => {
         const channelLeft = activeCh.offsetLeft;
         const channelWidth = activeCh.clientWidth;
         
-        const targetScrollLeft = channelLeft - (containerWidth / 2) + (channelWidth / 2);
+        let targetScrollLeft = channelLeft - (containerWidth / 2) + (channelWidth / 2);
+        
+        // FX(5) and MAIN(6) channels are located at the far right.
+        // In landscape view on mobile devices, force-scroll fully to the right edge to avoid clipping.
+        if (focusedStripId === 5 || focusedStripId === 6) {
+          const maxScroll = container.scrollWidth - containerWidth;
+          targetScrollLeft = maxScroll;
+        } else if (focusedStripId === 1) {
+          // Channel 1 is at the far left
+          targetScrollLeft = 0;
+        }
         
         container.scrollTo({
-          left: targetScrollLeft,
+          left: Math.max(0, targetScrollLeft),
           behavior: 'smooth'
         });
       }
@@ -1603,7 +1613,7 @@ export const VirtualMixer = () => {
             style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
           >
             <div className={`flex gap-1.5 md:gap-3 p-1.5 md:p-3 rounded-3xl h-full relative ${
-              autoFit ? 'w-full justify-between lg:w-auto lg:min-w-max lg:justify-start' : 'min-w-max'
+              autoFit ? 'w-full justify-between min-w-[880px] lg:min-w-0 lg:w-auto lg:justify-start' : 'min-w-max'
             } ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
             {channels.map(ch => {
