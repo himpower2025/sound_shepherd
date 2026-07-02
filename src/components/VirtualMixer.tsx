@@ -306,6 +306,7 @@ export const VirtualMixer = () => {
   const channelRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [focusedStripId, setFocusedStripId] = useState<number>(1);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [autoFit, setAutoFit] = useState<boolean>(true);
 
   // Drag-scrolling state & event references
   const isDraggingRef = useRef(false);
@@ -423,6 +424,7 @@ export const VirtualMixer = () => {
 
   // Auto-scroll focused console strip into view centered horizontally without buggy scrollIntoView page shifts
   useEffect(() => {
+    if (autoFit) return;
     const container = scrollContainerRef.current;
     const activeCh = channelRefs.current[focusedStripId];
     if (container && activeCh) {
@@ -437,7 +439,7 @@ export const VirtualMixer = () => {
         behavior: 'smooth'
       });
     }
-  }, [focusedStripId]);
+  }, [focusedStripId, autoFit]);
 
   // ── Web Audio Engine ──────────────────────────
   // Used only for type==='file' tracks.
@@ -1545,14 +1547,30 @@ export const VirtualMixer = () => {
               </div>
             </div>
 
-            {/* Right Portion: Contextual Help Indicator (Hidden on mobile/tablet, right-aligned on desktop) */}
-            <div className="hidden md:flex items-center justify-end gap-1.5 shrink-0 px-1">
-              <span className={`text-[8.5px] font-mono font-bold leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>
-                FOCUSING STRIP:
-              </span>
-              <span className="text-[9px] font-black uppercase text-blue-400">
-                CH {focusedStripId}
-              </span>
+            {/* Right Portion: Auto-Fit Toggle & Focusing Strip Indicator (Responsive placement) */}
+            <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto px-1 border-t md:border-t-0 pt-2 md:pt-0 border-white/5">
+              {/* Auto-Fit Toggle Switch */}
+              <button
+                onClick={() => setAutoFit(!autoFit)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all ${
+                  autoFit
+                    ? (skin === 'modern' ? 'bg-blue-950/40 border-blue-500/30 text-blue-400 font-bold' : 'bg-blue-50 border-blue-300 text-blue-600 font-bold')
+                    : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-500 hover:bg-slate-200')
+                }`}
+                title="Toggle Auto-Fit Layout on mobile/tablets"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${autoFit ? 'bg-green-400 animate-pulse' : 'bg-slate-600'}`} />
+                <span className="text-[8.5px] font-black uppercase tracking-wider">AUTO-FIT</span>
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                <span className={`text-[8px] md:text-[9px] font-mono font-bold leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>
+                  FOCUS:
+                </span>
+                <span className="text-[9.5px] font-black uppercase text-blue-400">
+                  CH {focusedStripId}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1567,7 +1585,9 @@ export const VirtualMixer = () => {
             className={`flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 content-start ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
             style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
           >
-            <div className={`flex gap-3 min-w-max p-3 rounded-3xl h-full relative ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
+            <div className={`flex gap-1.5 md:gap-3 p-1.5 md:p-3 rounded-3xl h-full relative ${
+              autoFit ? 'w-full justify-between lg:w-auto lg:min-w-max lg:justify-start' : 'min-w-max'
+            } ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
             {channels.map(ch => {
               const isSelected = selectedId === ch.id;
@@ -1575,10 +1595,14 @@ export const VirtualMixer = () => {
                 <div
                   key={ch.id}
                   ref={el => { channelRefs.current[ch.id] = el; }}
-                  className={`flex flex-col gap-2 transition-all p-3 md:p-4 rounded-2xl cursor-pointer select-none ${
+                  className={`flex flex-col gap-1.5 md:gap-2 transition-all rounded-2xl cursor-pointer select-none ${
+                    autoFit && !isSelected
+                      ? 'p-1.5 md:p-3 w-auto min-w-[70px] flex-1 max-w-[105px] sm:max-w-none'
+                      : 'p-2.5 md:p-4'
+                  } ${
                     isSelected 
                       ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white/95 shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
-                      : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/80 border border-white/5' : 'bg-slate-205/90 hover:bg-white/60 border border-slate-400')
+                      : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/80 border border-white/5' : 'bg-slate-200/90 hover:bg-white/60 border border-slate-400')
                   }`}
                   onClick={(e) => {
                     if (blockNextClickRef.current) {
@@ -1639,7 +1663,7 @@ export const VirtualMixer = () => {
                             className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
                               ch.solo 
                                 ? 'bg-yellow-500 border-yellow-300 text-black shadow-md shadow-yellow-500/30' 
-                                : (skin === 'modern' ? 'bg-slate-950 border-slate-801 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-705 hover:bg-slate-400')
+                                : (skin === 'modern' ? 'bg-slate-950 border-slate-800 text-slate-600 hover:text-slate-400' : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-400')
                             }`}
                           >
                             solo
@@ -1651,7 +1675,7 @@ export const VirtualMixer = () => {
                             className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
                               ch.muted 
                                 ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
-                                : (skin === 'modern' ? 'bg-slate-950 border-slate-801 text-slate-600 hover:text-slate-400' : 'bg-slate-350 border-slate-400 text-slate-705 hover:bg-slate-400')
+                                : (skin === 'modern' ? 'bg-slate-950 border-slate-800 text-slate-600 hover:text-slate-400' : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-400')
                             }`}
                           >
                             mute
@@ -1702,7 +1726,7 @@ export const VirtualMixer = () => {
                           {/* Blue caps indicating level */}
                           <motion.div
                             animate={{ bottom: `${ch.fader}%` }}
-                            className="absolute w-full h-5 md:h-7 bg-gradient-to-r from-slate-205 via-slate-100 to-slate-205 border-y-2 border-[#1e40af] rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
+                            className="absolute w-full h-5 md:h-7 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 border-y-2 border-[#1e40af] rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
                             style={{ transform: 'translateY(50%)' }}
                           >
                             <div className="w-[12%] h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
@@ -1712,7 +1736,11 @@ export const VirtualMixer = () => {
                     </div>
 
                     {/* ── Column 2: Parametric Swept-Mid Equalizer ── */}
-                    <div className="flex flex-col items-center gap-2 w-[58px] md:w-[68px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
+                    <div className={`flex flex-col items-center gap-2 w-[58px] md:w-[68px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between ${
+                      autoFit
+                        ? (isSelected ? 'flex' : 'hidden lg:flex')
+                        : 'flex'
+                    }`}>
                       <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">EQ</div>
                       
                       {/* Knob Group */}
@@ -1764,7 +1792,7 @@ export const VirtualMixer = () => {
                         className={`w-full py-1 rounded text-[7px] md:text-[8px] font-black uppercase border transition-all mt-auto ${
                           ch.hpf 
                             ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
-                            : (skin === 'modern' ? 'bg-slate-950 border-slate-805 text-slate-600' : 'bg-slate-350 border-[#475569]/30 text-slate-600')
+                            : (skin === 'modern' ? 'bg-slate-950 border-slate-800 text-slate-600' : 'bg-slate-300 border-[#475569]/30 text-slate-600')
                         }`}
                       >
                         HPF
@@ -1772,7 +1800,11 @@ export const VirtualMixer = () => {
                     </div>
 
                     {/* ── Column 3: Dynamics Compressor ── */}
-                    <div className="flex flex-col items-center gap-2 w-[58px] md:w-[68px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between">
+                    <div className={`flex flex-col items-center gap-2 w-[58px] md:w-[68px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between ${
+                      autoFit
+                        ? (isSelected ? 'flex' : 'hidden lg:flex')
+                        : 'flex'
+                    }`}>
                       <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">COMP</div>
                       
                       {/* Knob Group */}
@@ -1853,7 +1885,11 @@ export const VirtualMixer = () => {
                 }
                 handleStripSelect(5);
               }}
-              className={`w-[68px] md:w-[80px] flex flex-col items-center gap-2 p-1.5 rounded-2xl border cursor-pointer select-none transition-all ${
+              className={`flex flex-col items-center gap-2 rounded-2xl border cursor-pointer select-none transition-all ${
+                autoFit
+                  ? 'w-auto min-w-[65px] flex-1 max-w-[85px] sm:max-w-none p-1 sm:p-1.5'
+                  : 'w-[68px] md:w-[80px] p-1.5'
+              } ${
                 focusedStripId === 5 
                   ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
                   : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/85 border border-white/5' : 'bg-slate-200 border border-slate-400')
@@ -1910,7 +1946,11 @@ export const VirtualMixer = () => {
                 }
                 handleStripSelect(6);
               }}
-              className={`w-[74px] md:w-[92px] border-l border-white/5 pl-1.5 ml-0.5 flex flex-col items-center gap-2 rounded-2xl p-1.5 self-stretch cursor-pointer select-none transition-all ${
+              className={`border-l border-white/5 pl-1 ml-0.5 flex flex-col items-center gap-2 rounded-2xl self-stretch cursor-pointer select-none transition-all ${
+                autoFit
+                  ? 'w-auto min-w-[70px] flex-1 max-w-[95px] sm:max-w-none p-1 sm:p-1.5'
+                  : 'w-[74px] md:w-[92px] p-1.5'
+              } ${
                 focusedStripId === 6 
                   ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
                   : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/85 border border-white/5' : 'bg-slate-200 border border-slate-400')
@@ -1931,7 +1971,7 @@ export const VirtualMixer = () => {
 
               <button
                 onClick={(e) => { initWebAudio(); showInfo(e, 'Master Output', 'Main stereo output terminal fader.'); }}
-                className="w-full h-8 md:h-10 bg-red-650 rounded-lg flex flex-col items-center justify-center border border-red-500 shadow-lg shadow-red-600/10 hover:bg-red-600 transition-colors"
+                className="w-full h-8 md:h-10 bg-red-600 rounded-lg flex flex-col items-center justify-center border border-red-500 shadow-lg shadow-red-600/10 hover:bg-red-600 transition-colors"
               >
                 <span className="text-[8px] md:text-[9px] font-black text-white uppercase italic leading-none">MAIN</span>
               </button>
@@ -1942,7 +1982,7 @@ export const VirtualMixer = () => {
                   {[...Array(12)].map((_, i) => {
                     const level = (i / 11) * 100;
                     const isActive = masterMeter >= level && masterMeter > 0;
-                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-405' : 'bg-green-400') : 'bg-slate-950/60';
+                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-400' : 'bg-green-400') : 'bg-slate-950/60';
                     return <div key={i} className={`h-[7%] w-full rounded-[1px] ${dotColor}`} />;
                   })}
                 </div>
@@ -1950,7 +1990,7 @@ export const VirtualMixer = () => {
                   {[...Array(12)].map((_, i) => {
                     const level = (i / 11) * 100;
                     const isActive = masterMeter * 0.95 >= level && masterMeter > 0;
-                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-405' : 'bg-green-400') : 'bg-slate-950/60';
+                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-400' : 'bg-green-400') : 'bg-slate-950/60';
                     return <div key={i} className={`h-[7%] w-full rounded-[1px] ${dotColor}`} />;
                   })}
                 </div>
@@ -1989,20 +2029,22 @@ export const VirtualMixer = () => {
           </div>
 
           {/* Symmetrical Scroll progress tracking indicator (visible on touch devices & desktops as visual navigation cue) */}
-          <div className="w-full flex items-center justify-center gap-2.5 px-6 py-1.5 shrink-0 select-none">
-            <span className={`text-[8px] font-mono font-bold uppercase tracking-widest ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>CONSOLE PAN</span>
-            <div className={`flex-1 max-w-[160px] h-1.5 rounded-full relative overflow-hidden ${skin === 'modern' ? 'bg-white/5 border border-white/5' : 'bg-slate-350'}`}>
-              <div 
-                className={`h-full rounded-full transition-all duration-75 ${skin === 'modern' ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-blue-600'}`}
-                style={{ 
-                  width: '35%', 
-                  left: `${scrollProgress * 65}%`,
-                  position: 'absolute'
-                }}
-              />
+          {!autoFit && (
+            <div className="w-full flex items-center justify-center gap-2.5 px-6 py-1.5 shrink-0 select-none">
+              <span className={`text-[8px] font-mono font-bold uppercase tracking-widest ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>CONSOLE PAN</span>
+              <div className={`flex-1 max-w-[160px] h-1.5 rounded-full relative overflow-hidden ${skin === 'modern' ? 'bg-white/5 border border-white/5' : 'bg-slate-300'}`}>
+                <div 
+                  className={`h-full rounded-full transition-all duration-75 ${skin === 'modern' ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-blue-600'}`}
+                  style={{ 
+                    width: '35%', 
+                    left: `${scrollProgress * 65}%`,
+                    position: 'absolute'
+                  }}
+                />
+              </div>
+              <span className="text-[8px] font-mono text-slate-500">{Math.round(scrollProgress * 100)}%</span>
             </div>
-            <span className="text-[8px] font-mono text-slate-500">{Math.round(scrollProgress * 100)}%</span>
-          </div>
+          )}
         </div>
 
         {/* Right Panel: Console Monitor & Training Handbook */}
