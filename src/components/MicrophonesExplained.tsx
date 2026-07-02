@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Mic, 
@@ -182,12 +182,227 @@ interface MicrophoneImageProps {
   mic: MicrophoneType;
 }
 
+const renderVectorMicrophone = (id: number) => {
+  switch (id) {
+    case 1: // Dynamic Mic
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          <defs>
+            <linearGradient id="metalGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#475569" />
+              <stop offset="50%" stopColor="#64748b" />
+              <stop offset="100%" stopColor="#1e293b" />
+            </linearGradient>
+          </defs>
+          {/* Grill circle mesh */}
+          <circle cx="50" cy="30" r="16" fill="url(#metalGrad1)" stroke="#22d3ee" strokeWidth="2" />
+          <path d="M 34 30 L 66 30" stroke="#0891b2" strokeWidth="1" strokeDasharray="1 1" />
+          <path d="M 50 14 L 50 46" stroke="#0891b2" strokeWidth="1" strokeDasharray="1 1" />
+          {/* Mic neck */}
+          <path d="M 42 45 L 58 45 L 54 85 L 46 85 Z" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
+          {/* Ring separator */}
+          <rect x="41" y="44" width="18" height="4" rx="1" fill="#0891b2" />
+          {/* Switch */}
+          <rect x="48" y="55" width="4" height="10" rx="1" fill="#334155" stroke="#38bdf8" strokeWidth="1" />
+          <rect x="49" y="57" width="2" height="4" rx="0.5" fill="#22d3ee" />
+        </svg>
+      );
+    case 2: // Condenser Mic
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          {/* Outer Shockmount elastic ring */}
+          <circle cx="50" cy="50" r="28" fill="none" stroke="#475569" strokeWidth="1.5" strokeDasharray="4 4" />
+          {/* Inner ring */}
+          <circle cx="50" cy="50" r="18" fill="none" stroke="#0891b2" strokeWidth="1" />
+          {/* Cross bands */}
+          <line x1="25" y1="25" x2="75" y2="75" stroke="#334155" strokeWidth="1" />
+          <line x1="75" y1="25" x2="25" y2="75" stroke="#334155" strokeWidth="1" />
+          {/* Main capsule body */}
+          <rect x="41" y="30" width="18" height="36" rx="2" fill="#1e293b" stroke="#38bdf8" strokeWidth="2" />
+          {/* Grill texture */}
+          <rect x="43" y="32" width="14" height="12" rx="1" fill="none" stroke="#22d3ee" strokeWidth="1" strokeDasharray="2 1" />
+          <line x1="41" y1="46" x2="59" y2="46" stroke="#38bdf8" strokeWidth="1.5" />
+        </svg>
+      );
+    case 3: // Ribbon Mic
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          {/* Retro mounting bracket (U-shape) */}
+          <path d="M 28 50 C 28 80, 72 80, 72 50" fill="none" stroke="#475569" strokeWidth="2.5" />
+          {/* Side adjustment knobs */}
+          <circle cx="28" cy="50" r="4" fill="#334155" stroke="#38bdf8" strokeWidth="1" />
+          <circle cx="72" cy="50" r="4" fill="#334155" stroke="#38bdf8" strokeWidth="1" />
+          {/* Classic rectangular body */}
+          <rect x="38" y="20" width="24" height="42" rx="4" fill="#1e293b" stroke="#22d3ee" strokeWidth="2" />
+          {/* Horizontal grill bars */}
+          <line x1="42" y1="26" x2="58" y2="26" stroke="#0891b2" strokeWidth="1.5" />
+          <line x1="42" y1="32" x2="58" y2="32" stroke="#0891b2" strokeWidth="1.5" />
+          <line x1="42" y1="38" x2="58" y2="38" stroke="#0891b2" strokeWidth="1.5" />
+          <line x1="42" y1="44" x2="58" y2="44" stroke="#0891b2" strokeWidth="1.5" />
+          {/* Ribbon indicator inside */}
+          <path d="M 50 24 Q 52 35, 48 45 T 50 56" fill="none" stroke="#22d3ee" strokeWidth="1" strokeDasharray="2 1" />
+        </svg>
+      );
+    case 4: // Lavalier
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          {/* Clip */}
+          <path d="M 32 55 L 68 55 L 62 60 L 38 60 Z" fill="#334155" stroke="#475569" strokeWidth="1" />
+          <path d="M 40 55 L 45 42 L 55 42 L 60 55" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
+          {/* Small capsule */}
+          <rect x="45" y="24" width="10" height="18" rx="5" fill="#1e293b" stroke="#22d3ee" strokeWidth="2" />
+          {/* Grill cap */}
+          <line x1="45" y1="29" x2="55" y2="29" stroke="#38bdf8" strokeWidth="1" />
+          {/* Cable looping out */}
+          <path d="M 50 42 C 50 55, 30 65, 50 85" fill="none" stroke="#0891b2" strokeWidth="1.5" />
+        </svg>
+      );
+    case 5: // Shotgun Mic
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          {/* Long barrel horizontal layout (angled) */}
+          <g transform="rotate(-30 50 50)">
+            {/* Long tube */}
+            <rect x="20" y="44" width="60" height="12" rx="1" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
+            {/* Windscreen ridges or slot pattern */}
+            <line x1="25" y1="48" x2="25" y2="52" stroke="#22d3ee" strokeWidth="1.5" />
+            <line x1="30" y1="48" x2="30" y2="52" stroke="#22d3ee" strokeWidth="1.5" />
+            <line x1="35" y1="48" x2="35" y2="52" stroke="#22d3ee" strokeWidth="1.5" />
+            <line x1="40" y1="48" x2="40" y2="52" stroke="#22d3ee" strokeWidth="1.5" />
+            <line x1="45" y1="48" x2="45" y2="52" stroke="#22d3ee" strokeWidth="1.5" />
+            <line x1="50" y1="48" x2="50" y2="52" stroke="#22d3ee" strokeWidth="1.5" />
+            <line x1="55" y1="48" x2="55" y2="52" stroke="#22d3ee" strokeWidth="1.5" />
+            <line x1="60" y1="48" x2="60" y2="52" stroke="#22d3ee" strokeWidth="1.5" />
+            {/* Front grill mesh */}
+            <path d="M 80 44 C 83 44, 83 56, 80 56 Z" fill="#0891b2" stroke="#22d3ee" strokeWidth="1" />
+            {/* Pistol mount */}
+            <rect x="52" y="56" width="6" height="14" rx="1" fill="#334155" stroke="#475569" strokeWidth="1" />
+          </g>
+        </svg>
+      );
+    case 6: // USB Mic
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          {/* U-shape desktop stand */}
+          <path d="M 30 45 C 30 75, 70 75, 70 45" fill="none" stroke="#475569" strokeWidth="2.5" />
+          {/* Stand stem and round base */}
+          <line x1="50" y1="70" x2="50" y2="85" stroke="#475569" strokeWidth="3" />
+          <ellipse cx="50" cy="85" rx="18" ry="4" fill="#334155" stroke="#475569" strokeWidth="1.5" />
+          {/* Mic capsule */}
+          <rect x="38" y="20" width="24" height="38" rx="10" fill="#1e293b" stroke="#22d3ee" strokeWidth="2" />
+          {/* Grill section */}
+          <rect x="41" y="23" width="18" height="15" rx="4" fill="none" stroke="#38bdf8" strokeWidth="1" strokeDasharray="1.5 1.5" />
+          {/* Center mute button */}
+          <circle cx="50" cy="46" r="2.5" fill="#ef4444" />
+        </svg>
+      );
+    case 7: // Boundary Mic
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          {/* Flat plate perspective */}
+          <polygon points="15,70 50,45 85,70 50,85" fill="#1e293b" stroke="#38bdf8" strokeWidth="2" />
+          {/* Center hemispherical capsule */}
+          <ellipse cx="50" cy="65" rx="12" ry="7" fill="#0f172a" stroke="#22d3ee" strokeWidth="1.5" />
+          {/* Mesh perforations */}
+          <line x1="44" y1="65" x2="56" y2="65" stroke="#22d3ee" strokeWidth="1" strokeDasharray="1 1" />
+          <line x1="41" y1="63" x2="59" y2="63" stroke="#22d3ee" strokeWidth="1" strokeDasharray="1 1" />
+          <line x1="43" y1="67" x2="57" y2="67" stroke="#22d3ee" strokeWidth="1" strokeDasharray="1 1" />
+          {/* Connection port wire */}
+          <path d="M 50 45 C 50 35, 30 25, 45 15" fill="none" stroke="#475569" strokeWidth="1.5" strokeDasharray="3 3" />
+        </svg>
+      );
+    case 8: // Headset Mic
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          {/* Wire band arc */}
+          <path d="M 20 50 C 20 15, 80 15, 80 50" fill="none" stroke="#475569" strokeWidth="2" />
+          {/* Ear loops */}
+          <path d="M 20 48 Q 16 48, 18 56 T 24 50" fill="none" stroke="#475569" strokeWidth="1.5" />
+          <path d="M 80 48 Q 84 48, 82 56 T 76 50" fill="none" stroke="#475569" strokeWidth="1.5" />
+          {/* Sleek thin boom arm */}
+          <path d="M 20 50 Q 25 75, 48 78" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
+          {/* Tiny foam windshield capsule */}
+          <rect x="47" y="73" width="9" height="10" rx="4" fill="#1e293b" stroke="#22d3ee" strokeWidth="1.5" />
+        </svg>
+      );
+    case 9: // Wireless Mic
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          <defs>
+            <linearGradient id="metalGrad9" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#475569" />
+              <stop offset="50%" stopColor="#64748b" />
+              <stop offset="100%" stopColor="#1e293b" />
+            </linearGradient>
+          </defs>
+          {/* Wireless handheld chassis */}
+          {/* Grill */}
+          <circle cx="50" cy="24" r="14" fill="url(#metalGrad9)" stroke="#22d3ee" strokeWidth="2" />
+          <line x1="36" y1="24" x2="64" y2="24" stroke="#0891b2" strokeWidth="1.5" />
+          {/* Handle */}
+          <path d="M 43 38 L 57 38 L 54 80 L 46 80 Z" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
+          {/* LCD display screen */}
+          <rect x="46" y="48" width="8" height="12" rx="1" fill="#0f172a" stroke="#0891b2" strokeWidth="1" />
+          {/* Battery signal meter lines */}
+          <line x1="48" y1="52" x2="52" y2="52" stroke="#22d3ee" strokeWidth="1" />
+          <line x1="48" y1="55" x2="50" y2="55" stroke="#22d3ee" strokeWidth="1" />
+          <line x1="48" y1="58" x2="51" y2="58" stroke="#22d3ee" strokeWidth="1" />
+          {/* Bottom stubby transmitter antenna dome */}
+          <path d="M 46 80 C 46 86, 54 86, 54 80 Z" fill="#0284c7" stroke="#22d3ee" strokeWidth="1" />
+        </svg>
+      );
+    case 10: // Stereo Mic
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          {/* Shared bottom handle */}
+          <path d="M 45 55 L 55 55 L 53 85 L 47 85 Z" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
+          {/* Y coupling mount */}
+          <path d="M 42 42 L 58 42 L 55 55 L 45 55 Z" fill="#0f172a" stroke="#0891b2" strokeWidth="1.5" />
+          {/* Angle 1 Capsule (pointing left-up, 45 deg) */}
+          <g transform="rotate(-45 42 42)">
+            <rect x="36" y="16" width="12" height="24" rx="2" fill="#1e293b" stroke="#22d3ee" strokeWidth="1.5" />
+            <line x1="36" y1="24" x2="48" y2="24" stroke="#0891b2" strokeWidth="1" />
+          </g>
+          {/* Angle 2 Capsule (pointing right-up, 45 deg) */}
+          <g transform="rotate(45 58 42)">
+            <rect x="52" y="16" width="12" height="24" rx="2" fill="#1e293b" stroke="#22d3ee" strokeWidth="1.5" />
+            <line x1="52" y1="24" x2="64" y2="24" stroke="#0891b2" strokeWidth="1" />
+          </g>
+          {/* X-Y Angle text indicator */}
+          <text x="50" y="50" fill="#22d3ee" fontSize="7" textAnchor="middle" fontWeight="black">90° XY</text>
+        </svg>
+      );
+    default:
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+          <circle cx="50" cy="50" r="25" fill="none" stroke="#22d3ee" strokeWidth="2" />
+          <path d="M 50 35 L 50 65 M 35 50 L 65 50" stroke="#22d3ee" strokeWidth="2" />
+        </svg>
+      );
+  }
+};
+
 const MicrophoneImage: React.FC<MicrophoneImageProps> = ({ mic }) => {
   const base = import.meta.env.BASE_URL || '/';
   const baseUrl = base.endsWith('/') ? base : `${base}/`;
   
-  // Extract filename from mic.imageUrl (e.g. "/dynamic-microphone.png" -> "dynamic-microphone.png")
-  const filename = mic.imageUrl.startsWith('/') ? mic.imageUrl.substring(1) : mic.imageUrl;
+  // Choose exactly one path based on the standardized name
+  const filename = (() => {
+    switch (mic.id) {
+      case 1: return 'dynamic-microphone.png';
+      case 2: return 'condenser-microphone.png';
+      case 3: return 'ribbon-microphone.png';
+      case 4: return 'lavalier-microphone.png';
+      case 5: return 'shotgun-microphone.png';
+      case 6: return 'usb-microphone.png';
+      case 7: return 'boundary-microphone.png';
+      case 8: return 'headset-microphone.png';
+      case 9: return 'wireless-microphone.png';
+      case 10: return 'stereo-microphone.png';
+      default: return '';
+    }
+  })();
+
   const src = `${baseUrl}${filename}`;
 
   return (
