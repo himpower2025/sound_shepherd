@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Mic, 
@@ -21,7 +21,9 @@ import {
   ListFilter,
   CheckCircle2,
   Volume1,
-  Compass
+  Compass,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface MicrophoneType {
@@ -387,6 +389,10 @@ const MicrophoneImage: React.FC<MicrophoneImageProps> = ({ mic }) => {
   const base = import.meta.env.BASE_URL || '/';
   const baseUrl = base.endsWith('/') ? base : `${base}/`;
   
+  useEffect(() => {
+    setImgError(false);
+  }, [mic.id]);
+  
   // Choose exactly one path based on the standardized name
   const filename = (() => {
     switch (mic.id) {
@@ -421,7 +427,6 @@ const MicrophoneImage: React.FC<MicrophoneImageProps> = ({ mic }) => {
     <img 
       src={src} 
       alt={mic.title}
-      referrerPolicy="no-referrer"
       onError={() => setImgError(true)}
       className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out" 
     />
@@ -432,20 +437,76 @@ export const MicrophonesExplained: React.FC = () => {
   const [selectedMic, setSelectedMic] = useState<MicrophoneType>(MICROPHONE_TYPES_DATA[0]);
   const [filterType, setFilterType] = useState<string>('All');
 
-  const filteredMics = filterType === 'All'
-    ? MICROPHONE_TYPES_DATA
-    : MICROPHONE_TYPES_DATA.filter(mic => {
-        if (filterType === 'Studio') {
-          return mic.bestFor.includes('Studio Vocals') || mic.bestFor.includes('Acoustic Instruments') || mic.bestFor.includes('Vintage Recordings');
-        }
-        if (filterType === 'Live Stage') {
-          return mic.bestFor.includes('Live Vocals') || mic.bestFor.includes('Live Stage Performances') || mic.bestFor.includes('Stage Performances') || mic.bestFor.includes('Drums');
-        }
-        if (filterType === 'Video/Broadcast') {
-          return mic.bestFor.includes('Interviews') || mic.bestFor.includes('YouTube Videos') || mic.bestFor.includes('Filmmaking') || mic.bestFor.includes('Broadcasting');
-        }
-        return true;
-      });
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -180, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 180, behavior: 'smooth' });
+    }
+  };
+
+  const filteredMics = useMemo(() => {
+    if (filterType === 'All') return MICROPHONE_TYPES_DATA;
+    
+    return MICROPHONE_TYPES_DATA.filter(mic => {
+      const titleLower = mic.title.toLowerCase();
+      const bestForStr = mic.bestFor.join(' ').toLowerCase();
+      
+      if (filterType === 'Studio') {
+        return (
+          titleLower.includes('condenser') ||
+          titleLower.includes('ribbon') ||
+          titleLower.includes('usb') ||
+          titleLower.includes('stereo') ||
+          bestForStr.includes('studio') ||
+          bestForStr.includes('acoustic') ||
+          bestForStr.includes('vintage') ||
+          bestForStr.includes('ambient')
+        );
+      }
+      
+      if (filterType === 'Live Stage') {
+        return (
+          titleLower.includes('dynamic') ||
+          titleLower.includes('headset') ||
+          titleLower.includes('wireless') ||
+          bestForStr.includes('live') ||
+          bestForStr.includes('stage') ||
+          bestForStr.includes('choir') ||
+          bestForStr.includes('performance') ||
+          bestForStr.includes('drum') ||
+          bestForStr.includes('theater')
+        );
+      }
+      
+      if (filterType === 'Video/Broadcast') {
+        return (
+          titleLower.includes('lavalier') ||
+          titleLower.includes('shotgun') ||
+          titleLower.includes('usb') ||
+          titleLower.includes('headset') ||
+          bestForStr.includes('video') ||
+          bestForStr.includes('broadcast') ||
+          bestForStr.includes('film') ||
+          bestForStr.includes('interview') ||
+          bestForStr.includes('meeting') ||
+          bestForStr.includes('conference') ||
+          bestForStr.includes('podcast') ||
+          bestForStr.includes('game') ||
+          bestForStr.includes('stream') ||
+          bestForStr.includes('presentation')
+        );
+      }
+      
+      return true;
+    });
+  }, [filterType]);
 
   // Render polar pattern pickup geometry dynamically using SVG
   const renderPolarPatternSVG = (pattern: string) => {
@@ -601,7 +662,7 @@ export const MicrophonesExplained: React.FC = () => {
         </div>
 
         {/* Quick Filter Buttons */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="flex flex-wrap gap-1.5 mb-3.5">
           {['All', 'Studio', 'Live Stage', 'Video/Broadcast'].map((filter) => (
             <button
               key={filter}
@@ -617,47 +678,71 @@ export const MicrophonesExplained: React.FC = () => {
           ))}
         </div>
 
-        {/* Mobile Horizontal Microphone Scroll Bar with custom clean scroll styling */}
-        <div className="flex overflow-x-auto gap-3 pb-2.5 scroll-smooth select-none snap-x -mx-4 px-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
-          {filteredMics.map((mic) => {
-            const isSelected = mic.id === selectedMic.id;
-            return (
-              <button
-                key={mic.id}
-                onClick={() => setSelectedMic(mic)}
-                className={`snap-center shrink-0 p-3 w-[120px] rounded-xl border text-left transition-all flex flex-col justify-between gap-2 ${
-                  isSelected
-                    ? 'bg-gradient-to-br from-blue-600 to-indigo-700 border-transparent text-white shadow-md scale-[0.98]'
-                    : 'bg-slate-50 border-slate-100 hover:border-slate-200 text-slate-700 hover:bg-slate-100/60'
-                }`}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <span className={`w-4 h-4 rounded-md flex items-center justify-center font-black text-[8px] ${
-                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'
-                  }`}>
-                    {mic.id.toString().padStart(2, '0')}
-                  </span>
-                  <CheckCircle2 
-                    size={11} 
-                    className={`transition-all ${isSelected ? 'text-cyan-300 opacity-100' : 'text-slate-300 opacity-0'}`} 
-                  />
-                </div>
-                
-                {/* Mini vector microphone preview */}
-                <div className="h-8 w-8 mx-auto opacity-90 my-0.5">
-                  {renderVectorMicrophone(mic.id)}
-                </div>
-                
-                <div className="min-w-0 w-full">
-                  <h4 className="text-[9px] font-black uppercase tracking-tight truncate text-center">
-                    {mic.title.replace(' Microphone', '')}
-                  </h4>
-                </div>
-              </button>
-            );
-          })}
-          {/* Spacer dummy element to perfectly solve the scroll cutting and right edge clipping issue */}
-          <div className="w-6 shrink-0 h-4" />
+        {/* Scroll Container Wrapper with side arrow buttons */}
+        <div className="relative w-full px-1">
+          {/* Left Arrow button */}
+          <button 
+            onClick={scrollLeft}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 z-10 w-7 h-7 bg-white/95 backdrop-blur-md border border-slate-200 shadow-md rounded-full flex items-center justify-center text-slate-700 active:scale-95 hover:bg-slate-50 transition-all"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft size={14} className="stroke-[3.5]" />
+          </button>
+
+          {/* Mobile Horizontal Microphone Scroll Bar with custom clean scroll styling */}
+          <div 
+            ref={scrollRef}
+            className="flex overflow-x-auto gap-3 pb-2.5 scroll-smooth select-none snap-x -mx-2 px-2 scrollbar-none"
+          >
+            {filteredMics.map((mic) => {
+              const isSelected = mic.id === selectedMic.id;
+              return (
+                <button
+                  key={mic.id}
+                  onClick={() => setSelectedMic(mic)}
+                  className={`snap-center shrink-0 p-3 w-[120px] rounded-xl border text-left transition-all flex flex-col justify-between gap-2 ${
+                    isSelected
+                      ? 'bg-gradient-to-br from-blue-600 to-indigo-700 border-transparent text-white shadow-md scale-[0.98]'
+                      : 'bg-slate-50 border-slate-100 hover:border-slate-200 text-slate-700 hover:bg-slate-100/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className={`w-4 h-4 rounded-md flex items-center justify-center font-black text-[8px] ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      {mic.id.toString().padStart(2, '0')}
+                    </span>
+                    <CheckCircle2 
+                      size={11} 
+                      className={`transition-all ${isSelected ? 'text-cyan-300 opacity-100' : 'text-slate-300 opacity-0'}`} 
+                    />
+                  </div>
+                  
+                  {/* Mini vector microphone preview */}
+                  <div className="h-8 w-8 mx-auto opacity-90 my-0.5">
+                    {renderVectorMicrophone(mic.id)}
+                  </div>
+                  
+                  <div className="min-w-0 w-full">
+                    <h4 className="text-[9px] font-black uppercase tracking-tight truncate text-center">
+                      {mic.title.replace(' Microphone', '')}
+                    </h4>
+                  </div>
+                </button>
+              );
+            })}
+            {/* Spacer dummy element to perfectly solve the scroll cutting and right edge clipping issue */}
+            <div className="w-8 shrink-0 h-4" />
+          </div>
+
+          {/* Right Arrow button */}
+          <button 
+            onClick={scrollRight}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1.5 z-10 w-7 h-7 bg-white/95 backdrop-blur-md border border-slate-200 shadow-md rounded-full flex items-center justify-center text-slate-700 active:scale-95 hover:bg-slate-50 transition-all"
+            aria-label="Scroll right"
+          >
+            <ChevronRight size={14} className="stroke-[3.5]" />
+          </button>
         </div>
       </div>
 
@@ -800,32 +885,32 @@ export const MicrophonesExplained: React.FC = () => {
           </div>
 
           {/* Image & Pattern Split Display */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
             {/* Actual HD Image */}
-            <div className="relative group rounded-2xl overflow-hidden h-40 sm:h-48 lg:h-64 border border-slate-200 bg-slate-50 p-4 shadow-sm flex items-center justify-center">
-              <MicrophoneImage mic={selectedMic} />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/10 to-transparent flex items-end p-3 pointer-events-none">
-                <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-700 bg-white/90 shadow-sm border border-slate-100 px-2 py-0.5 rounded-md">
+            <div className="relative group rounded-xl sm:rounded-2xl overflow-hidden h-32 sm:h-44 lg:h-56 border border-slate-200 bg-slate-50 p-2 sm:p-4 shadow-sm flex items-center justify-center">
+              <MicrophoneImage key={selectedMic.id} mic={selectedMic} />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/10 to-transparent flex items-end p-1.5 sm:p-3 pointer-events-none">
+                <span className="text-[7px] sm:text-[9px] font-black uppercase tracking-widest text-slate-700 bg-white/95 shadow-sm border border-slate-100 px-1.5 py-0.5 rounded-md">
                   Real Equipment Visual
                 </span>
               </div>
             </div>
 
             {/* Interactive Polar Pattern Display */}
-            <div className="bg-slate-950 rounded-2xl h-40 sm:h-48 lg:h-64 p-3.5 flex flex-col justify-between items-center border border-slate-900 shadow-inner relative text-white">
-              <div className="absolute top-2.5 left-2.5 bg-white/5 border border-white/10 rounded-full p-1" title="Interactive Pickup Geometry">
-                <Compass size={12} className="text-cyan-400" />
+            <div className="bg-slate-950 rounded-xl sm:rounded-2xl h-32 sm:h-44 lg:h-56 p-2 sm:p-3.5 flex flex-col justify-between items-center border border-slate-900 shadow-inner relative text-white overflow-hidden">
+              <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 bg-white/5 border border-white/10 rounded-full p-0.5 sm:p-1" title="Interactive Pickup Geometry">
+                <Compass size={10} className="text-cyan-400" />
               </div>
               
-              <div className="flex-1 flex items-center justify-center py-1 overflow-hidden scale-90 sm:scale-100">
+              <div className="flex-1 flex items-center justify-center py-0.5 overflow-hidden scale-75 sm:scale-90 lg:scale-100">
                 {renderPolarPatternSVG(selectedMic.polarPattern)}
               </div>
 
-              <div className="w-full bg-white/5 p-2 rounded-xl border border-white/5 text-center mt-1">
-                <h5 className="text-[9px] sm:text-[10px] font-black uppercase text-cyan-400 mb-0.5 tracking-wider">
+              <div className="w-full bg-white/5 p-1 sm:p-2 rounded-lg border border-white/5 text-center mt-0.5">
+                <h5 className="text-[8px] sm:text-[10px] font-black uppercase text-cyan-400 mb-0.5 tracking-wider truncate">
                   Pickup: {selectedMic.polarPattern}
                 </h5>
-                <p className="text-[9px] text-slate-300 font-semibold leading-normal">
+                <p className="text-[7px] sm:text-[9px] text-slate-300 font-semibold leading-tight line-clamp-2">
                   {selectedMic.polarPatternDesc}
                 </p>
               </div>
