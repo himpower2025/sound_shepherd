@@ -553,7 +553,7 @@ export const MicrophonesExplained: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="flex flex-col gap-6">
       {/* Definitions Def SVG definition */}
       <svg className="absolute w-0 h-0">
         <defs>
@@ -573,122 +573,197 @@ export const MicrophonesExplained: React.FC = () => {
         </defs>
       </svg>
 
-      {/* Left Column: Selector sidebar (Col span 5) */}
-      <div className="lg:col-span-5 grid gap-6">
-        <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-6 pb-2 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <Mic2 className="text-blue-600 shrink-0" size={20} />
-              <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-800">
-                Microphone Types
-              </h3>
-            </div>
-            <span className="bg-blue-50 text-blue-700 font-extrabold text-[10px] uppercase px-2.5 py-1 rounded-full">
-              10 Essential
-            </span>
+      {/* MOBILE ONLY: Horizontal Selector Card at the top */}
+      <div className="block lg:hidden bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <Mic2 className="text-blue-600 shrink-0" size={18} />
+            <h3 className="text-sm font-black uppercase italic tracking-tight text-slate-800">
+              Microphone Guide
+            </h3>
           </div>
-
-          {/* Quick Filter Buttons */}
-          <div className="flex flex-wrap gap-1.5 mb-5">
-            {['All', 'Studio', 'Live Stage', 'Video/Broadcast'].map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setFilterType(filter)}
-                className={`py-1 px-2.5 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all ${
-                  filterType === filter
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
-
-          {/* Microphones List */}
-          <div className="grid grid-cols-1 gap-2.5 max-h-[500px] overflow-y-auto pr-1">
-            {filteredMics.map((mic) => {
-              const isSelected = mic.id === selectedMic.id;
-              return (
-                <button
-                  key={mic.id}
-                  onClick={() => setSelectedMic(mic)}
-                  className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-700 border-transparent text-white shadow-xl scale-[0.99]'
-                      : 'bg-slate-50 border-slate-100 hover:border-slate-200 text-slate-700 hover:bg-slate-100/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-500'
-                    }`}>
-                      {mic.id.toString().padStart(2, '0')}
-                    </span>
-                    <div className="min-w-0">
-                      <h4 className="text-xs sm:text-sm font-black uppercase tracking-tight truncate">
-                        {mic.title}
-                      </h4>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {mic.bestFor.slice(0, 2).map((useCase) => (
-                          <span 
-                            key={useCase} 
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md truncate max-w-[90px] ${
-                              isSelected ? 'bg-white/10 text-indigo-100' : 'bg-slate-200/50 text-slate-500'
-                            }`}
-                          >
-                            {useCase}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="shrink-0">
-                    <CheckCircle2 
-                      size={18} 
-                      className={`transition-all ${isSelected ? 'text-cyan-300 opacity-100 scale-110' : 'text-slate-300 opacity-0'}`} 
-                    />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          <span className="bg-blue-50 text-blue-700 font-extrabold text-[9px] uppercase px-2 py-0.5 rounded-full">
+            10 Types
+          </span>
         </div>
 
-        {/* Polar Pattern Overview Panel */}
-        <div className="bg-slate-900 text-white p-6 md:p-8 rounded-[2.5rem] border border-slate-800 shadow-xl">
-          <div className="flex items-center gap-2 mb-4">
-            <Compass className="text-cyan-400 shrink-0" size={18} />
-            <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400 font-mono">
-              Understanding Polar Patterns
-            </h4>
-          </div>
-          <p className="text-xs text-slate-300 leading-relaxed mb-4 font-semibold">
-            A microphone's polar pattern dictates how sensitive it is to sounds arriving from different angles. Picking the correct pattern is crucial for isolation and feedback rejection.
-          </p>
-          <div className="grid grid-cols-2 gap-3 text-[10px] font-bold text-slate-400 font-mono">
-            <div className="bg-slate-800/40 p-2.5 rounded-xl border border-slate-800">
-              <span className="text-cyan-400 block mb-0.5">● Cardioid</span>
-              Front pickup. Keeps stage bleed out.
-            </div>
-            <div className="bg-slate-800/40 p-2.5 rounded-xl border border-slate-800">
-              <span className="text-cyan-400 block mb-0.5">● Omnidirectional</span>
-              360° capture. Natural room acoustics.
-            </div>
-            <div className="bg-slate-800/40 p-2.5 rounded-xl border border-slate-800">
-              <span className="text-cyan-400 block mb-0.5">● Figure-8</span>
-              Front and back. Rejects side sounds.
-            </div>
-            <div className="bg-slate-800/40 p-2.5 rounded-xl border border-slate-800">
-              <span className="text-cyan-400 block mb-0.5">● Shotgun</span>
-              Super directional front-focused beam.
-            </div>
-          </div>
+        {/* Quick Filter Buttons */}
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {['All', 'Studio', 'Live Stage', 'Video/Broadcast'].map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setFilterType(filter)}
+              className={`py-1 px-2.5 rounded-xl text-[9px] font-black tracking-wider uppercase transition-all ${
+                filterType === filter
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+
+        {/* Mobile Horizontal Microphone Scroll Bar */}
+        <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none snap-x -mx-5 px-5">
+          {filteredMics.map((mic) => {
+            const isSelected = mic.id === selectedMic.id;
+            return (
+              <button
+                key={mic.id}
+                onClick={() => setSelectedMic(mic)}
+                className={`snap-center shrink-0 p-3.5 w-[130px] rounded-2xl border text-left transition-all flex flex-col justify-between gap-2.5 ${
+                  isSelected
+                    ? 'bg-gradient-to-br from-blue-600 to-indigo-700 border-transparent text-white shadow-md scale-[0.98]'
+                    : 'bg-slate-50 border-slate-100 hover:border-slate-200 text-slate-700 hover:bg-slate-100/60'
+                }`}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-[9px] ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'
+                  }`}>
+                    {mic.id.toString().padStart(2, '0')}
+                  </span>
+                  <CheckCircle2 
+                    size={12} 
+                    className={`transition-all ${isSelected ? 'text-cyan-300 opacity-100' : 'text-slate-300 opacity-0'}`} 
+                  />
+                </div>
+                
+                {/* Mini vector microphone preview */}
+                <div className="h-10 w-10 mx-auto opacity-90 my-1">
+                  {renderVectorMicrophone(mic.id)}
+                </div>
+                
+                <div className="min-w-0 w-full">
+                  <h4 className="text-[10px] font-black uppercase tracking-tight truncate text-center">
+                    {mic.title.replace(' Microphone', '')}
+                  </h4>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Right Column: Detailed parameters & visual sandbox (Col span 7) */}
-      <div className="lg:col-span-7 grid gap-6">
+      {/* Main Grid Layout: Adapts on desktop to side-by-side, stacks on mobile */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* DESKTOP ONLY: Left Column Selector sidebar (Col span 5) */}
+        <div className="hidden lg:grid lg:col-span-5 gap-6">
+          <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
+            <div className="flex items-center justify-between mb-6 pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Mic2 className="text-blue-600 shrink-0" size={20} />
+                <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-800">
+                  Microphone Types
+                </h3>
+              </div>
+              <span className="bg-blue-50 text-blue-700 font-extrabold text-[10px] uppercase px-2.5 py-1 rounded-full">
+                10 Essential
+              </span>
+            </div>
+
+            {/* Quick Filter Buttons */}
+            <div className="flex flex-wrap gap-1.5 mb-5">
+              {['All', 'Studio', 'Live Stage', 'Video/Broadcast'].map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setFilterType(filter)}
+                  className={`py-1 px-2.5 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all ${
+                    filterType === filter
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+
+            {/* Microphones List */}
+            <div className="grid grid-cols-1 gap-2.5 max-h-[500px] overflow-y-auto pr-1">
+              {filteredMics.map((mic) => {
+                const isSelected = mic.id === selectedMic.id;
+                return (
+                  <button
+                    key={mic.id}
+                    onClick={() => setSelectedMic(mic)}
+                    className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-700 border-transparent text-white shadow-xl scale-[0.99]'
+                        : 'bg-slate-50 border-slate-100 hover:border-slate-200 text-slate-700 hover:bg-slate-100/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-500'
+                      }`}>
+                        {mic.id.toString().padStart(2, '0')}
+                      </span>
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-black uppercase tracking-tight truncate">
+                          {mic.title}
+                        </h4>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {mic.bestFor.slice(0, 2).map((useCase) => (
+                            <span 
+                              key={useCase} 
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md truncate max-w-[90px] ${
+                                isSelected ? 'bg-white/10 text-indigo-100' : 'bg-slate-200/50 text-slate-500'
+                              }`}
+                            >
+                              {useCase}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      <CheckCircle2 
+                        size={18} 
+                        className={`transition-all ${isSelected ? 'text-cyan-300 opacity-100 scale-110' : 'text-slate-300 opacity-0'}`} 
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Polar Pattern Overview Panel */}
+          <div className="bg-slate-900 text-white p-6 md:p-8 rounded-[2.5rem] border border-slate-800 shadow-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <Compass className="text-cyan-400 shrink-0" size={18} />
+              <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400 font-mono">
+                Understanding Polar Patterns
+              </h4>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed mb-4 font-semibold">
+              A microphone's polar pattern dictates how sensitive it is to sounds arriving from different angles. Picking the correct pattern is crucial for isolation and feedback rejection.
+            </p>
+            <div className="grid grid-cols-2 gap-3 text-[10px] font-bold text-slate-400 font-mono">
+              <div className="bg-slate-800/40 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-cyan-400 block mb-0.5">● Cardioid</span>
+                Front pickup. Keeps stage bleed out.
+              </div>
+              <div className="bg-slate-800/40 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-cyan-400 block mb-0.5">● Omnidirectional</span>
+                360° capture. Natural room acoustics.
+              </div>
+              <div className="bg-slate-800/40 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-cyan-400 block mb-0.5">● Figure-8</span>
+                Front and back. Rejects side sounds.
+              </div>
+              <div className="bg-slate-800/40 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-cyan-400 block mb-0.5">● Shotgun</span>
+                Super directional front-focused beam.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Detailed parameters & visual sandbox (Col span 7 on Desktop, Full Width on Mobile) */}
+        <div className="lg:col-span-7 grid gap-6">
         <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-5">
@@ -820,5 +895,37 @@ export const MicrophonesExplained: React.FC = () => {
         </div>
       </div>
     </div>
+
+    {/* MOBILE ONLY: Polar Pattern Overview Panel at the bottom */}
+    <div className="block lg:hidden bg-slate-900 text-white p-5 rounded-[2rem] border border-slate-800 shadow-xl">
+      <div className="flex items-center gap-2 mb-4">
+        <Compass className="text-cyan-400 shrink-0" size={16} />
+        <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400 font-mono">
+          Understanding Polar Patterns
+        </h4>
+      </div>
+      <p className="text-[11px] text-slate-300 leading-relaxed mb-4 font-semibold">
+        A microphone's polar pattern dictates how sensitive it is to sounds arriving from different angles. Picking the correct pattern is crucial for isolation and feedback rejection.
+      </p>
+      <div className="grid grid-cols-2 gap-2 text-[9px] font-bold text-slate-400 font-mono">
+        <div className="bg-slate-800/40 p-2 rounded-xl border border-slate-800">
+          <span className="text-cyan-400 block mb-0.5">● Cardioid</span>
+          Front pickup. Keeps stage bleed out.
+        </div>
+        <div className="bg-slate-800/40 p-2 rounded-xl border border-slate-800">
+          <span className="text-cyan-400 block mb-0.5">● Omnidirectional</span>
+          360° capture. Natural room acoustics.
+        </div>
+        <div className="bg-slate-800/40 p-2 rounded-xl border border-slate-800">
+          <span className="text-cyan-400 block mb-0.5">● Figure-8</span>
+          Front and back. Rejects side sounds.
+        </div>
+        <div className="bg-slate-800/40 p-2 rounded-xl border border-slate-800">
+          <span className="text-cyan-400 block mb-0.5">● Shotgun</span>
+          Super directional front-focused beam.
+        </div>
+      </div>
+    </div>
+  </div>
   );
 };
