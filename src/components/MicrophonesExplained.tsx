@@ -383,6 +383,7 @@ const renderVectorMicrophone = (id: number) => {
 };
 
 const MicrophoneImage: React.FC<MicrophoneImageProps> = ({ mic }) => {
+  const [imgError, setImgError] = useState(false);
   const base = import.meta.env.BASE_URL || '/';
   const baseUrl = base.endsWith('/') ? base : `${base}/`;
   
@@ -405,11 +406,23 @@ const MicrophoneImage: React.FC<MicrophoneImageProps> = ({ mic }) => {
 
   const src = `${baseUrl}${filename}`;
 
+  if (imgError) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-slate-900 to-slate-950 rounded-2xl border border-white/5 shadow-inner">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 opacity-80 my-2">
+          {renderVectorMicrophone(mic.id)}
+        </div>
+        <span className="text-[9px] font-black tracking-widest text-cyan-400/80 font-mono">VECTOR MODEL ACTIVE</span>
+      </div>
+    );
+  }
+
   return (
     <img 
       src={src} 
       alt={mic.title}
       referrerPolicy="no-referrer"
+      onError={() => setImgError(true)}
       className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out" 
     />
   );
@@ -574,28 +587,28 @@ export const MicrophonesExplained: React.FC = () => {
       </svg>
 
       {/* MOBILE ONLY: Horizontal Selector Card at the top */}
-      <div className="block lg:hidden bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+      <div className="block lg:hidden bg-white p-4 sm:p-5 rounded-2xl sm:rounded-[2rem] shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <Mic2 className="text-blue-600 shrink-0" size={18} />
-            <h3 className="text-sm font-black uppercase italic tracking-tight text-slate-800">
+            <Mic2 className="text-blue-600 shrink-0" size={16} />
+            <h3 className="text-xs sm:text-sm font-black uppercase italic tracking-tight text-slate-800">
               Microphone Guide
             </h3>
           </div>
-          <span className="bg-blue-50 text-blue-700 font-extrabold text-[9px] uppercase px-2 py-0.5 rounded-full">
+          <span className="bg-blue-50 text-blue-700 font-extrabold text-[8px] sm:text-[9px] uppercase px-2 py-0.5 rounded-full">
             10 Types
           </span>
         </div>
 
         {/* Quick Filter Buttons */}
-        <div className="flex flex-wrap gap-1.5 mb-4">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {['All', 'Studio', 'Live Stage', 'Video/Broadcast'].map((filter) => (
             <button
               key={filter}
               onClick={() => setFilterType(filter)}
-              className={`py-1 px-2.5 rounded-xl text-[9px] font-black tracking-wider uppercase transition-all ${
+              className={`py-1 px-2.5 rounded-lg text-[8px] sm:text-[9px] font-black tracking-wider uppercase transition-all ${
                 filterType === filter
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
               }`}
             >
@@ -604,45 +617,47 @@ export const MicrophonesExplained: React.FC = () => {
           ))}
         </div>
 
-        {/* Mobile Horizontal Microphone Scroll Bar */}
-        <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none snap-x -mx-5 px-5">
+        {/* Mobile Horizontal Microphone Scroll Bar with custom clean scroll styling */}
+        <div className="flex overflow-x-auto gap-3 pb-2.5 scroll-smooth select-none snap-x -mx-4 px-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
           {filteredMics.map((mic) => {
             const isSelected = mic.id === selectedMic.id;
             return (
               <button
                 key={mic.id}
                 onClick={() => setSelectedMic(mic)}
-                className={`snap-center shrink-0 p-3.5 w-[130px] rounded-2xl border text-left transition-all flex flex-col justify-between gap-2.5 ${
+                className={`snap-center shrink-0 p-3 w-[120px] rounded-xl border text-left transition-all flex flex-col justify-between gap-2 ${
                   isSelected
                     ? 'bg-gradient-to-br from-blue-600 to-indigo-700 border-transparent text-white shadow-md scale-[0.98]'
                     : 'bg-slate-50 border-slate-100 hover:border-slate-200 text-slate-700 hover:bg-slate-100/60'
                 }`}
               >
                 <div className="flex items-center justify-between w-full">
-                  <span className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-[9px] ${
+                  <span className={`w-4 h-4 rounded-md flex items-center justify-center font-black text-[8px] ${
                     isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'
                   }`}>
                     {mic.id.toString().padStart(2, '0')}
                   </span>
                   <CheckCircle2 
-                    size={12} 
+                    size={11} 
                     className={`transition-all ${isSelected ? 'text-cyan-300 opacity-100' : 'text-slate-300 opacity-0'}`} 
                   />
                 </div>
                 
                 {/* Mini vector microphone preview */}
-                <div className="h-10 w-10 mx-auto opacity-90 my-1">
+                <div className="h-8 w-8 mx-auto opacity-90 my-0.5">
                   {renderVectorMicrophone(mic.id)}
                 </div>
                 
                 <div className="min-w-0 w-full">
-                  <h4 className="text-[10px] font-black uppercase tracking-tight truncate text-center">
+                  <h4 className="text-[9px] font-black uppercase tracking-tight truncate text-center">
                     {mic.title.replace(' Microphone', '')}
                   </h4>
                 </div>
               </button>
             );
           })}
+          {/* Spacer dummy element to perfectly solve the scroll cutting and right edge clipping issue */}
+          <div className="w-6 shrink-0 h-4" />
         </div>
       </div>
 
@@ -764,53 +779,53 @@ export const MicrophonesExplained: React.FC = () => {
 
         {/* Right Column: Detailed parameters & visual sandbox (Col span 7 on Desktop, Full Width on Mobile) */}
         <div className="lg:col-span-7 grid gap-6">
-        <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-[2rem] lg:rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-4">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+              <span className="text-[9px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full">
                 Mic Type Profile #{selectedMic.id}
               </span>
-              <h3 className="text-2xl font-black uppercase italic tracking-tight text-slate-800 mt-2">
+              <h3 className="text-xl sm:text-2xl font-black uppercase italic tracking-tight text-slate-800 mt-1.5">
                 {selectedMic.title}
               </h3>
             </div>
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl py-2 px-3 flex items-center gap-2 self-start md:self-auto">
-              <Award className="text-blue-500" size={16} />
+            <div className="bg-slate-50 border border-slate-100 rounded-xl py-1.5 px-2.5 flex items-center gap-2 self-start md:self-auto">
+              <Award className="text-blue-500 shrink-0" size={14} />
               <div>
-                <p className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest leading-none">Best Applied To</p>
-                <p className="text-[11px] font-black text-slate-700 leading-normal mt-0.5">{selectedMic.bestFor[0]}</p>
+                <p className="text-[8px] text-slate-400 font-extrabold uppercase tracking-widest leading-none">Best Applied To</p>
+                <p className="text-[10px] sm:text-[11px] font-black text-slate-700 leading-normal mt-0.5">{selectedMic.bestFor[0]}</p>
               </div>
             </div>
           </div>
 
           {/* Image & Pattern Split Display */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             {/* Actual HD Image */}
-            <div className="relative group rounded-3xl overflow-hidden aspect-[4/3] border border-slate-200 bg-slate-50 p-6 shadow-md flex items-center justify-center">
+            <div className="relative group rounded-2xl overflow-hidden h-40 sm:h-48 lg:h-64 border border-slate-200 bg-slate-50 p-4 shadow-sm flex items-center justify-center">
               <MicrophoneImage mic={selectedMic} />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/10 to-transparent flex items-end p-4 pointer-events-none">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 bg-white/90 shadow-sm border border-slate-100 px-2.5 py-1 rounded-lg">
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/10 to-transparent flex items-end p-3 pointer-events-none">
+                <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-700 bg-white/90 shadow-sm border border-slate-100 px-2 py-0.5 rounded-md">
                   Real Equipment Visual
                 </span>
               </div>
             </div>
 
             {/* Interactive Polar Pattern Display */}
-            <div className="bg-slate-950 rounded-3xl p-4 flex flex-col justify-between items-center border border-slate-900 shadow-inner relative text-white">
-              <div className="absolute top-3 left-3 bg-white/5 border border-white/10 rounded-full p-1.5" title="Interactive Pickup Geometry">
-                <Compass size={14} className="text-cyan-400" />
+            <div className="bg-slate-950 rounded-2xl h-40 sm:h-48 lg:h-64 p-3.5 flex flex-col justify-between items-center border border-slate-900 shadow-inner relative text-white">
+              <div className="absolute top-2.5 left-2.5 bg-white/5 border border-white/10 rounded-full p-1" title="Interactive Pickup Geometry">
+                <Compass size={12} className="text-cyan-400" />
               </div>
               
-              <div className="flex-1 flex items-center justify-center py-2">
+              <div className="flex-1 flex items-center justify-center py-1 overflow-hidden scale-90 sm:scale-100">
                 {renderPolarPatternSVG(selectedMic.polarPattern)}
               </div>
 
-              <div className="w-full bg-white/5 p-3 rounded-2xl border border-white/5 text-center mt-2">
-                <h5 className="text-[10px] font-black uppercase text-cyan-400 mb-1 tracking-wider">
+              <div className="w-full bg-white/5 p-2 rounded-xl border border-white/5 text-center mt-1">
+                <h5 className="text-[9px] sm:text-[10px] font-black uppercase text-cyan-400 mb-0.5 tracking-wider">
                   Pickup: {selectedMic.polarPattern}
                 </h5>
-                <p className="text-[10px] text-slate-300 font-semibold leading-relaxed">
+                <p className="text-[9px] text-slate-300 font-semibold leading-normal">
                   {selectedMic.polarPatternDesc}
                 </p>
               </div>
@@ -818,60 +833,60 @@ export const MicrophonesExplained: React.FC = () => {
           </div>
 
           {/* Key Features & Use Cases */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             {/* Features (Bullet points matched to user image) */}
-            <div className="bg-slate-50/50 p-5 rounded-3xl border border-slate-100 flex flex-col justify-between">
+            <div className="bg-slate-50/50 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-100 flex flex-col justify-between gap-3">
               <div>
-                <h4 className="text-xs font-black uppercase text-slate-400 mb-3 tracking-wider flex items-center gap-1.5">
-                  <span className="w-1.5 h-3 bg-blue-600 rounded-full" />
+                <h4 className="text-[11px] sm:text-xs font-black uppercase text-slate-400 mb-2.5 tracking-wider flex items-center gap-1.5">
+                  <span className="w-1 h-2.5 bg-blue-600 rounded-full" />
                   Key Features
                 </h4>
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {selectedMic.features.map((feat, fIdx) => (
-                    <div key={fIdx} className="flex gap-2 items-start">
-                      <span className="text-blue-500 text-xs mt-0.5">•</span>
-                      <p className="text-xs text-slate-600 font-bold leading-normal">{feat}</p>
+                    <div key={fIdx} className="flex gap-1.5 items-start">
+                      <span className="text-blue-500 text-xs mt-0.5 shrink-0">•</span>
+                      <p className="text-[11px] sm:text-xs text-slate-600 font-bold leading-normal">{feat}</p>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="bg-blue-50/20 p-2.5 rounded-xl border border-blue-100/30 text-[9px] font-black text-blue-700 uppercase tracking-wider text-center mt-3">
+              <div className="bg-blue-50/20 p-2 rounded-lg border border-blue-100/30 text-[8px] sm:text-[9px] font-black text-blue-700 uppercase tracking-wider text-center">
                 No Simulated Logic • Real Specs
               </div>
             </div>
 
             {/* Target Use cases (Best For grid) */}
-            <div className="bg-slate-50/50 p-5 rounded-3xl border border-slate-100">
-              <h4 className="text-xs font-black uppercase text-slate-400 mb-3 tracking-wider flex items-center gap-1.5">
-                <span className="w-1.5 h-3 bg-indigo-600 rounded-full" />
+            <div className="bg-slate-50/50 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-100">
+              <h4 className="text-[11px] sm:text-xs font-black uppercase text-slate-400 mb-2.5 tracking-wider flex items-center gap-1.5">
+                <span className="w-1 h-2.5 bg-indigo-600 rounded-full" />
                 Best For (Use Cases)
               </h4>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-1 gap-1.5">
                 {selectedMic.bestFor.map((use, uIdx) => (
-                  <div key={uIdx} className="bg-white p-3 rounded-2xl border border-slate-100 flex items-center gap-3 hover:border-indigo-200 transition-colors">
-                    <div className="bg-indigo-50 text-indigo-600 p-1.5 rounded-xl">
-                      {use.includes('Vocal') && <Mic size={14} />}
-                      {use.includes('Drum') && <Waves size={14} />}
-                      {use.includes('Amp') && <Volume2 size={14} />}
-                      {use.includes('Acoustic') && <Music size={14} />}
-                      {use.includes('Podcast') && <Volume1 size={14} />}
-                      {use.includes('Cabinet') && <Volume2 size={14} />}
-                      {use.includes('Brass') && <Music size={14} />}
-                      {use.includes('String') && <Music size={14} />}
-                      {use.includes('Video') && <Video size={14} />}
-                      {use.includes('Interview') && <PhoneCall size={14} />}
-                      {use.includes('Presentation') && <Tv size={14} />}
-                      {use.includes('Gaming') && <Gamepad2 size={14} />}
-                      {use.includes('Streaming') && <Laptop size={14} />}
-                      {use.includes('Conference') && <PhoneCall size={14} />}
-                      {use.includes('Meeting') && <Tv size={14} />}
-                      {use.includes('Fitness') && <Activity size={14} />}
-                      {use.includes('Speaking') && <Volume1 size={14} />}
-                      {use.includes('Performance') && <Mic size={14} />}
-                      {use.includes('Choir') && <Waves size={14} />}
-                      {use.includes('Ambience') && <Waves size={14} />}
+                  <div key={uIdx} className="bg-white p-2 sm:p-2.5 rounded-xl border border-slate-100 flex items-center gap-2.5 hover:border-indigo-200 transition-colors">
+                    <div className="bg-indigo-50 text-indigo-600 p-1 rounded-lg shrink-0">
+                      {use.includes('Vocal') && <Mic size={12} />}
+                      {use.includes('Drum') && <Waves size={12} />}
+                      {use.includes('Amp') && <Volume2 size={12} />}
+                      {use.includes('Acoustic') && <Music size={12} />}
+                      {use.includes('Podcast') && <Volume1 size={12} />}
+                      {use.includes('Cabinet') && <Volume2 size={12} />}
+                      {use.includes('Brass') && <Music size={12} />}
+                      {use.includes('String') && <Music size={12} />}
+                      {use.includes('Video') && <Video size={12} />}
+                      {use.includes('Interview') && <PhoneCall size={12} />}
+                      {use.includes('Presentation') && <Tv size={12} />}
+                      {use.includes('Gaming') && <Gamepad2 size={12} />}
+                      {use.includes('Streaming') && <Laptop size={12} />}
+                      {use.includes('Conference') && <PhoneCall size={12} />}
+                      {use.includes('Meeting') && <Tv size={12} />}
+                      {use.includes('Fitness') && <Activity size={12} />}
+                      {use.includes('Speaking') && <Volume1 size={12} />}
+                      {use.includes('Performance') && <Mic size={12} />}
+                      {use.includes('Choir') && <Waves size={12} />}
+                      {use.includes('Ambience') && <Waves size={12} />}
                     </div>
-                    <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{use}</span>
+                    <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight">{use}</span>
                   </div>
                 ))}
               </div>
@@ -879,15 +894,15 @@ export const MicrophonesExplained: React.FC = () => {
           </div>
 
           {/* Pro Tips / Application Notes */}
-          <div className="p-5 bg-gradient-to-r from-blue-50/20 to-indigo-50/10 rounded-3xl border border-blue-100/40 flex gap-4">
-            <div className="bg-blue-600 text-white rounded-2xl p-2 h-9 w-9 flex items-center justify-center shrink-0 shadow-md">
-              <Info size={18} />
+          <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-50/20 to-indigo-50/10 rounded-2xl sm:rounded-3xl border border-blue-100/40 flex gap-3">
+            <div className="bg-blue-600 text-white rounded-xl p-1.5 h-8 w-8 flex items-center justify-center shrink-0 shadow-sm">
+              <Info size={15} />
             </div>
             <div>
-              <h5 className="text-xs font-black uppercase text-blue-800 tracking-tight">
+              <h5 className="text-[11px] sm:text-xs font-black uppercase text-blue-800 tracking-tight">
                 Senior Sound Consultant Notes
               </h5>
-              <p className="text-xs text-slate-600 font-semibold mt-1 leading-relaxed">
+              <p className="text-[11px] sm:text-xs text-slate-600 font-semibold mt-0.5 leading-relaxed">
                 {selectedMic.proTips}
               </p>
             </div>
