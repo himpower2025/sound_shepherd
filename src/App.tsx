@@ -55,6 +55,7 @@ import { AudioEffectsGuide } from './components/AudioEffectsGuide';
 import { MicrophonesExplained } from './components/MicrophonesExplained';
 import { SpeakerWiringGuide } from './components/SpeakerWiringGuide';
 import { SnareGateGuide } from './components/SnareGateGuide';
+import { TermsAndPrivacyModal } from './components/TermsAndPrivacy';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -85,6 +86,10 @@ const colorMap: Record<string, { bg: string, text: string, border: string }> = {
 export default function App() {
   const [activeState, setActiveState] = useState<AppState>('home');
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  
+  // Terms and Privacy policy modal state
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [termsDefaultTab, setTermsDefaultTab] = useState<'terms' | 'privacy'>('terms');
 
   const selectedSection = GUIDE_SECTIONS.find(s => s.id === selectedSectionId);
 
@@ -861,11 +866,43 @@ export default function App() {
       </main>
 
       <footer className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-[1440px]' : 'max-w-5xl'} mx-auto p-12 text-center transition-all duration-300`}>
-        <div className="flex flex-col items-center gap-2 opacity-40">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em]">HIMPOWER PVT. LTD.</p>
-          <p className="text-[9px] font-bold tracking-[0.1em]">© 2026 SOUND SHEPHERD • ALL RIGHTS RESERVED</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-1.5 opacity-40">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em]">HIMPOWER PVT. LTD.</p>
+            <p className="text-[9px] font-bold tracking-[0.1em]">© 2026 SOUND SHEPHERD • ALL RIGHTS RESERVED</p>
+          </div>
+          
+          {/* Terms and Privacy policy links */}
+          <div className="flex justify-center items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">
+            <button 
+              id="footer-terms-btn"
+              onClick={() => { setTermsDefaultTab('terms'); setIsTermsOpen(true); }}
+              className="hover:text-blue-600 active:scale-95 transition-all cursor-pointer"
+            >
+              Terms of Service
+            </button>
+            <span className="text-slate-300/60">•</span>
+            <button 
+              id="footer-privacy-btn"
+              onClick={() => { setTermsDefaultTab('privacy'); setIsTermsOpen(true); }}
+              className="hover:text-blue-600 active:scale-95 transition-all cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+          </div>
         </div>
       </footer>
+
+      {/* Terms and Privacy Policy Modal */}
+      <AnimatePresence>
+        {isTermsOpen && (
+          <TermsAndPrivacyModal 
+            isOpen={isTermsOpen} 
+            onClose={() => setIsTermsOpen(false)} 
+            defaultTab={termsDefaultTab} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
