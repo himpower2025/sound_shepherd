@@ -1,21 +1,42 @@
 {
   "name": "Sound Shepherd",
   "short_name": "SoundShepherd",
-  "description": "Professional audio training tool for sanctuary sound engineers.",
+  "description": "Professional audio training tool and reference simulator for sanctuary sound engineers and live mixing technicians.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
+  "categories": ["education", "utilities", "music", "productivity"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mixing Console",
+      "short_name": "Mixer",
+      "description": "Open interactive virtual sound console simulator",
+      "url": "/?view=mixer",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Microphone Guide",
+      "short_name": "Microphones",
+      "description": "Explore microphone types and polar patterns",
+      "url": "/?view=microphones",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

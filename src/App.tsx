@@ -56,6 +56,9 @@ import { MicrophonesExplained } from './components/MicrophonesExplained';
 import { SpeakerWiringGuide } from './components/SpeakerWiringGuide';
 import { SnareGateGuide } from './components/SnareGateGuide';
 import { TermsAndPrivacyModal } from './components/TermsAndPrivacy';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+import { NetworkStatusNotifier } from './components/NetworkStatusNotifier';
+import { AppReleaseInfoModal } from './components/AppReleaseInfoModal';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -87,9 +90,10 @@ export default function App() {
   const [activeState, setActiveState] = useState<AppState>('home');
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   
-  // Terms and Privacy policy modal state
+  // Terms, Privacy policy & Release info modal states
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [termsDefaultTab, setTermsDefaultTab] = useState<'terms' | 'privacy'>('terms');
+  const [isReleaseInfoOpen, setIsReleaseInfoOpen] = useState(false);
 
   const selectedSection = GUIDE_SECTIONS.find(s => s.id === selectedSectionId);
 
@@ -303,6 +307,20 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f4f7fb] text-slate-900 font-sans overflow-x-hidden flex flex-col">
+      {/* Network Online/Offline Status Indicator */}
+      <NetworkStatusNotifier />
+
+      {/* PWA Install Banner & Prompt */}
+      <PWAInstallPrompt />
+
+      {/* Skip to Main Content Link for Accessibility (a11y) */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-xl focus:font-bold focus:shadow-2xl"
+      >
+        Skip to main content
+      </a>
+
       <header className="bg-gradient-to-r from-[#0c1e3d] via-[#102a54] to-[#0c1e3d] text-white p-3 sm:p-4 sticky top-0 z-30 shadow-[0_4px_20px_rgba(30,58,138,0.25)] border-b border-blue-500/20">
         <div className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto flex items-center justify-between transition-all duration-300`}>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -388,7 +406,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-[1440px]' : 'max-w-5xl'} mx-auto p-3 md:p-6 lg:p-8 pb-32 transition-all duration-300`}>
+      <main id="main-content" className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-[1440px]' : 'max-w-5xl'} mx-auto p-3 md:p-6 lg:p-8 pb-32 transition-all duration-300`}>
         <AnimatePresence mode="wait">
           {activeState === 'home' && (
             <motion.div 
@@ -872,7 +890,7 @@ export default function App() {
             <p className="text-[9px] font-bold tracking-[0.1em]">© 2026 SOUND SHEPHERD • ALL RIGHTS RESERVED</p>
           </div>
           
-          {/* Terms and Privacy policy links */}
+          {/* Terms, Privacy policy & Release Info links */}
           <div className="flex justify-center items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">
             <button 
               id="footer-terms-btn"
@@ -889,6 +907,14 @@ export default function App() {
             >
               Privacy Policy
             </button>
+            <span className="text-slate-300/60">•</span>
+            <button 
+              id="footer-release-btn"
+              onClick={() => setIsReleaseInfoOpen(true)}
+              className="hover:text-blue-600 active:scale-95 transition-all cursor-pointer flex items-center gap-1 text-blue-500/90 font-bold"
+            >
+              App Info (v1.0.0)
+            </button>
           </div>
         </div>
       </footer>
@@ -900,6 +926,16 @@ export default function App() {
             isOpen={isTermsOpen} 
             onClose={() => setIsTermsOpen(false)} 
             defaultTab={termsDefaultTab} 
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Official Release & Capabilities Modal */}
+      <AnimatePresence>
+        {isReleaseInfoOpen && (
+          <AppReleaseInfoModal
+            isOpen={isReleaseInfoOpen}
+            onClose={() => setIsReleaseInfoOpen(false)}
           />
         )}
       </AnimatePresence>
