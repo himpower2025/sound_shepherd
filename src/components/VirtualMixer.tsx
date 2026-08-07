@@ -84,18 +84,11 @@ interface Song {
 // Song List (Supports 12-Track Stems Practice)
 // ─────────────────────────────────────────────
 const SONGS: Song[] = [
-  { id: 'multitrack-session', title: '🎼 Sanctuary Praise Live (12-Track Full Multi-Track Session)', artist: 'Sound Shepherd Multi-Track Stems', url: '/tracks/main-vocal.mp3', type: 'file' },
+  { id: 'multitrack-session', title: '🎼 Sanctuary Praise Live (4-Track Multi-Track Session)', artist: 'Sound Shepherd Multi-Track Stems', url: '/tracks/main-vocal.mp3', type: 'file' },
   { id: 'track-vocal', title: '🎤 Main Vocal Stem', artist: 'Sanctuary Worship Team', url: '/tracks/main-vocal.mp3', type: 'file' },
   { id: 'track-eguitar', title: '🎸 Electric Guitar Stem', artist: 'Sanctuary Worship Team', url: '/tracks/electric-guitar.mp3', type: 'file' },
   { id: 'track-aguitar', title: '🎸 Acoustic Guitar Stem', artist: 'Sanctuary Worship Team', url: '/tracks/guitar.mp3', type: 'file' },
   { id: 'track-bass', title: '🎸 Bass Guitar Stem', artist: 'Sanctuary Worship Team', url: '/tracks/bass.mp3', type: 'file' },
-  { id: 'track-keys1l', title: '🎹 Keyboard 1 Stem', artist: 'Sanctuary Worship Team', url: '/tracks/keyboard-1l.mp3', type: 'file' },
-  { id: 'track-keys2l', title: '🎹 Keyboard 2 L Stem', artist: 'Sanctuary Worship Team', url: '/tracks/keyboard-2l.mp3', type: 'file' },
-  { id: 'track-keys2r', title: '🎹 Keyboard 2 R Stem', artist: 'Sanctuary Worship Team', url: '/tracks/keyboard-2r.mp3', type: 'file' },
-  { id: 'track-kick', title: '🥁 Drum Kick Stem', artist: 'Sanctuary Worship Team', url: '/tracks/drum-kick.mp3', type: 'file' },
-  { id: 'track-snare', title: '🥁 Drum Snare Stem', artist: 'Sanctuary Worship Team', url: '/tracks/drum-snare.mp3', type: 'file' },
-  { id: 'track-hihat', title: '🥁 Drum Hi-Hat Stem', artist: 'Sanctuary Worship Team', url: '/tracks/drum-hihath.mp3', type: 'file' },
-  { id: 'track-toms', title: '🥁 Drum Toms & Cymbals Stem', artist: 'Sanctuary Worship Team', url: '/tracks/drum-toms.mp3', type: 'file' },
 ];
 
 const INITIAL_CHANNELS: ChannelData[] = [
@@ -158,126 +151,6 @@ const INITIAL_CHANNELS: ChannelData[] = [
     eq: { high: -4, mid: 2, midFreq: 250, low: 3.5 }, 
     comp: { threshold: -24, ratio: 5, attack: 10, release: 100 }, 
     reverb: 0 
-  },
-  { 
-    id: 5, 
-    name: 'Keyboard 1', 
-    trackUrl: '/tracks/keyboard-1l.mp3',
-    color: 'bg-purple-500/20', 
-    gain: 45, 
-    pan: -15, 
-    fader: 68, 
-    muted: false, 
-    solo: false, 
-    hpf: true, 
-    eq: { high: 1, mid: 0, midFreq: 1000, low: -1 }, 
-    comp: { threshold: -18, ratio: 3, attack: 30, release: 250 }, 
-    reverb: 25 
-  },
-  { 
-    id: 6, 
-    name: 'Key 2 Left', 
-    trackUrl: '/tracks/keyboard-2l.mp3',
-    color: 'bg-indigo-500/20', 
-    gain: 45, 
-    pan: -40, 
-    fader: 68, 
-    muted: false, 
-    solo: false, 
-    hpf: true, 
-    eq: { high: 2, mid: -1, midFreq: 800, low: -2 }, 
-    comp: { threshold: -18, ratio: 3, attack: 30, release: 250 }, 
-    reverb: 30 
-  },
-  { 
-    id: 7, 
-    name: 'Key 2 Right', 
-    trackUrl: '/tracks/keyboard-2r.mp3',
-    color: 'bg-cyan-500/20', 
-    gain: 45, 
-    pan: 40, 
-    fader: 68, 
-    muted: false, 
-    solo: false, 
-    hpf: true, 
-    eq: { high: 2, mid: -1, midFreq: 800, low: -2 }, 
-    comp: { threshold: -18, ratio: 3, attack: 30, release: 250 }, 
-    reverb: 30 
-  },
-  { 
-    id: 8, 
-    name: 'Drum Kick', 
-    trackUrl: '/tracks/drum-kick.mp3',
-    color: 'bg-emerald-500/20', 
-    gain: 50, 
-    pan: 0, 
-    fader: 76, 
-    muted: false, 
-    solo: false, 
-    hpf: false, 
-    eq: { high: -2, mid: -3, midFreq: 400, low: 4 }, 
-    comp: { threshold: -22, ratio: 6, attack: 5, release: 80 }, 
-    reverb: 0 
-  },
-  { 
-    id: 9, 
-    name: 'Drum Snare', 
-    trackUrl: '/tracks/drum-snare.mp3',
-    color: 'bg-teal-500/20', 
-    gain: 48, 
-    pan: -5, 
-    fader: 74, 
-    muted: false, 
-    solo: false, 
-    hpf: true, 
-    eq: { high: 3, mid: 2, midFreq: 3000, low: -2 }, 
-    comp: { threshold: -20, ratio: 4, attack: 8, release: 120 }, 
-    reverb: 15 
-  },
-  { 
-    id: 10, 
-    name: 'Drum Hi-Hat', 
-    trackUrl: '/tracks/drum-hihath.mp3',
-    color: 'bg-lime-500/20', 
-    gain: 42, 
-    pan: 20, 
-    fader: 65, 
-    muted: false, 
-    solo: false, 
-    hpf: true, 
-    eq: { high: 4, mid: -2, midFreq: 2000, low: -6 }, 
-    comp: { threshold: -15, ratio: 3, attack: 1, release: 50 }, 
-    reverb: 5 
-  },
-  { 
-    id: 11, 
-    name: 'Drum Toms', 
-    trackUrl: '/tracks/drum-toms.mp3',
-    color: 'bg-green-500/20', 
-    gain: 46, 
-    pan: 10, 
-    fader: 70, 
-    muted: false, 
-    solo: false, 
-    hpf: true, 
-    eq: { high: 1, mid: 1, midFreq: 600, low: 2 }, 
-    comp: { threshold: -18, ratio: 4, attack: 12, release: 150 }, 
-    reverb: 10 
-  },
-  { 
-    id: 12, 
-    name: 'Sub Vocal', 
-    trackUrl: '/tracks/main-vocal.mp3',
-    color: 'bg-rose-500/20', 
-    gain: 48, 
-    pan: 15, 
-    fader: 72, 
-    muted: false, 
-    solo: false, 
-    hpf: true, 
-    eq: { high: 2, mid: 1, midFreq: 2000, low: -3 }, 
-    comp: { threshold: -20, ratio: 4, attack: 15, release: 150 }, 
-    reverb: 35 
   }
 ];
 
@@ -533,18 +406,18 @@ export const VirtualMixer = () => {
 
   const handleStripSelect = (id: number) => {
     setFocusedStripId(id);
-    if (id >= 1 && id <= 12) {
+    if (id >= 1 && id <= 4) {
       setSelectedId(id);
     }
   };
 
   const handlePrevStrip = () => {
-    const nextId = focusedStripId === 1 ? 14 : focusedStripId - 1;
+    const nextId = focusedStripId === 1 ? 14 : focusedStripId === 13 ? 4 : focusedStripId - 1;
     handleStripSelect(nextId);
   };
 
   const handleNextStrip = () => {
-    const nextId = focusedStripId === 14 ? 1 : focusedStripId + 1;
+    const nextId = focusedStripId === 4 ? 13 : focusedStripId === 14 ? 1 : focusedStripId + 1;
     handleStripSelect(nextId);
   };
 
@@ -1603,7 +1476,7 @@ export const VirtualMixer = () => {
                   focusedStripId === 14 ? 'bg-red-100 text-red-700 border border-red-200 animate-pulse' :
                   'bg-amber-100 text-amber-800 border border-amber-200'
                 }`}>
-                  {focusedStripId >= 1 && focusedStripId <= 12 && (channels.find(c => c.id === focusedStripId)?.name || `CH ${focusedStripId}`)}
+                  {focusedStripId >= 1 && focusedStripId <= 4 && (channels.find(c => c.id === focusedStripId)?.name || `CH ${focusedStripId}`)}
                   {focusedStripId === 13 && "Reverb FX"}
                   {focusedStripId === 14 && "Stereo Out"}
                 </span>
@@ -1627,14 +1500,14 @@ export const VirtualMixer = () => {
                   <span className="hidden min-[360px]:inline">PREV</span>
                 </button>
 
-                {/* Channels 1-12 */}
+                {/* Channels 1-4 */}
                 {channels.map((ch) => {
                   const isFocused = focusedStripId === ch.id;
                   return (
                     <button
                       key={ch.id}
                       onClick={() => handleStripSelect(ch.id)}
-                      className={`px-2 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
+                      className={`px-2.5 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                         isFocused
                           ? skin === 'modern'
                             ? 'bg-blue-600 border-blue-600 text-white shadow-sm scale-[1.03]'
@@ -1652,7 +1525,7 @@ export const VirtualMixer = () => {
                 {/* FX Return (Reverb Return) */}
                 <button
                   onClick={() => handleStripSelect(13)}
-                  className={`px-2 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
+                  className={`px-2.5 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                     focusedStripId === 13
                       ? skin === 'modern'
                         ? 'bg-blue-600 border-blue-600 text-white shadow-sm scale-[1.03]'
@@ -1668,7 +1541,7 @@ export const VirtualMixer = () => {
                 {/* Stereo Master */}
                 <button
                   onClick={() => handleStripSelect(14)}
-                  className={`px-2 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
+                  className={`px-2.5 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                     focusedStripId === 14
                       ? skin === 'modern'
                         ? 'bg-rose-600 border-rose-600 text-white shadow-sm scale-[1.03]'
