@@ -18,7 +18,6 @@ import {
 interface WiringMode {
   id: 'parallel' | 'series' | 'series-parallel';
   title: string;
-  titleKo: string;
   description: string;
   formula: string;
   formulaExplanation: string;
@@ -33,7 +32,6 @@ const WIRING_MODES: WiringMode[] = [
   {
     id: 'parallel',
     title: 'Parallel Connection',
-    titleKo: '병렬 연결',
     description: 'All speaker positive (+) terminals are wired together to the amplifier positive, and all negative (-) terminals are wired together to the amplifier negative.',
     formula: '1 / Rt = 1 / R1 + 1 / R2 + 1 / R3...',
     formulaExplanation: 'For identical speakers: Rt = R / N (where R is impedance of one speaker, N is the number of speakers)',
@@ -53,7 +51,6 @@ const WIRING_MODES: WiringMode[] = [
   {
     id: 'series',
     title: 'Series Connection',
-    titleKo: '직렬 연결',
     description: 'Speakers are wired daisy-chained in a loop. The positive of the amp connects to the positive of speaker 1, the negative of speaker 1 connects to the positive of speaker 2, and so on, until the last speaker negative returns to the amp negative.',
     formula: 'Rt = R1 + R2 + R3...',
     formulaExplanation: 'For identical speakers: Rt = R × N (where R is impedance of one speaker, N is the number of speakers)',
@@ -72,7 +69,6 @@ const WIRING_MODES: WiringMode[] = [
   {
     id: 'series-parallel',
     title: 'Series-Parallel Connection',
-    titleKo: '직-병렬 연결',
     description: 'Combines both methods. Speakers are grouped into pairs or series chains, and these groups are then wired in parallel to the amplifier to maintain a balanced impedance load.',
     formula: 'Rt = (R_series1 × R_series2) / (R_series1 + R_series2)',
     formulaExplanation: 'Example: Four 8Ω speakers. Two 8Ω pairs wired in series (16Ω each) are connected in parallel to yield a total system load of exactly 8Ω.',
@@ -525,7 +521,7 @@ export const SpeakerWiringGuide: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-5">
             <div>
               <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                Mode Profile: {modeData.title} ({modeData.titleKo})
+                Mode Profile: {modeData.title}
               </span>
               <h3 className="text-2xl font-black uppercase italic tracking-tight text-slate-800 mt-2">
                 {modeData.title}

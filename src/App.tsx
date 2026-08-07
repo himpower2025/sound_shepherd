@@ -102,70 +102,70 @@ export default function App() {
       id: 'mixer',
       title: 'Practice Mixer',
       icon: Sliders,
-      colorClass: 'from-[#e06d3b] to-[#b34c1b] shadow-orange-750/20',
+      colorClass: 'from-amber-500 via-orange-500 to-amber-500 shadow-amber-500/30',
       action: () => setActiveState('mixer')
     },
     {
       id: 'frequency',
       title: 'Frequency IQ',
       icon: Activity,
-      colorClass: 'from-[#4b79b7] to-[#1e3c72] shadow-blue-900/20',
+      colorClass: 'from-blue-600 via-sky-500 to-cyan-400 shadow-blue-500/30',
       action: () => setActiveState('frequency')
     },
     {
       id: 'recorder',
       title: 'Virtual Soundcheck',
       icon: Mic,
-      colorClass: 'from-[#3b9c7f] to-[#125c45] shadow-emerald-900/20',
+      colorClass: 'from-emerald-500 via-teal-500 to-teal-400 shadow-emerald-500/30',
       action: () => setActiveState('recorder')
     },
     {
       id: 'mixing',
       title: 'Audio EQ Guide',
       icon: AudioLines,
-      colorClass: 'from-[#c55d8c] to-[#802451] shadow-pink-950/20',
+      colorClass: 'from-pink-500 via-rose-500 to-pink-400 shadow-pink-500/30',
       action: () => { setSelectedSectionId('mixing'); setActiveState('guide'); }
     },
     {
       id: 'mics',
       title: 'PA System Setup',
       icon: Radio,
-      colorClass: 'from-[#785fb3] to-[#432371] shadow-purple-950/20',
+      colorClass: 'from-purple-500 via-violet-500 to-indigo-400 shadow-purple-500/30',
       action: () => { setSelectedSectionId('mics'); setActiveState('guide'); }
     },
     {
       id: 'troubleshooting',
       title: 'FX Explained',
       icon: Sparkles,
-      colorClass: 'from-[#8b5cf6] to-[#5b21b6] shadow-purple-950/20',
+      colorClass: 'from-violet-500 via-fuchsia-500 to-pink-500 shadow-purple-500/30',
       action: () => { setSelectedSectionId('troubleshooting'); setActiveState('guide'); }
     },
     {
       id: 'hardware',
       title: 'Cables & Pinouts',
       icon: Zap,
-      colorClass: 'from-[#cf8d3c] to-[#854d0e] shadow-amber-950/20',
+      colorClass: 'from-amber-400 via-yellow-400 to-amber-500 shadow-amber-500/30',
       action: () => { setSelectedSectionId('hardware'); setActiveState('guide'); }
     },
     {
       id: 'mics-guide',
       title: 'Mics Explained',
       icon: Mic2,
-      colorClass: 'from-[#3ea699] to-[#115e55] shadow-teal-950/20',
+      colorClass: 'from-teal-400 via-cyan-500 to-teal-500 shadow-teal-500/30',
       action: () => { setSelectedSectionId('mics-guide'); setActiveState('guide'); }
     },
     {
       id: 'speaker-wiring',
       title: 'Speaker Wiring',
       icon: Speaker,
-      colorClass: 'from-[#4f46e5] to-[#312e81] shadow-indigo-950/20',
+      colorClass: 'from-indigo-500 via-blue-600 to-sky-400 shadow-indigo-500/30',
       action: () => { setSelectedSectionId('speaker-wiring'); setActiveState('guide'); }
     },
     {
       id: 'snare-gate',
       title: 'Snare Noise Gate',
       icon: AudioLines,
-      colorClass: 'from-[#ec4899] to-[#9d174d] shadow-rose-950/20',
+      colorClass: 'from-rose-500 via-pink-500 to-rose-400 shadow-rose-500/30',
       action: () => { setSelectedSectionId('snare-gate'); setActiveState('guide'); }
     }
   ];
@@ -321,7 +321,7 @@ export default function App() {
         Skip to main content
       </a>
 
-      <header className="bg-gradient-to-r from-[#0c1e3d] via-[#102a54] to-[#0c1e3d] text-white p-3 sm:p-4 sticky top-0 z-30 shadow-[0_4px_20px_rgba(30,58,138,0.25)] border-b border-blue-500/20">
+      <header className="bg-white/95 backdrop-blur-xl text-slate-800 p-3 sm:p-4 sticky top-0 z-30 shadow-sm border-b border-slate-200/80">
         <div className={`${activeState === 'mixer' || activeState === 'frequency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto flex items-center justify-between transition-all duration-300`}>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {activeState !== 'home' && (
@@ -330,27 +330,27 @@ export default function App() {
                   setActiveState('home');
                   setSelectedSectionId(null);
                 }}
-                className="p-1 hover:bg-slate-800 rounded-full transition-colors"
+                className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
                 id="back-button"
               >
                 <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
               </button>
             )}
-            <h1 className="text-lg sm:text-xl font-black tracking-tighter italic flex items-center gap-1.5 sm:gap-2">
-              <Logo size={24} className="sm:w-[28px] sm:h-[28px]" />
-              <span className="hidden min-[420px]:inline">SOUND SHEPHERD</span>
+            <h1 className="text-lg sm:text-xl font-black tracking-tighter italic flex items-center gap-1.5 sm:gap-2 text-slate-900">
+              <Logo size={26} className="sm:w-[30px] sm:h-[30px]" />
+              <span className="hidden min-[420px]:inline bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 bg-clip-text text-transparent">SOUND SHEPHERD</span>
             </h1>
-            <span className="text-[8px] font-bold text-blue-500/60 uppercase tracking-widest hidden md:block">by HIMPOWER</span>
+            <span className="text-[9px] font-extrabold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full uppercase tracking-wider hidden md:block">by HIMPOWER</span>
           </div>
           <div className="flex gap-1.5 sm:gap-2 items-center shrink-0">
             {/* Global Connect Button */}
-            <div className="flex items-center gap-2 px-2 sm:px-3 border-r border-slate-800">
+            <div className="flex items-center gap-2 px-2 sm:px-3 border-r border-slate-200">
               {user ? (
                 <div className="flex items-center gap-2 group relative">
-                  <img src={user.photoURL || ''} alt="" className="w-8 h-8 rounded-full border border-blue-500/50" />
+                  <img src={user.photoURL || ''} alt="" className="w-8 h-8 rounded-full border-2 border-blue-600" />
                   <div className="hidden lg:block">
-                    <div className="text-[7px] text-slate-500 font-black uppercase">Online</div>
-                    <div className="text-[9px] text-white font-bold truncate max-w-[60px]">{user.displayName}</div>
+                    <div className="text-[7px] text-emerald-600 font-black uppercase">Online</div>
+                    <div className="text-[9px] text-slate-800 font-bold truncate max-w-[60px]">{user.displayName}</div>
                   </div>
                   <button 
                     onClick={logout}
@@ -363,7 +363,7 @@ export default function App() {
               ) : (
                 <button 
                   onClick={login}
-                  className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:bg-blue-600 hover:text-white hover:border-blue-500 transition-all"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/80 text-blue-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
                 >
                   <LogIn size={14} className="sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline text-[9px] font-black uppercase tracking-widest">Connect</span>
@@ -373,30 +373,30 @@ export default function App() {
 
             <button 
               onClick={() => setActiveState('recorder')}
-              className={`p-2 rounded-lg transition-all flex items-center gap-2 ${activeState === 'recorder' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 scale-105' : 'hover:bg-slate-800 text-slate-400'}`}
+              className={`p-2 rounded-xl transition-all flex items-center gap-2 ${activeState === 'recorder' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 scale-105' : 'hover:bg-slate-100 text-slate-600'}`}
               title="Sound Check"
             >
-              <Mic size={20} />
+              <Mic size={18} />
               <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">Check</span>
             </button>
             <button 
               onClick={() => setActiveState('assistant')}
-              className={`p-2 rounded-lg transition-all flex items-center gap-2 ${activeState === 'assistant' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 scale-105' : 'hover:bg-slate-800 text-slate-400'}`}
+              className={`p-2 rounded-xl transition-all flex items-center gap-2 ${activeState === 'assistant' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 scale-105' : 'hover:bg-slate-100 text-slate-600'}`}
               id="nav-assistant"
               title="AI Assistant"
             >
-              <MessageSquareText size={20} />
+              <MessageSquareText size={18} />
               <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">Ask AI</span>
             </button>
             <button 
               onClick={requestNotificationPermission}
-              className={`p-2 rounded-lg transition-all flex items-center gap-2 ${notificationPermission === 'granted' ? 'bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20' : 'hover:bg-slate-800 text-slate-400'}`}
+              className={`p-2 rounded-xl transition-all flex items-center gap-2 ${notificationPermission === 'granted' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'hover:bg-slate-100 text-slate-600'}`}
               title={notificationPermission === 'granted' ? "Notifications Active" : "Enable Notifications"}
             >
               {notificationPermission === 'granted' ? (
-                <Bell size={20} className="text-emerald-400 animate-pulse" />
+                <Bell size={18} className="text-emerald-600 animate-pulse" />
               ) : (
-                <BellOff size={20} />
+                <BellOff size={18} />
               )}
               <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">
                 {notificationPermission === 'granted' ? 'Active' : 'Alerts'}
@@ -418,26 +418,26 @@ export default function App() {
               id="home-content"
             >
               {/* ── Modern Premium Top Banner ── */}
-              <section className="bg-gradient-to-br from-[#0c1329] via-[#0d1630] to-[#050b1a] p-6 sm:p-10 md:p-12 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border border-slate-800/80">
+              <section className="bg-gradient-to-br from-indigo-600 via-blue-600 to-sky-500 p-6 sm:p-10 md:p-12 rounded-[2.5rem] text-white shadow-xl shadow-blue-500/15 relative overflow-hidden border border-blue-400/30">
                 <div className="relative z-10 max-w-2xl">
-                    <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 px-3.5 py-1.5 rounded-full mb-4 sm:mb-6">
-                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-400">Professional Audio Suite</span>
+                    <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 px-3.5 py-1.5 rounded-full mb-4 sm:mb-6 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse"></span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white">Professional Audio Suite</span>
                     </div>
                     <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mb-3 tracking-tighter leading-[1.05] italic">
                       MASTER THE <br />
-                      <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-200 bg-clip-text text-transparent">LIVE STAGE</span> SOUND.
+                      <span className="bg-gradient-to-r from-amber-200 via-yellow-100 to-white bg-clip-text text-transparent">LIVE STAGE</span> SOUND.
                     </h2>
-                    <p className="text-slate-400 text-xs sm:text-sm md:text-base max-w-md mb-6 leading-relaxed font-semibold">
+                    <p className="text-blue-100 text-xs sm:text-sm md:text-base max-w-md mb-6 leading-relaxed font-semibold">
                       A professional audio engineering companion and interactive training suite tailored for live sound excellence.
                     </p>
                     <div className="flex gap-2.5">
-                        <span className="text-[10px] sm:text-xs font-mono font-black text-amber-500/90 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg">
+                        <span className="text-[10px] sm:text-xs font-mono font-black text-white bg-white/20 border border-white/30 px-3 py-1 rounded-lg backdrop-blur-sm shadow-sm">
                           🎚️ 10 CORE SESSIONS INTEGRATED
                         </span>
                     </div>
                 </div>
-                <div className="absolute right-[-5%] bottom-[-5%] opacity-5 pointer-events-none rotate-12">
+                <div className="absolute right-[-5%] bottom-[-5%] opacity-10 pointer-events-none rotate-12 text-white">
                     <Sliders size={280} />
                 </div>
               </section>
@@ -470,10 +470,10 @@ export default function App() {
                         {/* Hover Ambient Circle Backlight */}
                         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         
-                        {/* Tactile Circle Knob Button (업그레이드된 현대적 서클) */}
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#f1f5f9] flex items-center justify-center p-1.5 border border-slate-200/50 shadow-sm group-hover:border-slate-300/40 group-hover:shadow-md transition-all shrink-0">
-                          <div className={`w-full h-full rounded-full bg-gradient-to-tr ${item.colorClass} flex items-center justify-center text-white shadow-inner group-hover:scale-105 transition-transform duration-300`}>
-                            <IconComp size={24} className="sm:w-7 sm:h-7" />
+                        {/* Tactile Circle Knob Button (Upgraded Modern Clear Circle) */}
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white flex items-center justify-center p-1.5 border border-slate-200/80 shadow-md group-hover:border-blue-300 group-hover:shadow-lg transition-all shrink-0">
+                          <div className={`w-full h-full rounded-full bg-gradient-to-tr ${item.colorClass} flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform duration-300`}>
+                            <IconComp size={24} className="sm:w-7 sm:h-7 text-white drop-shadow-sm" />
                           </div>
                         </div>
 
@@ -493,19 +493,19 @@ export default function App() {
               <div className="border-t border-slate-200/60 pt-6">
                 <button
                   onClick={() => setActiveState('glossary')}
-                  className="w-full bg-gradient-to-r from-slate-900 to-[#101b33] p-5 sm:p-6 rounded-[2rem] border border-slate-800 flex flex-col sm:flex-row items-center justify-between text-left hover:border-blue-500/30 transition-all group gap-4 shadow-xl text-white"
+                  className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-5 sm:p-6 rounded-[2rem] border border-blue-400/30 flex flex-col sm:flex-row items-center justify-between text-left hover:shadow-lg hover:shadow-blue-500/15 transition-all group gap-4 shadow-md text-white"
                   id="section-glossary"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="bg-blue-600/10 border border-blue-500/20 w-12 h-12 rounded-xl flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform shrink-0">
+                    <div className="bg-white/20 border border-white/30 w-12 h-12 rounded-xl flex items-center justify-center text-white group-hover:scale-105 transition-transform shrink-0 shadow-sm">
                       <BookText size={20} />
                     </div>
                     <div>
                       <h4 className="text-white text-sm sm:text-base font-black uppercase tracking-tight italic">AUDIO LEXICON GLOSSARY</h4>
-                      <p className="text-slate-400 text-xs font-semibold leading-relaxed mt-0.5">The ultimate technical audio terms and definitions dictionary for worship team engineers.</p>
+                      <p className="text-blue-100 text-xs font-semibold leading-relaxed mt-0.5">The ultimate technical audio terms and definitions dictionary for worship team engineers.</p>
                     </div>
                   </div>
-                  <span className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all self-stretch sm:self-auto text-center shrink-0">
+                  <span className="px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all self-stretch sm:self-auto text-center shrink-0 shadow-sm">
                     Open Lexicon
                   </span>
                 </button>
@@ -815,23 +815,23 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[75vh] max-w-4xl mx-auto"
             >
-              <div className="bg-slate-900 p-6 text-white border-b border-white/10 flex items-center justify-between">
+              <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 text-white border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-slate-900 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/20 relative group border border-white/5">
+                  <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-lg relative group border border-white/30">
                     <Logo size={40} />
                   </div>
                   <div>
                     <h3 className="font-black text-2xl tracking-tighter uppercase italic flex items-center gap-3">
-                       Shepherd AI <span className="bg-blue-600 text-[10px] not-italic px-3 py-1 rounded-full shadow-lg shadow-blue-500/40 tracking-widest">SR EXPERT</span>
+                       Shepherd AI <span className="bg-white text-blue-700 text-[10px] font-black px-3 py-1 rounded-full shadow-md tracking-widest">SR EXPERT</span>
                     </h3>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2">
-                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> 20+ Years Field Experience • Senior Consultant
+                    <p className="text-blue-100 text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" /> 20+ Years Field Experience • Senior Consultant
                     </p>
                   </div>
                 </div>
                 <div className="hidden sm:flex items-center gap-2">
-                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Consultant Online</span>
+                   <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                   <span className="text-[10px] font-black text-blue-100 uppercase tracking-widest">Consultant Online</span>
                 </div>
               </div>
               
@@ -872,7 +872,7 @@ export default function App() {
                   />
                   <button 
                     disabled={isTyping}
-                    className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl disabled:opacity-50 active:scale-95"
+                    className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/25 disabled:opacity-50 active:scale-95"
                   >
                     Send
                   </button>

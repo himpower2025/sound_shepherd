@@ -85,17 +85,17 @@ interface Song {
 // ─────────────────────────────────────────────
 const SONGS: Song[] = [
   { id: 'multitrack-session', title: '🎼 Sanctuary Praise Live (12-Track Full Multi-Track Session)', artist: 'Sound Shepherd Multi-Track Stems', url: '/tracks/main-vocal.mp3', type: 'file' },
-  { id: 'track-vocal', title: '🎤 Main Vocal Stem (메인 보컬)', artist: 'Sanctuary Worship Team', url: '/tracks/main-vocal.mp3', type: 'file' },
-  { id: 'track-eguitar', title: '🎸 Electric Guitar Stem (일렉 기타)', artist: 'Sanctuary Worship Team', url: '/tracks/electric-guitar.mp3', type: 'file' },
-  { id: 'track-aguitar', title: '🎸 Acoustic Guitar Stem (어쿠스틱 기타)', artist: 'Sanctuary Worship Team', url: '/tracks/guitar.mp3', type: 'file' },
-  { id: 'track-bass', title: '🎸 Bass Guitar Stem (베이스 기타)', artist: 'Sanctuary Worship Team', url: '/tracks/bass.mp3', type: 'file' },
-  { id: 'track-keys1l', title: '🎹 Keyboard 1 Stem (건반 1)', artist: 'Sanctuary Worship Team', url: '/tracks/keyboard-1l.mp3', type: 'file' },
-  { id: 'track-keys2l', title: '🎹 Keyboard 2 L Stem (건반 2 L)', artist: 'Sanctuary Worship Team', url: '/tracks/keyboard-2l.mp3', type: 'file' },
-  { id: 'track-keys2r', title: '🎹 Keyboard 2 R Stem (건반 2 R)', artist: 'Sanctuary Worship Team', url: '/tracks/keyboard-2r.mp3', type: 'file' },
-  { id: 'track-kick', title: '🥁 Drum Kick Stem (드럼 킥)', artist: 'Sanctuary Worship Team', url: '/tracks/drum-kick.mp3', type: 'file' },
-  { id: 'track-snare', title: '🥁 Drum Snare Stem (드럼 스네어)', artist: 'Sanctuary Worship Team', url: '/tracks/drum-snare.mp3', type: 'file' },
-  { id: 'track-hihat', title: '🥁 Drum Hi-Hat Stem (드럼 하이햇)', artist: 'Sanctuary Worship Team', url: '/tracks/drum-hihath.mp3', type: 'file' },
-  { id: 'track-toms', title: '🥁 Drum Toms Stem (드럼 탐/심벌)', artist: 'Sanctuary Worship Team', url: '/tracks/drum-toms.mp3', type: 'file' },
+  { id: 'track-vocal', title: '🎤 Main Vocal Stem', artist: 'Sanctuary Worship Team', url: '/tracks/main-vocal.mp3', type: 'file' },
+  { id: 'track-eguitar', title: '🎸 Electric Guitar Stem', artist: 'Sanctuary Worship Team', url: '/tracks/electric-guitar.mp3', type: 'file' },
+  { id: 'track-aguitar', title: '🎸 Acoustic Guitar Stem', artist: 'Sanctuary Worship Team', url: '/tracks/guitar.mp3', type: 'file' },
+  { id: 'track-bass', title: '🎸 Bass Guitar Stem', artist: 'Sanctuary Worship Team', url: '/tracks/bass.mp3', type: 'file' },
+  { id: 'track-keys1l', title: '🎹 Keyboard 1 Stem', artist: 'Sanctuary Worship Team', url: '/tracks/keyboard-1l.mp3', type: 'file' },
+  { id: 'track-keys2l', title: '🎹 Keyboard 2 L Stem', artist: 'Sanctuary Worship Team', url: '/tracks/keyboard-2l.mp3', type: 'file' },
+  { id: 'track-keys2r', title: '🎹 Keyboard 2 R Stem', artist: 'Sanctuary Worship Team', url: '/tracks/keyboard-2r.mp3', type: 'file' },
+  { id: 'track-kick', title: '🥁 Drum Kick Stem', artist: 'Sanctuary Worship Team', url: '/tracks/drum-kick.mp3', type: 'file' },
+  { id: 'track-snare', title: '🥁 Drum Snare Stem', artist: 'Sanctuary Worship Team', url: '/tracks/drum-snare.mp3', type: 'file' },
+  { id: 'track-hihat', title: '🥁 Drum Hi-Hat Stem', artist: 'Sanctuary Worship Team', url: '/tracks/drum-hihath.mp3', type: 'file' },
+  { id: 'track-toms', title: '🥁 Drum Toms & Cymbals Stem', artist: 'Sanctuary Worship Team', url: '/tracks/drum-toms.mp3', type: 'file' },
 ];
 
 const INITIAL_CHANNELS: ChannelData[] = [
@@ -1291,34 +1291,34 @@ export const VirtualMixer = () => {
     <div
       className={`transition-all duration-500 flex flex-col h-auto lg:h-[780px] xl:h-[820px] min-h-[480px] overflow-hidden lg:overflow-visible relative rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 w-full max-w-full ${
       skin === 'modern'
-        ? 'bg-[#1a1c23] border-[#252833] p-1.5 md:p-3'
-        : 'bg-[#d1d5db] border-[#9ca3af] p-2 md:p-4 text-slate-900'
+        ? 'bg-[#f8fafc] border-slate-300 p-1.5 md:p-3 text-slate-900'
+        : 'bg-[#e2e8f0] border-slate-400 p-2 md:p-4 text-slate-900'
     }`}>
 
       {/* ── Top Bar ── */}
-      <div className={`flex items-center justify-between mb-1 md:mb-3 pb-1 border-b shrink-0 ${skin === 'modern' ? 'border-white/5' : 'border-black/10'}`}>
+      <div className={`flex items-center justify-between mb-1 md:mb-3 pb-1 border-b shrink-0 ${skin === 'modern' ? 'border-slate-200' : 'border-slate-300'}`}>
         <div className="flex items-center gap-2 md:gap-4">
-          <div className={`${skin === 'modern' ? 'bg-slate-900 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-700 border border-slate-600 shadow-xl'} p-2 md:p-2.5 rounded-2xl flex items-center justify-center relative group overflow-hidden`}>
+          <div className={`${skin === 'modern' ? 'bg-white border border-blue-200 shadow-sm' : 'bg-slate-700 border border-slate-600 shadow-xl'} p-2 md:p-2.5 rounded-2xl flex items-center justify-center relative group overflow-hidden`}>
             {skin === 'modern' && <div className="absolute inset-0 bg-blue-600/5 blur-xl group-hover:bg-blue-600/10 transition-colors" />}
             <Logo size={24} />
           </div>
           <div>
-            <h2 className={`text-[10px] sm:text-xs md:text-xl font-black tracking-tighter uppercase italic leading-none ${skin === 'modern' ? 'text-white' : 'text-slate-800'}`}>
-              SHEPHERD <span className={skin === 'modern' ? 'text-blue-500' : 'text-slate-500'}>CORE</span>
+            <h2 className={`text-[10px] sm:text-xs md:text-xl font-black tracking-tighter uppercase italic leading-none ${skin === 'modern' ? 'text-slate-900' : 'text-slate-800'}`}>
+              SHEPHERD <span className={skin === 'modern' ? 'text-blue-600' : 'text-slate-500'}>CORE</span>
             </h2>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className={`w-1 h-1 rounded-full animate-pulse ${skin === 'modern' ? 'bg-green-500' : 'bg-red-600'}`} />
-              <span className={`text-[6px] md:text-[9px] font-bold uppercase tracking-[0.2em] ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>
+              <span className={`w-1 h-1 rounded-full animate-pulse ${skin === 'modern' ? 'bg-emerald-500' : 'bg-red-600'}`} />
+              <span className={`text-[6px] md:text-[9px] font-bold uppercase tracking-[0.2em] ${skin === 'modern' ? 'text-blue-600' : 'text-slate-600'}`}>
                 {skin === 'modern' ? 'PRECISION DSP ACTIVE' : 'VINTAGE SIGNAL PATH'}
               </span>
             </div>
           </div>
         </div>
 
-        <div className={`flex gap-2 md:gap-3 items-center p-1 md:p-1.5 rounded-xl border relative ${skin === 'modern' ? 'bg-black/40 border-white/5' : 'bg-white/40 border-black/10'}`}>
+        <div className={`flex gap-2 md:gap-3 items-center p-1 md:p-1.5 rounded-xl border relative ${skin === 'modern' ? 'bg-white border-slate-200 shadow-sm' : 'bg-white/40 border-black/10'}`}>
           {/* Skin switcher */}
-          <div className={`flex p-1 rounded-lg border shadow-inner ${skin === 'modern' ? 'bg-[#0f1115] border-white/5' : 'bg-slate-400 border-slate-500'}`}>
-            <button onClick={() => setSkin('modern')} className={`px-3 py-1.5 text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all rounded-md ${skin === 'modern' ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' : 'text-slate-500 hover:text-slate-400'}`}>CORE-X</button>
+          <div className={`flex p-1 rounded-lg border shadow-inner ${skin === 'modern' ? 'bg-slate-100 border-slate-200' : 'bg-slate-400 border-slate-500'}`}>
+            <button onClick={() => setSkin('modern')} className={`px-3 py-1.5 text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all rounded-md ${skin === 'modern' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>CORE-X</button>
             <button onClick={() => setSkin('analog')} className={`px-3 py-1.5 text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all rounded-md ${skin === 'analog' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600'}`}>ANALOG-800</button>
           </div>
 
@@ -1581,17 +1581,17 @@ export const VirtualMixer = () => {
 
           </div>
           
-          {/* Desk Navigation Controller Ribbon (완벽한 대칭형 8열 그리드로 리디자인 및 중간 정렬 완료) */}
+          {/* Desk Navigation Controller Ribbon (Symmetrical 8-Column Grid) */}
           <div className={`p-3 rounded-2xl flex flex-col md:flex-row gap-3 items-center justify-between border w-full ${
             skin === 'modern' 
-              ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-white/5 shadow-md shadow-black/30' 
+              ? 'bg-white border-slate-200 shadow-sm' 
               : 'bg-[#cbd5e1] border-slate-400 shadow-sm'
           }`}>
             {/* Left Portion: Status (Centered on mobile/tablet, left-aligned on desktop) */}
             <div className="flex items-center justify-center md:justify-start gap-2.5 w-full md:w-auto px-1">
               <div className="flex items-center gap-1.5 pl-0.5">
-                <span className={`w-1.5 h-3.5 rounded-full ${skin === 'modern' ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'}`} />
-                <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest ${skin === 'modern' ? 'text-slate-400' : 'text-slate-700'}`}>
+                <span className={`w-1.5 h-3.5 rounded-full ${skin === 'modern' ? 'bg-blue-600 animate-pulse' : 'bg-slate-600'}`} />
+                <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest ${skin === 'modern' ? 'text-slate-800' : 'text-slate-700'}`}>
                   Strip Navigator
                 </span>
               </div>
@@ -1599,9 +1599,9 @@ export const VirtualMixer = () => {
               {/* Active strip status label */}
               <div className="flex items-center gap-1 shrink-0">
                 <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                  focusedStripId === 13 ? 'bg-blue-500/20 text-blue-400 animate-pulse' :
-                  focusedStripId === 14 ? 'bg-red-500/20 text-red-400 animate-pulse' :
-                  'bg-orange-500/15 text-orange-400'
+                  focusedStripId === 13 ? 'bg-blue-100 text-blue-700 border border-blue-200 animate-pulse' :
+                  focusedStripId === 14 ? 'bg-red-100 text-red-700 border border-red-200 animate-pulse' :
+                  'bg-amber-100 text-amber-800 border border-amber-200'
                 }`}>
                   {focusedStripId >= 1 && focusedStripId <= 12 && (channels.find(c => c.id === focusedStripId)?.name || `CH ${focusedStripId}`)}
                   {focusedStripId === 13 && "Reverb FX"}
@@ -1618,7 +1618,7 @@ export const VirtualMixer = () => {
                   onClick={handlePrevStrip}
                   className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-0.5 border transition-all active:scale-95 shrink-0 select-none ${
                     skin === 'modern'
-                      ? 'bg-slate-900 border-white/5 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
                       : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-200'
                   }`}
                   title="Previous Column"
@@ -1637,10 +1637,10 @@ export const VirtualMixer = () => {
                       className={`px-2 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                         isFocused
                           ? skin === 'modern'
-                            ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]'
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-sm scale-[1.03]'
                             : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]'
                           : skin === 'modern'
-                          ? 'bg-slate-950/60 border-white/10 text-slate-500 hover:text-slate-350'
+                          ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                           : 'bg-slate-200 border-slate-300 text-slate-650 hover:bg-white/40 shadow-inner'
                       }`}
                     >
@@ -1655,10 +1655,10 @@ export const VirtualMixer = () => {
                   className={`px-2 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                     focusedStripId === 13
                       ? skin === 'modern'
-                        ? 'bg-blue-600 border-blue-400 text-white shadow shadow-blue-500/25 scale-[1.03]'
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm scale-[1.03]'
                         : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]'
                       : skin === 'modern'
-                      ? 'bg-slate-950/60 border-white/10 text-slate-500 hover:text-slate-350'
+                      ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                       : 'bg-slate-200 border-slate-300 text-slate-650 hover:bg-white/40 shadow-inner'
                   }`}
                 >
@@ -1671,10 +1671,10 @@ export const VirtualMixer = () => {
                   className={`px-2 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
                     focusedStripId === 14
                       ? skin === 'modern'
-                        ? 'bg-red-650 border-red-500 text-white shadow shadow-red-500/25 scale-[1.03]'
+                        ? 'bg-rose-600 border-rose-600 text-white shadow-sm scale-[1.03]'
                         : 'bg-rose-100 border-red-500 text-red-650 font-bold shadow-sm scale-[1.03]'
                       : skin === 'modern'
-                      ? 'bg-slate-950/60 border-white/10 text-slate-500 hover:text-slate-350'
+                      ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                       : 'bg-slate-200 border-slate-300 text-slate-650 hover:bg-white/40 shadow-inner'
                   }`}
                 >
@@ -1686,7 +1686,7 @@ export const VirtualMixer = () => {
                   onClick={handleNextStrip}
                   className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-0.5 border transition-all active:scale-95 shrink-0 select-none ${
                     skin === 'modern'
-                      ? 'bg-slate-900 border-white/5 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
                       : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-200'
                   }`}
                   title="Next Column"
@@ -1737,7 +1737,7 @@ export const VirtualMixer = () => {
           >
             <div className={`flex gap-1.5 md:gap-3 p-1.5 md:p-3 rounded-3xl h-full relative ${
               autoFit ? 'w-full justify-between min-w-[880px] lg:min-w-0 lg:w-auto lg:justify-start' : 'min-w-max'
-            } ${skin === 'modern' ? 'bg-black/20 border border-white/5' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
+            } ${skin === 'modern' ? 'bg-slate-100/70 border border-slate-200' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
             
             {channels.map(ch => {
               const isSelected = selectedId === ch.id;
@@ -1751,8 +1751,8 @@ export const VirtualMixer = () => {
                       : 'p-2.5 md:p-4'
                   } ${
                     isSelected 
-                      ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white/95 shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
-                      : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/80 border border-white/5' : 'bg-slate-200/90 hover:bg-white/60 border border-slate-400')
+                      ? (skin === 'modern' ? 'bg-white ring-2 ring-blue-600 shadow-xl scale-[1.01] border-blue-200' : 'bg-white/95 shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
+                      : (skin === 'modern' ? 'bg-white/90 hover:bg-white border border-slate-200/80 shadow-sm' : 'bg-slate-200/90 hover:bg-white/60 border border-slate-400')
                   }`}
                   onClick={(e) => {
                     if (blockNextClickRef.current) {
@@ -1764,7 +1764,7 @@ export const VirtualMixer = () => {
                   }}
                 >
                   {/* Channel Header */}
-                  <div className={`w-full py-1 rounded-md text-[10px] md:text-[11px] font-black uppercase text-center tracking-widest ${isSelected ? 'bg-blue-600 text-white animate-pulse' : (skin === 'modern' ? 'bg-slate-950 text-slate-500' : 'bg-slate-400 text-slate-700')}`}>
+                  <div className={`w-full py-1 rounded-md text-[10px] md:text-[11px] font-black uppercase text-center tracking-widest ${isSelected ? 'bg-blue-600 text-white animate-pulse' : (skin === 'modern' ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-400 text-slate-700')}`}>
                     CH {ch.id}
                   </div>
 
@@ -1772,8 +1772,8 @@ export const VirtualMixer = () => {
                   <div className="flex gap-3 md:gap-4 flex-1">
                     
                     {/* ── Column 1: Input & Routing & Fader ── */}
-                    <div className="flex flex-col items-center gap-2 w-[58px] md:w-[68px] bg-black/15 p-1.5 md:p-2 rounded-xl border border-white/5 self-stretch justify-between">
-                      <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">Strip</div>
+                    <div className={`flex flex-col items-center gap-2 w-[58px] md:w-[68px] p-1.5 md:p-2 rounded-xl border self-stretch justify-between ${skin === 'modern' ? 'bg-slate-50/80 border-slate-200/80 shadow-inner' : 'bg-black/15 border-white/5'}`}>
+                      <div className={`text-[6px] md:text-[8px] font-black uppercase tracking-wider mb-0.5 ${skin === 'modern' ? 'text-slate-700' : 'text-slate-300'}`}>Strip</div>
                       
                       {/* Knob Group */}
                       <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
@@ -1812,8 +1812,8 @@ export const VirtualMixer = () => {
                             onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { solo: !ch.solo }); }}
                             className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
                               ch.solo 
-                                ? 'bg-yellow-500 border-yellow-300 text-black shadow-md shadow-yellow-500/30' 
-                                : (skin === 'modern' ? 'bg-slate-950 border-slate-800 text-slate-600 hover:text-slate-400' : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-400')
+                                ? 'bg-amber-500 border-amber-300 text-black shadow-md' 
+                                : (skin === 'modern' ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-400')
                             }`}
                           >
                             solo
@@ -1824,8 +1824,8 @@ export const VirtualMixer = () => {
                             onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { muted: !ch.muted }); }}
                             className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
                               ch.muted 
-                                ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
-                                : (skin === 'modern' ? 'bg-slate-950 border-slate-800 text-slate-600 hover:text-slate-400' : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-400')
+                                ? 'bg-blue-600 border-blue-400 text-white shadow-md' 
+                                : (skin === 'modern' ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-400')
                             }`}
                           >
                             mute
@@ -1886,12 +1886,12 @@ export const VirtualMixer = () => {
                     </div>
 
                     {/* ── Column 2: Parametric Swept-Mid Equalizer ── */}
-                    <div className={`flex flex-col items-center gap-2 w-[58px] md:w-[68px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between ${
+                    <div className={`flex flex-col items-center gap-2 w-[58px] md:w-[68px] p-1.5 md:p-2.5 rounded-xl border self-stretch justify-between ${
                       autoFit
                         ? (isSelected ? 'flex' : 'hidden lg:flex')
                         : 'flex'
-                    }`}>
-                      <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">EQ</div>
+                    } ${skin === 'modern' ? 'bg-slate-50/80 border-slate-200/80 shadow-inner' : 'bg-black/15 border-white/5'}`}>
+                      <div className={`text-[6px] md:text-[8px] font-black uppercase tracking-wider mb-0.5 ${skin === 'modern' ? 'text-slate-700' : 'text-slate-300'}`}>EQ</div>
                       
                       {/* Knob Group */}
                       <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
@@ -1941,8 +1941,8 @@ export const VirtualMixer = () => {
                         onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { hpf: !ch.hpf }); }}
                         className={`w-full py-1 rounded text-[7px] md:text-[8px] font-black uppercase border transition-all mt-auto ${
                           ch.hpf 
-                            ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
-                            : (skin === 'modern' ? 'bg-slate-950 border-slate-800 text-slate-600' : 'bg-slate-300 border-[#475569]/30 text-slate-600')
+                            ? 'bg-blue-600 border-blue-400 text-white shadow-md' 
+                            : (skin === 'modern' ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300 border-[#475569]/30 text-slate-600')
                         }`}
                       >
                         HPF
@@ -1950,12 +1950,12 @@ export const VirtualMixer = () => {
                     </div>
 
                     {/* ── Column 3: Dynamics Compressor ── */}
-                    <div className={`flex flex-col items-center gap-2 w-[58px] md:w-[68px] bg-black/15 p-1.5 md:p-2.5 rounded-xl border border-white/5 self-stretch justify-between ${
+                    <div className={`flex flex-col items-center gap-2 w-[58px] md:w-[68px] p-1.5 md:p-2.5 rounded-xl border self-stretch justify-between ${
                       autoFit
                         ? (isSelected ? 'flex' : 'hidden lg:flex')
                         : 'flex'
-                    }`}>
-                      <div className="text-[6px] md:text-[8px] font-black text-slate-300 uppercase tracking-wider mb-0.5">COMP</div>
+                    } ${skin === 'modern' ? 'bg-slate-50/80 border-slate-200/80 shadow-inner' : 'bg-black/15 border-white/5'}`}>
+                      <div className={`text-[6px] md:text-[8px] font-black uppercase tracking-wider mb-0.5 ${skin === 'modern' ? 'text-slate-700' : 'text-slate-300'}`}>COMP</div>
                       
                       {/* Knob Group */}
                       <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">

@@ -23,23 +23,23 @@ const INSTRUMENT_RANGES = [
 export const FrequencyReference: React.FC = () => {
   return (
     <div className="space-y-8">
-      <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl">
+      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-xl">
         <div className="flex items-center gap-3 mb-8">
-          <div className="bg-blue-600 p-2 rounded-xl">
+          <div className="bg-blue-600 p-2.5 rounded-2xl shadow-md shadow-blue-600/20 text-white">
             <Activity className="text-white" size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-black text-white italic tracking-tighter uppercase">Frequency IQ</h2>
-            <p className="text-[10px] text-slate-500 font-bold tracking-widest leading-none">SPECTRUM ANALYSIS REFERENCE</p>
+            <h2 className="text-xl font-black text-slate-900 italic tracking-tighter uppercase">Frequency IQ</h2>
+            <p className="text-[10px] text-blue-600 font-extrabold tracking-widest leading-none">SPECTRUM ANALYSIS REFERENCE</p>
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="relative h-24 bg-black/40 rounded-2xl border border-white/5 flex items-center overflow-hidden">
+          <div className="relative h-24 bg-slate-900 rounded-2xl border border-slate-800 flex items-center overflow-hidden shadow-inner">
              {/* Gradient Background */}
              <div className="absolute inset-0 flex">
                 {FREQUENCY_DATA.map((d, i) => (
-                    <div key={i} className="flex-1 h-full opacity-10" style={{ backgroundColor: d.color.replace('bg-', '') }}></div>
+                    <div key={i} className="flex-1 h-full opacity-20" style={{ backgroundColor: d.color.replace('bg-', '') }}></div>
                 ))}
              </div>
              
@@ -51,11 +51,11 @@ export const FrequencyReference: React.FC = () => {
              </div>
 
              <div className="relative w-full px-6 flex justify-between items-center z-10">
-                <span className="text-[8px] font-mono text-slate-500">20Hz</span>
-                <span className="text-[8px] font-mono text-slate-500">100Hz</span>
-                <span className="text-[8px] font-mono text-slate-500">1kHz</span>
-                <span className="text-[8px] font-mono text-slate-500">10kHz</span>
-                <span className="text-[8px] font-mono text-slate-500">20kHz</span>
+                <span className="text-[9px] font-mono font-bold text-slate-300">20Hz</span>
+                <span className="text-[9px] font-mono font-bold text-slate-300">100Hz</span>
+                <span className="text-[9px] font-mono font-bold text-slate-300">1kHz</span>
+                <span className="text-[9px] font-mono font-bold text-slate-300">10kHz</span>
+                <span className="text-[9px] font-mono font-bold text-slate-300">20kHz</span>
              </div>
           </div>
 
@@ -64,14 +64,14 @@ export const FrequencyReference: React.FC = () => {
               <motion.div 
                 key={idx}
                 whileHover={{ scale: 1.02 }}
-                className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-2 group transition-all hover:bg-white/10"
+                className="bg-slate-50 border border-slate-200/80 p-4 rounded-2xl space-y-2 group transition-all hover:bg-white hover:border-blue-300 hover:shadow-md"
               >
                 <div className="flex items-center justify-between">
-                  <span className={`w-2 h-2 rounded-full ${data.color}`}></span>
-                  <span className="text-[10px] font-mono text-blue-400">{data.freq}</span>
+                  <span className={`w-2.5 h-2.5 rounded-full ${data.color}`}></span>
+                  <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">{data.freq}</span>
                 </div>
-                <h4 className="text-white font-black uppercase text-xs tracking-widest">{data.range}</h4>
-                <p className="text-[11px] text-slate-400 leading-relaxed font-medium">{data.description}</p>
+                <h4 className="text-slate-900 font-black uppercase text-xs tracking-wider">{data.range}</h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed font-medium">{data.description}</p>
               </motion.div>
             ))}
           </div>
