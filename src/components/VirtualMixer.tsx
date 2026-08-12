@@ -1,9 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  HelpCircle, Activity, Power, Volume2, CircleDot, Trash2, ChevronDown,
-  ChevronRight, Play, Square, Music, Waves, Mic, MicOff, Plus, X
-} from 'lucide-react';
+import { HelpCircle, Activity, Play, Square, Music, Waves, Mic, MicOff, Plus, Trash2, X, ChevronDown, Volume2, Power } from 'lucide-react';
 import { Logo } from './Logo';
 
 // ─────────────────────────────────────────────
@@ -12,51 +9,54 @@ import { Logo } from './Logo';
 interface ChannelData {
   id: number;
   name: string;
-  color: string;
-  gain: number;
-  pan: number;
-  fader: number;
+  trim: number;       // 0-100
+  reverb: number;     // 0-100
+  pan: number;        // -100 to 100
   muted: boolean;
   solo: boolean;
-  hpf: boolean;
-  eq: { high: number; midHigh: number; midLow: number; low: number };
+  fader: number;      // 0-100
+  eq: { high: number; midFreq: number; midGain: number; low: number }; // each 0-100
+  comp: { attack: number; release: number; threshold: number }; // each 0-100
 }
 
 interface Song {
-  id: string;
-  title: string;
-  url: string;
-  artist?: string;
-  type: 'file' | 'youtube';
+  id: string; title: string; url: string; artist?: string; type: 'file' | 'youtube';
 }
 
 // ─────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────
 const DEFAULT_SONGS: Song[] = [
-  { id: 'y1', title: 'Anugrako Inar',          artist: 'Adrian Dewan',       url: 'https://www.youtube.com/watch?v=BLJcYljOq-U',  type: 'youtube' },
-  { id: 'y2', title: 'All I Want for Christmas', artist: 'Mariah Carey',      url: 'https://www.youtube.com/watch?v=aAkMkVFwAoo',  type: 'youtube' },
-  { id: 'y3', title: 'Last Christmas',           artist: 'Wham!',             url: 'https://www.youtube.com/watch?v=KhqNTjbQ71A',  type: 'youtube' },
-  { id: 'y4', title: 'Golden',                   artist: 'KPop Demon Hunters', url: 'https://www.youtube.com/watch?v=yebNIHKAC4A', type: 'youtube' },
-  { id: 'y5', title: 'Dynamite',                 artist: 'BTS',               url: 'https://www.youtube.com/watch?v=gdZLi9oWNZg',  type: 'youtube' },
+  { id: 'y1', title: 'Anugrako Inar',           artist: 'Adrian Dewan',        url: 'https://www.youtube.com/watch?v=BLJcYljOq-U', type: 'youtube' },
+  { id: 'y2', title: 'All I Want for Christmas', artist: 'Mariah Carey',        url: 'https://www.youtube.com/watch?v=aAkMkVFwAoo', type: 'youtube' },
+  { id: 'y3', title: 'Last Christmas',           artist: 'Wham!',               url: 'https://www.youtube.com/watch?v=KhqNTjbQ71A', type: 'youtube' },
+  { id: 'y4', title: 'Golden',                   artist: 'KPop Demon Hunters',  url: 'https://www.youtube.com/watch?v=yebNIHKAC4A', type: 'youtube' },
+  { id: 'y5', title: 'Dynamite',                 artist: 'BTS',                 url: 'https://www.youtube.com/watch?v=gdZLi9oWNZg', type: 'youtube' },
 ];
 
-// 4 channels (as requested)
 const INITIAL_CHANNELS: ChannelData[] = [
-  { id: 1, name: 'Lead Voc',  color: '#3b82f6', gain: 45, pan: 0,   fader: 75, muted: false, solo: false, hpf: true,  eq: { high: 2,  midHigh: 1,  midLow: 0,  low: -3 } },
-  { id: 2, name: 'Back Voc',  color: '#60a5fa', gain: 40, pan: -20, fader: 65, muted: false, solo: false, hpf: true,  eq: { high: 0,  midHigh: 0,  midLow: 0,  low: -3 } },
-  { id: 3, name: 'Keys',      color: '#22c55e', gain: 35, pan: 15,  fader: 70, muted: false, solo: false, hpf: false, eq: { high: 1,  midHigh: 0,  midLow: -1, low: 0  } },
-  { id: 4, name: 'Drum Mix',  color: '#a855f7', gain: 30, pan: 0,   fader: 60, muted: false, solo: false, hpf: false, eq: { high: 3,  midHigh: 0,  midLow: 2,  low: 5  } },
+  { id: 1, name: 'Drums & Percussion', trim: 55, reverb: 20, pan: 0,   muted: false, solo: false, fader: 70, eq: { high: 65, midFreq: 50, midGain: 55, low: 60 }, comp: { attack: 40, release: 50, threshold: 45 } },
+  { id: 2, name: 'Guitar / Piano',     trim: 60, reverb: 35, pan: -15, muted: false, solo: false, fader: 75, eq: { high: 70, midFreq: 55, midGain: 50, low: 45 }, comp: { attack: 50, release: 55, threshold: 50 } },
+  { id: 3, name: 'Vocals',             trim: 65, reverb: 40, pan: 5,   muted: false, solo: false, fader: 80, eq: { high: 60, midFreq: 60, midGain: 65, low: 40 }, comp: { attack: 35, release: 45, threshold: 55 } },
+  { id: 4, name: 'Keys / Synth',       trim: 50, reverb: 25, pan: 20,  muted: false, solo: false, fader: 65, eq: { high: 55, midFreq: 45, midGain: 48, low: 50 }, comp: { attack: 55, release: 60, threshold: 48 } },
 ];
 
-const HELP: Record<string, { title: string; desc: string }> = {
-  gain:  { title: 'Input Gain',         desc: 'Sets the input sensitivity. Adjust until the loudest peaks are just below clipping. Too low → noisy; too high → distortion.' },
-  hpf:   { title: 'High-Pass Filter',   desc: 'Cuts low-end rumble below 80 Hz. Turn ON for every vocal and instrument except kick & bass — it instantly cleans up a muddy mix.' },
-  eq:    { title: 'Equalizer (4-Band)', desc: 'Shape the frequency content of each channel. Boost hi-mids for vocal intelligibility; cut low-mids to remove boxiness.' },
-  pan:   { title: 'Stereo Pan',         desc: 'Positions the signal in the stereo field. Keep lead vocal centred. Spread instruments slightly to create width and separation.' },
-  fader: { title: 'Volume Fader',       desc: 'Your primary mix tool. Set Gain first, then use faders to achieve balance. Small moves (2–3 dB) have a big impact at FOH.' },
-  solo:  { title: 'Solo (PFL)',         desc: 'Pre-Fader Listen — lets you hear a single channel in your headphones without affecting the main output. Great for checking mic signal.' },
-  mute:  { title: 'Mute',              desc: 'Silences the channel completely. Always mute open mics when not in use to prevent feedback and unwanted noise.' },
+const HELP_INFO: Record<string, { title: string; desc: string }> = {
+  trim:      { title: 'Trim (Input Gain)',      desc: 'Sets the input sensitivity before signal enters the channel. Adjust so peaks are just below clipping — typically between 12 o\'clock and 3 o\'clock on a real console.' },
+  reverb:    { title: 'Reverb Send',            desc: 'Controls how much of this channel is sent to the reverb bus. Use sparingly for vocals; too much makes a mix sound washy and distant.' },
+  pan:       { title: 'Stereo Pan',             desc: 'Positions the channel in the left/right stereo field. Keep lead vocals at centre (12 o\'clock). Spread instruments to create width without extra volume.' },
+  mute:      { title: 'Mute',                   desc: 'Silences this channel completely. Always mute unused mics to prevent feedback and unwanted room noise during a service.' },
+  solo:      { title: 'Solo (PFL)',             desc: 'Pre-Fader Listen: routes this channel to your headphones only, without changing the main mix. Essential for checking if a mic is active and at the right level.' },
+  fader:     { title: 'Volume Fader',           desc: 'Your main mixing tool after Gain is set. Adjust faders for balance. Small moves — 2 to 3 dB — make a big difference at front-of-house.' },
+  eqHigh:    { title: 'EQ — High (Treble)',     desc: 'Boosts or cuts high frequencies (typically 8–12 kHz). A gentle boost adds air and presence to vocals. Cut if the mix sounds harsh or sibilant.' },
+  eqMidFreq: { title: 'EQ — Mid Frequency',     desc: 'Selects which midrange frequency to boost or cut. Sweeping this knob while boosting helps you find problem resonances — then cut them.' },
+  eqMidGain: { title: 'EQ — Mid Gain',          desc: 'Boosts or cuts the selected midrange frequency. Cut 250–400 Hz to remove boxiness; boost 2–4 kHz for vocal presence and intelligibility.' },
+  eqLow:     { title: 'EQ — Low (Bass)',        desc: 'Boosts or cuts low frequencies (typically 80–200 Hz). Cut for everything except kick drum and bass. Boosting adds warmth but quickly causes muddiness.' },
+  compAttack:    { title: 'Compressor — Attack',    desc: 'How fast the compressor clamps down after a signal exceeds the threshold. Slower attack lets the initial transient through — great for drums and guitars. Fast attack controls peaks on vocals.' },
+  compRelease:   { title: 'Compressor — Release',   desc: 'How quickly the compressor lets go after the signal drops below the threshold. Too fast causes "pumping"; too slow makes the mix sound strangled.' },
+  compThreshold: { title: 'Compressor — Threshold', desc: 'The level at which compression begins. Lower threshold = more compression. Start around –18 dBFS for vocals and adjust until gain reduction is 3–6 dB on peaks.' },
+  reverbSize: { title: 'Reverb Size',           desc: 'Sets the overall size of the reverb space — from a small room to a large hall. Larger rooms sound more natural but take longer to decay. Match to your actual room size.' },
+  masterReverb: { title: 'Master Reverb',       desc: 'Global wet/dry mix of the reverb effect across all channels. Keep this moderate — too much reverb reduces clarity and makes speech less intelligible.' },
 };
 
 // ─────────────────────────────────────────────
@@ -76,118 +76,254 @@ async function fetchYouTubeTitle(url: string): Promise<{ title: string; author: 
     if (!res.ok) throw new Error();
     const d = await res.json();
     return { title: d.title || 'Untitled', author: d.author_name || '' };
-  } catch {
-    return { title: 'YouTube Track', author: '' };
-  }
+  } catch { return { title: 'YouTube Track', author: '' }; }
 }
 
 // ─────────────────────────────────────────────
-// Component
+// Knob Component — beautiful circular knob
+// ─────────────────────────────────────────────
+interface KnobProps {
+  value: number; // 0-100
+  onChange: (v: number) => void;
+  size?: number;
+  color?: string;
+  label: string;
+  onHelp?: () => void;
+}
+const Knob: React.FC<KnobProps> = ({ value, onChange, size = 48, color = '#3b82f6', label, onHelp }) => {
+  const dragging = useRef(false);
+  const startY   = useRef(0);
+  const startVal = useRef(0);
+
+  const angle = -145 + (value / 100) * 290; // -145° to +145°
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragging.current = true; startY.current = e.clientY; startVal.current = value;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    const delta = (startY.current - e.clientY) * 0.8;
+    onChange(Math.min(100, Math.max(0, startVal.current + delta)));
+  };
+  const onPointerUp = () => { dragging.current = false; };
+
+  const cx = size / 2, cy = size / 2, r = size * 0.38;
+  const rad = (angle - 90) * (Math.PI / 180);
+  const dotX = cx + r * Math.cos(rad);
+  const dotY = cy + r * Math.sin(rad);
+
+  // Arc path for value indicator
+  const startAngle = (-145 - 90) * (Math.PI / 180);
+  const endAngle   = (angle - 90) * (Math.PI / 180);
+  const arcR = r + 3;
+  const x1 = cx + arcR * Math.cos(startAngle), y1 = cy + arcR * Math.sin(startAngle);
+  const x2 = cx + arcR * Math.cos(endAngle),   y2 = cy + arcR * Math.sin(endAngle);
+  const largeArc = (angle + 145) > 180 ? 1 : 0;
+
+  return (
+    <div className="flex flex-col items-center gap-0.5 select-none">
+      <div className="relative"
+           onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
+           style={{ width: size, height: size, cursor: 'ns-resize', touchAction: 'none' }}>
+        <svg width={size} height={size}>
+          {/* Outer ring track */}
+          <circle cx={cx} cy={cy} r={arcR} fill="none" stroke="rgba(0,0,0,0.5)" strokeWidth="2" />
+          {/* Value arc */}
+          {value > 0 && (
+            <path d={`M ${x1} ${y1} A ${arcR} ${arcR} 0 ${largeArc} 1 ${x2} ${y2}`}
+                  fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+          )}
+          {/* Knob body — outer shadow ring */}
+          <circle cx={cx} cy={cy} r={r} fill="url(#knobGrad)" />
+          {/* Gloss highlight */}
+          <ellipse cx={cx - r * 0.15} cy={cy - r * 0.3} rx={r * 0.4} ry={r * 0.22}
+                   fill="rgba(255,255,255,0.12)" />
+          {/* Indicator dot */}
+          <circle cx={dotX} cy={dotY} r={size * 0.045} fill={color}
+                  style={{ filter: `drop-shadow(0 0 3px ${color})` }} />
+          {/* Gradient def */}
+          <defs>
+            <radialGradient id="knobGrad" cx="40%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#4a5568" />
+              <stop offset="50%" stopColor="#2d3748" />
+              <stop offset="100%" stopColor="#1a202c" />
+            </radialGradient>
+          </defs>
+        </svg>
+      </div>
+      <div className="flex items-center gap-0.5">
+        <span className="text-[8px] text-gray-400 font-medium leading-none tracking-wide">{label}</span>
+        {onHelp && (
+          <button onPointerDown={e => { e.stopPropagation(); onHelp(); }}
+            className="w-3 h-3 rounded-full bg-orange-500 hover:bg-orange-400 flex items-center justify-center transition-colors shrink-0">
+            <HelpCircle size={7} className="text-white" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Vertical Fader Component
+// ─────────────────────────────────────────────
+interface FaderProps {
+  value: number; onChange: (v: number) => void; height?: number; color?: string;
+}
+const VertFader: React.FC<FaderProps> = ({ value, onChange, height = 140, color = '#3b82f6' }) => {
+  const dragging = useRef(false);
+  const startY   = useRef(0);
+  const startVal = useRef(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragging.current = true; startY.current = e.clientY; startVal.current = value;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    e.preventDefault();
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragging.current || !trackRef.current) return;
+    const rect = trackRef.current.getBoundingClientRect();
+    const pct = 1 - (e.clientY - rect.top) / rect.height;
+    onChange(Math.min(100, Math.max(0, pct * 100)));
+  };
+  const onPointerUp = () => { dragging.current = false; };
+
+  const capBottom = (value / 100) * (height - 28);
+
+  return (
+    <div ref={trackRef} className="relative rounded-lg overflow-visible cursor-ns-resize"
+         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
+         style={{ width: 22, height, cursor: 'ns-resize', touchAction: 'none', background: 'linear-gradient(to bottom, #0a0c10, #1a1d25)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      {/* Track groove */}
+      <div className="absolute left-1/2 top-3 bottom-3 w-px -translate-x-1/2"
+           style={{ background: 'rgba(255,255,255,0.06)' }} />
+      {/* Tick marks */}
+      {[0,25,50,75,100].map(pct => (
+        <div key={pct} className="absolute left-1 right-1 h-px"
+             style={{ bottom: `${12 + pct * (height - 24) / 100}px`, background: 'rgba(255,255,255,0.08)' }} />
+      ))}
+      {/* Fader cap */}
+      <motion.div
+        animate={{ bottom: capBottom }}
+        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+        className="absolute left-0 right-0 rounded-md pointer-events-none flex flex-col items-center justify-center gap-0.5"
+        style={{ height: 28, background: 'linear-gradient(180deg, #64748b 0%, #334155 40%, #1e293b 100%)',
+                 boxShadow: '0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 rgba(0,0,0,0.3)' }}>
+        {/* Grip lines */}
+        {[0,1,2].map(i => (
+          <div key={i} className="w-3 h-px rounded-full" style={{ background: i === 1 ? color : 'rgba(255,255,255,0.15)',
+               boxShadow: i === 1 ? `0 0 4px ${color}` : 'none' }} />
+        ))}
+      </motion.div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Pan Slider
+// ─────────────────────────────────────────────
+const PanSlider: React.FC<{ value: number; onChange: (v: number) => void }> = ({ value, onChange }) => (
+  <div className="flex flex-col items-center gap-0.5">
+    <div className="flex items-center gap-1 w-full">
+      <span className="text-[7px] text-gray-500">L</span>
+      <div className="flex-1 relative h-1 rounded-full" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="absolute top-1/2 left-1/2 w-px h-2 -translate-x-1/2 -translate-y-1/2 bg-gray-600" />
+        <div className="absolute top-0 h-full rounded-full bg-blue-500"
+             style={{ left: value < 0 ? `${50 + value / 2}%` : '50%', width: `${Math.abs(value) / 2}%` }} />
+        <input type="range" min="-100" max="100" value={value}
+               onChange={e => onChange(+e.target.value)}
+               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+      </div>
+      <span className="text-[7px] text-gray-500">R</span>
+    </div>
+    <span className="text-[7px] font-mono text-blue-400">
+      {value === 0 ? 'C' : `${Math.abs(value)}${value < 0 ? 'L' : 'R'}`}
+    </span>
+  </div>
+);
+
+// ─────────────────────────────────────────────
+// Main Component
 // ─────────────────────────────────────────────
 export const VirtualMixer = () => {
-  const [channels, setChannels]       = useState<ChannelData[]>(INITIAL_CHANNELS);
-  const [selectedId, setSelectedId]   = useState<number>(1);
-  const [panelOpen, setPanelOpen]     = useState(true);   // channel detail panel collapse
-  const [info, setInfo]               = useState<{ title: string; desc: string } | null>(null);
-
-  // Transport
-  const [isPlaying, setIsPlaying]     = useState(false);
-  const [isLoading, setIsLoading]     = useState(false);
-  const [songs, setSongs]             = useState<Song[]>(DEFAULT_SONGS);
-  const [currentSong, setCurrentSong] = useState<Song>(DEFAULT_SONGS[0]);
-  const [masterMeter, setMasterMeter] = useState(0);
+  const [channels, setChannels]     = useState<ChannelData[]>(INITIAL_CHANNELS);
+  const [info, setInfo]             = useState<{ title: string; desc: string } | null>(null);
   const [masterFader, setMasterFader] = useState(80);
+  const [masterReverb, setMasterReverb] = useState(30);
+  const [reverbSize, setReverbSize]    = useState(50);
+  const [masterMeter, setMasterMeter]  = useState(0);
+  const [isPlaying, setIsPlaying]    = useState(false);
+  const [isLoading, setIsLoading]    = useState(false);
+  const [songs, setSongs]            = useState<Song[]>(DEFAULT_SONGS);
+  const [currentSong, setCurrentSong] = useState<Song>(DEFAULT_SONGS[0]);
+  const [showPlaylist, setShowPlaylist] = useState(false);
+  const [ytInputUrl, setYtInputUrl]  = useState('');
+  const [ytLoading, setYtLoading]    = useState(false);
+  const [ytError, setYtError]        = useState('');
+  const [showAddYt, setShowAddYt]    = useState(false);
+  const [micActive, setMicActive]    = useState(false);
+  const [toneActive, setToneActive]  = useState(false);
+  const [audioReady, setAudioReady]  = useState(false);
 
-  // Playlist UI
-  const [showPlaylist, setShowPlaylist]     = useState(false);
-  const [ytInputUrl, setYtInputUrl]         = useState('');
-  const [ytInputLoading, setYtInputLoading] = useState(false);
-  const [ytInputError, setYtInputError]     = useState('');
-  const [showAddInput, setShowAddInput]     = useState(false);
-
-  // Skin
-  const [skin, setSkin] = useState<'dark' | 'light'>('dark');
-
-  // ── Web Audio ──────────────────────────────
-  const audioCtxRef    = useRef<AudioContext | null>(null);
-  const audioElRef     = useRef<HTMLAudioElement | null>(null);
-  const gainNodeRef    = useRef<GainNode | null>(null);
-  const analyserRef    = useRef<AnalyserNode | null>(null);
-  const hpfRef         = useRef<BiquadFilterNode | null>(null);
-  const panRef         = useRef<StereoPannerNode | null>(null);
-  const eqRefs         = useRef<{ L: BiquadFilterNode; ML: BiquadFilterNode; MH: BiquadFilterNode; H: BiquadFilterNode } | null>(null);
-  const [audioReady, setAudioReady] = useState(false);
-
-  // Mic
-  const [micActive, setMicActive]   = useState(false);
+  const audioCtxRef  = useRef<AudioContext | null>(null);
+  const audioElRef   = useRef<HTMLAudioElement | null>(null);
+  const gainRef      = useRef<GainNode | null>(null);
+  const analyserRef  = useRef<AnalyserNode | null>(null);
+  const hpfRef       = useRef<BiquadFilterNode | null>(null);
+  const panRef       = useRef<StereoPannerNode | null>(null);
+  const eqRefs       = useRef<any>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const micSrcRef    = useRef<MediaStreamAudioSourceNode | null>(null);
+  const oscRef       = useRef<OscillatorNode | null>(null);
 
-  // Test tone
-  const [toneActive, setToneActive] = useState(false);
-  const oscRef = useRef<OscillatorNode | null>(null);
+  const ch0 = channels[0]; // for Web Audio sync (selected channel concept simplified)
 
-  // Scrollable fader strip ref
-  const stripRef = useRef<HTMLDivElement>(null);
-
-  const selectedCh = channels.find(c => c.id === selectedId)!;
-
-  // ── Init Web Audio ─────────────────────────
+  // ── Init Web Audio ────────────────────────
   const initAudio = useCallback(() => {
-    if (audioCtxRef.current) {
-      if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
-      return;
-    }
+    if (audioCtxRef.current) { audioCtxRef.current.state === 'suspended' && audioCtxRef.current.resume(); return; }
     const Ctx = window.AudioContext || (window as any).webkitAudioContext;
     const ctx = new Ctx();
-    const audio = new Audio();
-    audio.preload = 'auto';
-    audio.loop = true;
+    const audio = new Audio(); audio.preload = 'auto'; audio.loop = true;
     audio.addEventListener('playing', () => { setIsLoading(false); setIsPlaying(true); });
     audio.addEventListener('pause',   () => setIsPlaying(false));
     audio.addEventListener('waiting', () => setIsLoading(true));
     audio.addEventListener('canplay', () => setIsLoading(false));
-
     const src = ctx.createMediaElementSource(audio);
     const hpf = ctx.createBiquadFilter(); hpf.type = 'highpass'; hpf.frequency.value = 80;
-    const eqL  = ctx.createBiquadFilter(); eqL.type  = 'lowshelf'; eqL.frequency.value  = 100;
-    const eqML = ctx.createBiquadFilter(); eqML.type = 'peaking';  eqML.frequency.value = 400;
-    const eqMH = ctx.createBiquadFilter(); eqMH.type = 'peaking';  eqMH.frequency.value = 2500;
-    const eqH  = ctx.createBiquadFilter(); eqH.type  = 'highshelf'; eqH.frequency.value = 8000;
-    const pan  = ctx.createStereoPanner();
+    const eqL = ctx.createBiquadFilter(); eqL.type = 'lowshelf'; eqL.frequency.value = 100;
+    const eqML = ctx.createBiquadFilter(); eqML.type = 'peaking'; eqML.frequency.value = 400;
+    const eqMH = ctx.createBiquadFilter(); eqMH.type = 'peaking'; eqMH.frequency.value = 2500;
+    const eqH = ctx.createBiquadFilter(); eqH.type = 'highshelf'; eqH.frequency.value = 8000;
+    const pan = ctx.createStereoPanner();
     const gain = ctx.createGain();
     const analyser = ctx.createAnalyser(); analyser.fftSize = 64;
     src.connect(hpf); hpf.connect(eqL); eqL.connect(eqML); eqML.connect(eqMH);
-    eqMH.connect(eqH); eqH.connect(pan); pan.connect(gain); gain.connect(analyser);
-    analyser.connect(ctx.destination);
-
+    eqMH.connect(eqH); eqH.connect(pan); pan.connect(gain); gain.connect(analyser); analyser.connect(ctx.destination);
     audioCtxRef.current = ctx; audioElRef.current = audio;
-    gainNodeRef.current = gain; analyserRef.current = analyser;
+    gainRef.current = gain; analyserRef.current = analyser;
     hpfRef.current = hpf; panRef.current = pan;
     eqRefs.current = { L: eqL, ML: eqML, MH: eqMH, H: eqH };
-    if (ctx.state === 'suspended') ctx.resume();
+    ctx.state === 'suspended' && ctx.resume();
     setAudioReady(true);
   }, []);
 
-  // ── Sync nodes ────────────────────────────
   useEffect(() => {
-    const ctx = audioCtxRef.current;
-    if (!ctx || ctx.state === 'closed') return;
+    const ctx = audioCtxRef.current; if (!ctx || ctx.state === 'closed') return;
     const t = ctx.currentTime;
-    const chGain = selectedCh.muted ? 0 : Math.pow(10, (selectedCh.fader - 70) / 20);
-    const mGain  = Math.pow(10, (masterFader - 80) / 20);
-    gainNodeRef.current?.gain.setTargetAtTime(chGain * mGain, t, 0.05);
-    hpfRef.current?.frequency.setTargetAtTime(selectedCh.hpf ? 80 : 20, t, 0.05);
-    panRef.current?.pan.setTargetAtTime(selectedCh.pan / 100, t, 0.05);
+    const g = ch0.muted ? 0 : Math.pow(10, (ch0.fader - 70) / 20) * Math.pow(10, (masterFader - 80) / 20);
+    gainRef.current?.gain.setTargetAtTime(g, t, 0.05);
+    panRef.current?.pan.setTargetAtTime(ch0.pan / 100, t, 0.05);
     if (eqRefs.current) {
-      eqRefs.current.L.gain.setTargetAtTime(selectedCh.eq.low,     t, 0.05);
-      eqRefs.current.ML.gain.setTargetAtTime(selectedCh.eq.midLow,  t, 0.05);
-      eqRefs.current.MH.gain.setTargetAtTime(selectedCh.eq.midHigh, t, 0.05);
-      eqRefs.current.H.gain.setTargetAtTime(selectedCh.eq.high,    t, 0.05);
+      eqRefs.current.L.gain.setTargetAtTime((ch0.eq.low - 50) / 5, t, 0.05);
+      eqRefs.current.ML.gain.setTargetAtTime((ch0.eq.midGain - 50) / 5, t, 0.05);
+      eqRefs.current.MH.gain.setTargetAtTime((ch0.eq.midFreq - 50) / 5, t, 0.05);
+      eqRefs.current.H.gain.setTargetAtTime((ch0.eq.high - 50) / 5, t, 0.05);
     }
-  }, [selectedCh, masterFader]);
+  }, [ch0, masterFader]);
 
-  // ── VU Meter ──────────────────────────────
   useEffect(() => {
     let raf: number;
     const tick = () => {
@@ -196,35 +332,19 @@ export const VirtualMixer = () => {
           const d = new Uint8Array(analyserRef.current.frequencyBinCount);
           analyserRef.current.getByteFrequencyData(d);
           setMasterMeter((d.reduce((a, b) => a + b, 0) / d.length / 255) * 100);
-        } else {
-          setMasterMeter(38 + Math.random() * 22 + (Math.random() > 0.88 ? 18 : 0));
-        }
-      } else {
-        setMasterMeter(prev => Math.max(0, prev - 4));
-      }
+        } else setMasterMeter(38 + Math.random() * 24 + (Math.random() > 0.87 ? 20 : 0));
+      } else setMasterMeter(p => Math.max(0, p - 5));
       raf = requestAnimationFrame(tick);
     };
-    tick();
-    return () => cancelAnimationFrame(raf);
+    tick(); return () => cancelAnimationFrame(raf);
   }, [isPlaying, currentSong]);
 
-  // ── Cleanup ───────────────────────────────
   useEffect(() => () => {
-    audioElRef.current?.pause();
-    audioCtxRef.current?.close().catch(() => {});
+    audioElRef.current?.pause(); audioCtxRef.current?.close().catch(() => {});
     micStreamRef.current?.getTracks().forEach(t => t.stop());
   }, []);
+  useEffect(() => { const h = () => setInfo(null); window.addEventListener('pointerdown', h); return () => window.removeEventListener('pointerdown', h); }, []);
 
-  // ── Dismiss info on outside click ────────
-  useEffect(() => {
-    const h = () => setInfo(null);
-    window.addEventListener('pointerdown', h);
-    return () => window.removeEventListener('pointerdown', h);
-  }, []);
-
-  // ─────────────────────────────────────────
-  // Transport
-  // ─────────────────────────────────────────
   const togglePlay = async () => {
     if (currentSong.type === 'youtube') { setIsPlaying(p => !p); return; }
     initAudio();
@@ -234,66 +354,44 @@ export const VirtualMixer = () => {
     if (ctx.state === 'suspended') await ctx.resume();
     if (audio.src !== currentSong.url) { audio.src = currentSong.url; audio.load(); }
     setIsLoading(true);
-    audio.play().catch(err => {
-      setIsLoading(false);
-      console.error('Play error:', err);
-    });
+    audio.play().catch(() => setIsLoading(false));
   };
 
   const selectSong = async (song: Song) => {
-    const wasPlaying = isPlaying;
-    audioElRef.current?.pause();
-    setIsPlaying(false); setCurrentSong(song); setShowPlaylist(false);
+    const was = isPlaying; audioElRef.current?.pause(); setIsPlaying(false); setCurrentSong(song); setShowPlaylist(false);
     if (song.type === 'file') {
-      initAudio();
-      const audio = audioElRef.current; const ctx = audioCtxRef.current;
-      if (!audio) return;
+      initAudio(); const audio = audioElRef.current; const ctx = audioCtxRef.current; if (!audio) return;
       audio.src = song.url; audio.load();
-      if (wasPlaying) {
-        if (ctx?.state === 'suspended') await ctx?.resume();
-        setIsLoading(true);
-        audio.play().catch(() => setIsLoading(false));
-      }
+      if (was) { ctx?.state === 'suspended' && await ctx?.resume(); setIsLoading(true); audio.play().catch(() => setIsLoading(false)); }
     }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    initAudio();
+    const file = e.target.files?.[0]; if (!file) return; initAudio();
     const url = URL.createObjectURL(file);
-    const newSong: Song = { id: 'file-' + Date.now(), title: file.name.replace(/\.\w+$/, ''), url, type: 'file' };
-    setCurrentSong(newSong);
+    const ns: Song = { id: 'f-' + Date.now(), title: file.name.replace(/\.\w+$/, ''), url, type: 'file' };
+    setCurrentSong(ns);
     const audio = audioElRef.current;
-    if (audio) {
-      audio.src = url; audio.load();
-      audioCtxRef.current?.resume();
-      audio.play().catch(() => {});
-    }
+    if (audio) { audio.src = url; audio.load(); audioCtxRef.current?.resume(); audio.play().catch(() => {}); }
   };
 
   const addYouTubeSong = async () => {
     const url = ytInputUrl.trim(); if (!url) return;
     const vid = getYouTubeVideoId(url);
-    if (!vid) { setYtInputError('Paste a valid YouTube URL (youtube.com or youtu.be)'); return; }
-    if (songs.some(s => s.url.includes(vid))) { setYtInputError('Already in playlist.'); return; }
-    setYtInputError(''); setYtInputLoading(true);
+    if (!vid) { setYtError('Invalid YouTube URL'); return; }
+    if (songs.some(s => s.url.includes(vid))) { setYtError('Already in playlist'); return; }
+    setYtError(''); setYtLoading(true);
     const { title, author } = await fetchYouTubeTitle(url);
-    setSongs(prev => [...prev, { id: 'yt-' + vid, title, artist: author, url: `https://www.youtube.com/watch?v=${vid}`, type: 'youtube' }]);
-    setYtInputUrl(''); setYtInputLoading(false); setShowAddInput(false);
+    setSongs(p => [...p, { id: 'yt-' + vid, title, artist: author, url: `https://www.youtube.com/watch?v=${vid}`, type: 'youtube' }]);
+    setYtInputUrl(''); setYtLoading(false); setShowAddYt(false);
   };
 
   const deleteSong = (id: string) => {
-    setSongs(prev => {
-      const next = prev.filter(s => s.id !== id);
-      if (currentSong.id === id && next.length > 0) selectSong(next[0]);
-      return next;
-    });
+    setSongs(p => { const n = p.filter(s => s.id !== id); if (currentSong.id === id && n.length) selectSong(n[0]); return n; });
   };
 
   const toggleSoundCheck = () => {
-    initAudio();
-    const ctx = audioCtxRef.current; if (!ctx) return;
-    ctx.resume();
+    initAudio(); const ctx = audioCtxRef.current; if (!ctx) return; ctx.resume();
     if (toneActive) { oscRef.current?.stop(); setToneActive(false); return; }
     const osc = ctx.createOscillator(); const g = ctx.createGain();
     osc.frequency.value = 1000; g.gain.value = 0.12;
@@ -304,13 +402,11 @@ export const VirtualMixer = () => {
 
   const toggleMic = async () => {
     if (micActive) {
-      micStreamRef.current?.getTracks().forEach(t => t.stop());
-      micSrcRef.current?.disconnect();
+      micStreamRef.current?.getTracks().forEach(t => t.stop()); micSrcRef.current?.disconnect();
       micStreamRef.current = null; micSrcRef.current = null; setMicActive(false);
     } else {
       try {
-        initAudio();
-        await audioCtxRef.current?.resume();
+        initAudio(); await audioCtxRef.current?.resume();
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         micStreamRef.current = stream;
         if (audioCtxRef.current && analyserRef.current) {
@@ -322,630 +418,452 @@ export const VirtualMixer = () => {
     }
   };
 
-  // ─────────────────────────────────────────
-  // Helpers
-  // ─────────────────────────────────────────
   const updateCh = (id: number, u: Partial<ChannelData>) =>
-    setChannels(prev => prev.map(c => c.id === id ? { ...c, ...u } : c));
+    setChannels(p => p.map(c => c.id === id ? { ...c, ...u } : c));
+  const resetCh  = (id: number) =>
+    setChannels(p => p.map(c => c.id === id ? { ...INITIAL_CHANNELS.find(ic => ic.id === id)! } : c));
 
-  // Theme tokens
-  const T = skin === 'dark' ? {
-    bg:       'bg-[#12141a]',
-    surface:  'bg-[#1c1f28]',
-    surface2: 'bg-[#22262f]',
-    border:   'border-white/6',
-    text:     'text-white',
-    textMid:  'text-slate-400',
-    textDim:  'text-slate-600',
-    strip:    'bg-[#0d0f14]',
-    meter:    'bg-green-400',
-    accent:   'bg-blue-600',
-  } : {
-    bg:       'bg-[#e8eaef]',
-    surface:  'bg-[#d4d7df]',
-    surface2: 'bg-[#c8cbd4]',
-    border:   'border-black/10',
-    text:     'text-slate-900',
-    textMid:  'text-slate-600',
-    textDim:  'text-slate-400',
-    strip:    'bg-[#b8bbc4]',
-    meter:    'bg-green-500',
-    accent:   'bg-blue-600',
+  const showHelp = (e: React.MouseEvent, key: string) => {
+    e.stopPropagation();
+    setInfo(HELP_INFO[key] || { title: key, desc: '' });
   };
 
   // ─────────────────────────────────────────
-  // Render
+  // Render helpers
+  // ─────────────────────────────────────────
+  const BLUE  = '#3b8ef5';
+  const ORANGE = '#f97316';
+
+  // Channel strip
+  const ChannelStrip = ({ ch }: { ch: ChannelData }) => (
+    <div className="flex shrink-0"
+         style={{ width: 200, background: 'linear-gradient(180deg, #1e2230 0%, #181b26 100%)',
+                  borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+
+      {/* ── LEFT SECTION: Trim / Reverb / Pan / Mute / Solo / Fader ── */}
+      <div className="flex flex-col items-center gap-2 px-2 pt-3 pb-2" style={{ width: 68, borderRight: '1px solid rgba(255,255,255,0.05)' }}>
+        <Knob value={ch.trim} onChange={v => updateCh(ch.id, { trim: v })} size={40} color={BLUE} label="Trim"
+              onHelp={() => setInfo(HELP_INFO.trim)} />
+        <Knob value={ch.reverb} onChange={v => updateCh(ch.id, { reverb: v })} size={40} color={BLUE} label="Reverb"
+              onHelp={() => setInfo(HELP_INFO.reverb)} />
+        <PanSlider value={ch.pan} onChange={v => updateCh(ch.id, { pan: v })} />
+
+        {/* Mute */}
+        <button onClick={() => updateCh(ch.id, { muted: !ch.muted })}
+          className="w-full rounded-lg text-[9px] font-black uppercase tracking-wider transition-all py-1.5"
+          style={{ background: ch.muted ? '#dc2626' : 'linear-gradient(180deg,#2d3748,#1a202c)',
+                   color: ch.muted ? 'white' : '#94a3b8',
+                   border: ch.muted ? '1px solid #f87171' : '1px solid rgba(255,255,255,0.1)',
+                   boxShadow: ch.muted ? '0 0 12px rgba(220,38,38,0.4)' : 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+          mute
+        </button>
+
+        {/* Solo */}
+        <button onClick={() => updateCh(ch.id, { solo: !ch.solo })}
+          className="w-full rounded-lg text-[9px] font-black uppercase tracking-wider transition-all py-1.5"
+          style={{ background: ch.solo ? 'linear-gradient(180deg,#64748b,#475569)' : 'linear-gradient(180deg,#374151,#1f2937)',
+                   color: ch.solo ? 'white' : '#94a3b8',
+                   border: ch.solo ? '1px solid #94a3b8' : '1px solid rgba(255,255,255,0.08)',
+                   boxShadow: ch.solo ? '0 0 8px rgba(148,163,184,0.3)' : 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+          solo
+        </button>
+
+        {/* Fader */}
+        <VertFader value={ch.fader} onChange={v => updateCh(ch.id, { fader: v })} height={130} color={BLUE} />
+      </div>
+
+      {/* ── MIDDLE SECTION: EQ Knobs ── */}
+      <div className="flex flex-col items-center gap-2.5 px-2 pt-3 pb-2" style={{ width: 72, borderRight: '1px solid rgba(255,255,255,0.05)' }}>
+        <Knob value={ch.eq.high} onChange={v => updateCh(ch.id, { eq: { ...ch.eq, high: v } })} size={44} color={BLUE} label="High" onHelp={() => setInfo(HELP_INFO.eqHigh)} />
+        <Knob value={ch.eq.midFreq} onChange={v => updateCh(ch.id, { eq: { ...ch.eq, midFreq: v } })} size={52} color={BLUE} label="Mid Freq" onHelp={() => setInfo(HELP_INFO.eqMidFreq)} />
+        <Knob value={ch.eq.midGain} onChange={v => updateCh(ch.id, { eq: { ...ch.eq, midGain: v } })} size={44} color={BLUE} label="Mid Gain" onHelp={() => setInfo(HELP_INFO.eqMidGain)} />
+        <Knob value={ch.eq.low} onChange={v => updateCh(ch.id, { eq: { ...ch.eq, low: v } })} size={52} color={BLUE} label="Low" onHelp={() => setInfo(HELP_INFO.eqLow)} />
+        <div className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-auto">EQ</div>
+      </div>
+
+      {/* ── RIGHT SECTION: Compressor ── */}
+      <div className="flex flex-col items-center gap-2.5 px-2 pt-3 pb-2" style={{ flex: 1 }}>
+        <Knob value={ch.comp.attack} onChange={v => updateCh(ch.id, { comp: { ...ch.comp, attack: v } })} size={40} color={BLUE} label="Attack" onHelp={() => setInfo(HELP_INFO.compAttack)} />
+        <Knob value={ch.comp.release} onChange={v => updateCh(ch.id, { comp: { ...ch.comp, release: v } })} size={40} color={BLUE} label="Release" onHelp={() => setInfo(HELP_INFO.compRelease)} />
+        <Knob value={ch.comp.threshold} onChange={v => updateCh(ch.id, { comp: { ...ch.comp, threshold: v } })} size={44} color={BLUE} label="Threshold" onHelp={() => setInfo(HELP_INFO.compThreshold)} />
+        <div className="text-[7px] text-gray-600 font-bold uppercase tracking-widest mt-auto">COMPRESSOR</div>
+      </div>
+
+      {/* ── BOTTOM: Channel name label (scrap-paper style) + help button ── */}
+    </div>
+  );
+
+  // ─────────────────────────────────────────
+  // FULL RENDER
   // ─────────────────────────────────────────
   return (
-    <div className={`${T.bg} flex flex-col h-full min-h-screen rounded-2xl overflow-hidden border ${T.border} select-none`}>
+    <div className="flex flex-col h-full min-h-screen overflow-hidden"
+         style={{ background: '#13151e', fontFamily: "'Inter', system-ui, sans-serif" }}>
 
-      {/* ════════════════════════════════════
-          TOP BAR — Row 1: Logo + Skin + Status
-      ════════════════════════════════════ */}
-      <div className={`${T.surface} border-b ${T.border} px-3 py-2 flex items-center gap-3 shrink-0`}>
+      {/* ══════════════════════════════════════
+          TOP BAR
+      ══════════════════════════════════════ */}
+      <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b"
+           style={{ background: 'linear-gradient(180deg, #1e2230 0%, #181b26 100%)', borderColor: 'rgba(255,255,255,0.06)' }}>
+
         {/* Logo */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 rounded-xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center">
-            <Logo size={20} />
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+               style={{ background: 'rgba(59,142,245,0.1)', border: '1px solid rgba(59,142,245,0.3)' }}>
+            <Logo size={22} />
           </div>
-          <div className="hidden sm:block">
-            <div className={`text-[11px] font-black uppercase tracking-widest ${T.text}`}>
-              Sound <span className="text-blue-500">Shepherd</span>
+          <div>
+            <div className="text-[12px] font-black uppercase tracking-widest text-white">
+              Sound <span style={{ color: BLUE }}>Shepherd</span>
             </div>
-            <div className={`text-[7px] font-bold uppercase tracking-[0.2em] ${T.textDim}`}>Training Console</div>
+            <div className="text-[7px] font-bold uppercase tracking-[0.2em] text-gray-500">Training Console</div>
           </div>
         </div>
 
         <div className="flex-1" />
 
-        {/* Skin toggle */}
-        <div className={`flex rounded-lg overflow-hidden border ${T.border} shrink-0`}>
-          <button onClick={() => setSkin('dark')}
-            className={`px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all ${skin === 'dark' ? 'bg-blue-600 text-white' : `${T.surface2} ${T.textDim}`}`}>
-            Dark
-          </button>
-          <button onClick={() => setSkin('light')}
-            className={`px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all ${skin === 'light' ? 'bg-slate-700 text-white' : `${T.surface2} ${T.textDim}`}`}>
-            Light
-          </button>
-        </div>
-
-        {/* Audio Engine status */}
-        {!audioReady && (
-          <button onClick={initAudio}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-red-600 text-white rounded-lg text-[8px] font-black uppercase animate-pulse shrink-0">
-            <Power size={10} /> Engine Off
-          </button>
-        )}
-        {audioReady && (
-          <div className="flex items-center gap-1 shrink-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className={`text-[7px] font-bold uppercase ${T.textDim}`}>Live</span>
-          </div>
-        )}
-      </div>
-
-      {/* ════════════════════════════════════
-          TOP BAR — Row 2: Transport + Media
-      ════════════════════════════════════ */}
-      <div className={`${T.surface2} border-b ${T.border} px-3 py-1.5 flex items-center gap-2 shrink-0 overflow-x-auto`}
-           style={{ scrollbarWidth: 'none' }}>
-
-        {/* Play / Stop */}
-        <button onClick={togglePlay} disabled={isLoading}
-          className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-[9px] font-black uppercase transition-all ${
-            isLoading ? 'bg-slate-700 cursor-wait' :
-            isPlaying  ? 'bg-orange-600 hover:bg-orange-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
-          {isLoading ? <Activity size={13} className="animate-spin" /> :
-           isPlaying  ? <Square size={13} fill="white" />  : <Play size={13} fill="white" />}
-          <span className="hidden xs:inline">{isLoading ? 'Loading' : isPlaying ? 'Stop' : 'Play'}</span>
-        </button>
-
-        {/* Check (test tone) */}
-        <button onClick={toggleSoundCheck}
-          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase border transition-all ${
-            toneActive ? 'bg-green-600 border-green-400 text-white' :
-            `${T.surface} ${T.border} ${T.textMid} hover:text-white`}`}>
-          <Volume2 size={13} />
-          <span>Check</span>
-        </button>
-
-        {/* Mic */}
-        <button onClick={toggleMic}
-          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase border transition-all ${
-            micActive ? 'bg-red-600 border-red-400 text-white animate-pulse' :
-            `${T.surface} ${T.border} ${T.textMid} hover:text-white`}`}>
-          {micActive ? <MicOff size={13} /> : <Mic size={13} />}
-          <span className="hidden sm:inline">{micActive ? 'Mic On' : 'Mic'}</span>
-        </button>
-
-        {/* Upload */}
-        <label className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase border cursor-pointer transition-all ${T.surface} ${T.border} ${T.textMid} hover:text-white`}>
-          <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
-          <Music size={13} />
-          <span className="hidden sm:inline">Upload</span>
-        </label>
-
-        <div className={`h-5 w-px ${T.border} shrink-0 mx-1`} />
-
-        {/* Current track + playlist toggle */}
-        <div className="relative shrink-0">
-          <button onClick={() => setShowPlaylist(p => !p)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-left transition-all ${T.surface} ${T.border}`}>
-            <Music size={12} className={isPlaying ? 'text-blue-400' : T.textDim} />
-            <div>
-              <div className={`text-[8px] ${T.textDim} uppercase font-bold tracking-widest leading-none`}>Now Playing</div>
-              <div className={`text-[10px] font-black uppercase ${T.text} max-w-[140px] truncate`}>{currentSong.title}</div>
-            </div>
-            <ChevronDown size={11} className={`${T.textDim} transition-transform ${showPlaylist ? 'rotate-180' : ''}`} />
+        {/* Transport controls */}
+        <div className="flex items-center gap-2">
+          {/* Play/Stop */}
+          <button onClick={togglePlay} disabled={isLoading}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase text-white transition-all"
+            style={{ background: isLoading ? '#374151' : isPlaying ? '#ea580c' : BLUE,
+                     boxShadow: isPlaying ? '0 0 16px rgba(234,88,12,0.4)' : `0 0 16px rgba(59,142,245,0.3)` }}>
+            {isLoading ? <Activity size={13} className="animate-spin" /> : isPlaying ? <Square size={13} fill="white" /> : <Play size={13} fill="white" />}
+            <span>{isLoading ? 'Loading' : isPlaying ? 'Stop' : 'Play'}</span>
           </button>
 
-          {/* Playlist dropdown */}
-          <AnimatePresence>
-            {showPlaylist && (
-              <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.97 }}
-                transition={{ duration: 0.15 }}
-                className={`absolute top-full mt-1 left-0 w-80 ${skin === 'dark' ? 'bg-[#1c1f28]' : 'bg-white'} border ${T.border} rounded-xl shadow-2xl z-50 overflow-hidden`}>
+          {/* Check */}
+          <button onClick={toggleSoundCheck}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all"
+            style={{ background: toneActive ? '#16a34a' : '#1e2230', color: toneActive ? 'white' : '#94a3b8',
+                     border: '1px solid rgba(255,255,255,0.08)', boxShadow: toneActive ? '0 0 12px rgba(22,163,74,0.4)' : 'none' }}>
+            <Volume2 size={12} /> Check
+          </button>
 
-                {/* Header */}
-                <div className={`flex items-center justify-between px-3 py-2 border-b ${T.border}`}>
-                  <span className={`text-[9px] font-black uppercase tracking-widest ${T.textMid}`}>Playlist</span>
-                  <button onClick={() => { setShowAddInput(p => !p); setYtInputError(''); }}
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md ${T.accent} text-white text-[8px] font-black uppercase`}>
-                    <Plus size={10} /> Add YouTube
-                  </button>
-                </div>
+          {/* Mic */}
+          <button onClick={toggleMic}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all"
+            style={{ background: micActive ? '#dc2626' : '#1e2230', color: micActive ? 'white' : '#94a3b8',
+                     border: '1px solid rgba(255,255,255,0.08)', boxShadow: micActive ? '0 0 12px rgba(220,38,38,0.4)' : 'none' }}>
+            {micActive ? <MicOff size={12} /> : <Mic size={12} />}
+            <span className="hidden sm:inline">{micActive ? 'Mic On' : 'Mic'}</span>
+          </button>
 
-                {/* Add URL input */}
-                <AnimatePresence>
-                  {showAddInput && (
-                    <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
-                      className="overflow-hidden">
-                      <div className={`p-2.5 border-b ${T.border} space-y-1.5`}>
-                        <div className="flex gap-1.5">
-                          <input
-                            type="text" value={ytInputUrl} autoFocus
-                            onChange={e => { setYtInputUrl(e.target.value); setYtInputError(''); }}
-                            onKeyDown={e => e.key === 'Enter' && addYouTubeSong()}
-                            placeholder="Paste YouTube URL..."
-                            className={`flex-1 rounded-lg px-2.5 py-1.5 text-[10px] border outline-none focus:border-blue-500 min-w-0 ${
-                              skin === 'dark' ? 'bg-[#0d0f14] border-slate-700 text-white placeholder-slate-600'
-                                              : 'bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-400'}`} />
-                          <button onClick={addYouTubeSong} disabled={ytInputLoading || !ytInputUrl.trim()}
-                            className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg text-[9px] font-black uppercase">
-                            {ytInputLoading ? '…' : 'Add'}
-                          </button>
-                        </div>
-                        {ytInputError && <p className="text-[8px] text-red-400 font-bold">{ytInputError}</p>}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+          {/* Upload */}
+          <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase cursor-pointer transition-all"
+                 style={{ background: '#1e2230', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
+            <Music size={12} /><span className="hidden sm:inline">Upload</span>
+          </label>
 
-                {/* Song list */}
-                <div className="max-h-64 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-                  {songs.length === 0 && (
-                    <div className={`py-8 text-center text-[10px] font-bold ${T.textDim}`}>
-                      No tracks — add a YouTube URL above
-                    </div>
-                  )}
-                  {songs.map(s => (
-                    <div key={s.id}
-                      className={`flex items-center gap-2 group px-2 py-2 transition-all border-b ${T.border} last:border-0 ${
-                        currentSong.id === s.id
-                          ? skin === 'dark' ? 'bg-blue-600/10' : 'bg-blue-50'
-                          : skin === 'dark' ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
-                      <button onClick={() => selectSong(s)} className="flex-1 flex items-center gap-2.5 min-w-0 text-left">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                          currentSong.id === s.id ? 'bg-blue-500 text-white' : `${skin === 'dark' ? 'bg-slate-800' : 'bg-slate-200'} ${T.textMid}`}`}>
-                          {currentSong.id === s.id && isPlaying
-                            ? <Activity size={12} className="animate-pulse" />
-                            : <Music size={12} />}
-                        </div>
-                        <div className="min-w-0">
-                          <div className={`text-[10px] font-black uppercase truncate ${currentSong.id === s.id ? 'text-blue-400' : T.text}`}>{s.title}</div>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <span className={`text-[7px] font-bold uppercase px-1 rounded border ${
-                              s.type === 'youtube' ? 'text-red-400 border-red-800' : 'text-green-400 border-green-800'}`}>
-                              {s.type === 'youtube' ? 'YT' : 'MP3'}
-                            </span>
-                            <span className={`text-[7px] font-bold truncate ${T.textDim}`}>{s.artist}</span>
-                          </div>
-                        </div>
-                      </button>
-                      <button onClick={() => deleteSong(s.id)}
-                        className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600/20 hover:text-red-400 ${T.textDim}`}>
-                        <Trash2 size={11} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className={`px-3 py-2 border-t ${T.border}`}>
-                  <p className={`text-[7px] font-bold uppercase tracking-widest ${T.textDim} text-center`}>
-                    YT = video only &nbsp;·&nbsp; Upload MP3 for full console control
-                  </p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+          <div className="w-px h-6 mx-1" style={{ background: 'rgba(255,255,255,0.08)' }} />
 
-        {/* Master meter (compact, top bar) */}
-        <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
-          <span className={`text-[7px] font-black uppercase ${T.textDim} hidden sm:block shrink-0`}>Master</span>
-          <div className="flex gap-0.5 items-end h-5 shrink-0">
-            {[0, 1].map(i => (
-              <div key={i} className={`w-1.5 h-full rounded-sm ${skin === 'dark' ? 'bg-slate-800' : 'bg-slate-300'} relative overflow-hidden`}>
-                <motion.div animate={{ height: `${masterMeter * (i === 0 ? 1 : 0.92)}%` }}
-                  transition={{ duration: 0.08 }}
-                  className={`absolute bottom-0 w-full ${masterMeter > 85 ? 'bg-red-500' : masterMeter > 65 ? 'bg-yellow-400' : T.meter}`} />
+          {/* Playlist picker */}
+          <div className="relative">
+            <button onClick={() => setShowPlaylist(p => !p)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-left"
+              style={{ background: '#1e2230', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Music size={12} style={{ color: isPlaying ? BLUE : '#64748b' }} />
+              <div>
+                <div className="text-[7px] text-gray-500 uppercase font-bold tracking-widest leading-none">Now Playing</div>
+                <div className="text-[10px] font-black text-white max-w-[130px] truncate uppercase">{currentSong.title}</div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ════════════════════════════════════
-          MAIN BODY
-      ════════════════════════════════════ */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-
-        {/* ── STAGE MONITOR (always visible at top on mobile) ── */}
-        <div className={`${T.surface} border-b ${T.border} shrink-0`}>
-          <div className={`aspect-video max-h-40 sm:max-h-52 md:max-h-64 relative overflow-hidden`}>
-            {currentSong.type === 'youtube' ? (
-              <>
-                <iframe key={currentSong.id}
-                  src={getYouTubeEmbedUrl(currentSong.url)}
-                  className="w-full h-full" allow="autoplay; encrypted-media" allowFullScreen
-                  title={currentSong.title} />
-                <div className="absolute bottom-0 inset-x-0 bg-black/60 py-1 text-center pointer-events-none">
-                  <span className="text-[8px] text-blue-300 font-bold uppercase tracking-widest">
-                    ▶ Press Play inside the video
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className={`w-full h-full flex flex-col items-center justify-center gap-2 ${skin === 'dark' ? 'bg-slate-900' : 'bg-slate-200'}`}>
-                <Waves size={28} className={isPlaying ? 'text-blue-500 animate-pulse' : 'text-blue-500/20'} />
-                <span className={`text-[8px] font-black uppercase tracking-widest ${T.textDim}`}>
-                  {isPlaying ? 'Audio Playing' : 'Audio Only'}
-                </span>
-                {isPlaying && (
-                  <div className="flex gap-0.5 items-end h-5">
-                    {[...Array(14)].map((_, i) => (
-                      <motion.div key={i}
-                        animate={{ height: [`${15 + Math.random() * 85}%`, `${15 + Math.random() * 85}%`] }}
-                        transition={{ duration: 0.25 + Math.random() * 0.3, repeat: Infinity, repeatType: 'reverse' }}
-                        className="w-1 bg-blue-500/50 rounded-full" style={{ height: '15%' }} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── MIXER STRIP + CHANNEL DETAIL ── */}
-        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-
-          {/* ─── LEFT: Fader Strips (horizontal scroll) ─── */}
-          <div className="lg:flex-1 flex flex-col overflow-hidden">
-
-            {/* Scrollable strip area */}
-            <div
-              ref={stripRef}
-              className="flex-1 overflow-x-auto overflow-y-hidden"
-              style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin',
-                       scrollbarColor: skin === 'dark' ? '#334155 transparent' : '#94a3b8 transparent' }}>
-              <div className={`flex h-full gap-0 min-w-max p-2 ${T.bg}`} style={{ minHeight: 260 }}>
-
-                {/* Channel Strips */}
-                {channels.map(ch => {
-                  const active = ch.id === selectedId;
-                  return (
-                    <div key={ch.id}
-                      className={`flex flex-col items-center w-[72px] sm:w-[84px] h-full rounded-xl transition-all mx-0.5 ${
-                        active ? `${skin === 'dark' ? 'bg-slate-800/70' : 'bg-white/60'} ring-1 ring-white/10` : ''}`}>
-
-                      {/* Channel label (tap to select) */}
-                      <button onClick={() => setSelectedId(ch.id)}
-                        className={`w-full h-10 sm:h-12 rounded-xl flex flex-col items-center justify-center mb-1 border-2 transition-all ${
-                          active ? 'border-white/60 scale-105' : 'border-transparent opacity-70 hover:opacity-90'}`}
-                        style={{ backgroundColor: ch.color }}>
-                        <span className="text-[7px] font-black text-white/50 uppercase">{ch.id}</span>
-                        <span className="text-[9px] sm:text-[11px] font-black text-white truncate px-1 w-full text-center leading-tight">
-                          {ch.name}
-                        </span>
-                      </button>
-
-                      {/* VU meter */}
-                      <div className={`w-3 sm:w-4 rounded-md overflow-hidden mb-1 ${skin === 'dark' ? 'bg-black' : 'bg-slate-800'}`}
-                           style={{ height: 80 }}>
-                        <div className="w-full h-full flex flex-col-reverse p-0.5">
-                          <motion.div
-                            animate={{ height: ch.muted ? '0%' : `${masterMeter * (active ? 1 : 0.5 + Math.random() * 0.3)}%` }}
-                            transition={{ duration: 0.09 }}
-                            className={`w-full rounded-sm ${ch.muted ? 'bg-transparent' : 'bg-green-400'}`}
-                            style={{ boxShadow: ch.muted ? 'none' : '0 0 6px rgba(74,222,128,0.5)' }} />
-                        </div>
-                      </div>
-
-                      {/* Solo / Mute */}
-                      <div className="flex flex-col gap-1 w-full px-1 mb-1">
-                        <button onClick={() => updateCh(ch.id, { solo: !ch.solo })}
-                          className={`w-full py-0.5 rounded-md text-[8px] font-black uppercase transition-all border ${
-                            ch.solo ? 'bg-yellow-500 border-yellow-300 text-black'
-                                    : `${skin === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-600' : 'bg-slate-300 border-slate-400 text-slate-600'}`}`}>
-                          Solo
-                        </button>
-                        <button onClick={() => updateCh(ch.id, { muted: !ch.muted })}
-                          className={`w-full py-0.5 rounded-md text-[8px] font-black uppercase transition-all border ${
-                            ch.muted ? 'bg-red-600 border-red-400 text-white'
-                                     : `${skin === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-600' : 'bg-slate-300 border-slate-400 text-slate-600'}`}`}>
-                          Mute
-                        </button>
-                      </div>
-
-                      {/* Fader */}
-                      <div className={`relative flex-1 w-7 sm:w-8 rounded-lg border mb-1 overflow-visible ${
-                        skin === 'dark' ? 'bg-[#0a0c10] border-slate-800/60' : 'bg-slate-700 border-slate-800'}`}
-                           style={{ minHeight: 100 }}>
-                        {/* tick marks */}
-                        <div className="absolute inset-y-3 inset-x-0 flex flex-col justify-between pointer-events-none px-1">
-                          {[...Array(9)].map((_, i) => (
-                            <div key={i} className={`h-px w-full ${skin === 'dark' ? 'bg-slate-700/40' : 'bg-slate-500/40'}`} />
-                          ))}
-                        </div>
-                        {/* invisible range input */}
-                        <input type="range" min="0" max="100" value={ch.fader}
-                          onChange={e => updateCh(ch.id, { fader: +e.target.value })}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                          style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any} />
-                        {/* fader cap */}
-                        <motion.div
-                          animate={{ bottom: `${ch.fader}%` }}
-                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                          className="absolute left-0 right-0 h-8 sm:h-10 rounded-md pointer-events-none z-0 flex flex-col items-center justify-center"
-                          style={{ transform: 'translateY(50%)', background: active ? '#e2e8f0' : '#94a3b8',
-                                   boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3)' }}>
-                          <div className="w-4 h-0.5 rounded-full bg-red-500" style={{ boxShadow: '0 0 6px rgba(239,68,68,0.8)' }} />
-                        </motion.div>
-                      </div>
-
-                      {/* Fader value */}
-                      <span className={`text-[7px] font-mono font-bold ${T.textDim}`}>{ch.fader}</span>
-                    </div>
-                  );
-                })}
-
-                {/* ─ Master Strip ─ */}
-                <div className={`flex flex-col items-center w-[72px] sm:w-[84px] h-full ml-1 pl-2 border-l ${T.border}`}>
-                  <div className="w-full h-10 sm:h-12 rounded-xl bg-red-700 flex items-center justify-center mb-1 border-2 border-red-500">
-                    <span className="text-[9px] font-black text-white uppercase tracking-widest">Main</span>
-                  </div>
-
-                  {/* Dual master meter */}
-                  <div className="flex gap-0.5 mb-1" style={{ height: 80 }}>
-                    {[1, 0.92].map((scale, i) => (
-                      <div key={i} className={`w-2.5 sm:w-3 rounded-md overflow-hidden ${skin === 'dark' ? 'bg-black' : 'bg-slate-800'}`}>
-                        <div className="w-full h-full flex flex-col-reverse p-0.5">
-                          <motion.div animate={{ height: `${masterMeter * scale}%` }}
-                            transition={{ duration: 0.08 }}
-                            className={`w-full rounded-sm ${masterMeter > 85 ? 'bg-red-500' : masterMeter > 65 ? 'bg-yellow-400' : 'bg-green-400'}`} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex-1 relative w-7 sm:w-8 rounded-lg border overflow-visible bg-[#0a0c10] border-red-900/40"
-                       style={{ minHeight: 100 }}>
-                    <div className="absolute inset-y-3 inset-x-0 flex flex-col justify-between pointer-events-none px-1">
-                      {[...Array(9)].map((_, i) => <div key={i} className="h-px w-full bg-red-900/30" />)}
-                    </div>
-                    <input type="range" min="0" max="100" value={masterFader}
-                      onChange={e => setMasterFader(+e.target.value)}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any} />
-                    <motion.div
-                      animate={{ bottom: `${masterFader}%` }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                      className="absolute left-0 right-0 h-8 sm:h-10 rounded-md pointer-events-none z-0 flex items-center justify-center"
-                      style={{ transform: 'translateY(50%)', background: '#dc2626',
-                               boxShadow: '0 2px 8px rgba(0,0,0,0.5), 0 0 12px rgba(220,38,38,0.3), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
-                      <div className="w-4 h-0.5 rounded-full bg-white" style={{ boxShadow: '0 0 8px white' }} />
-                    </motion.div>
-                  </div>
-                  <span className={`text-[7px] font-mono font-bold ${T.textDim}`}>{masterFader}</span>
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          {/* ─── RIGHT: Channel Detail Panel (collapsible) ─── */}
-          <div className={`lg:w-72 xl:w-80 border-t lg:border-t-0 lg:border-l ${T.border} flex flex-col shrink-0 transition-all`}>
-
-            {/* Panel header (tap to collapse on mobile) */}
-            <button
-              onClick={() => setPanelOpen(p => !p)}
-              className={`flex items-center justify-between px-3 py-2 border-b ${T.border} ${T.surface} w-full`}>
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-md flex items-center justify-center text-white text-[10px] font-black"
-                     style={{ backgroundColor: selectedCh.color }}>
-                  {selectedCh.id}
-                </div>
-                <span className={`text-[10px] font-black uppercase ${T.text}`}>{selectedCh.name}</span>
-                <span className={`text-[7px] font-bold uppercase ${T.textDim}`}>— Channel Detail</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={e => { e.stopPropagation(); updateCh(selectedId, { ...INITIAL_CHANNELS.find(c => c.id === selectedId)! }); }}
-                  className={`px-2 py-0.5 rounded border text-[7px] font-black uppercase ${T.surface2} ${T.border} ${T.textMid} hover:text-white`}>
-                  Reset
-                </button>
-                <ChevronDown size={14} className={`${T.textMid} transition-transform ${panelOpen ? '' : '-rotate-90'}`} />
-              </div>
+              <ChevronDown size={11} className={`text-gray-500 transition-transform ${showPlaylist ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* Panel content */}
-            <AnimatePresence initial={false}>
-              {panelOpen && (
-                <motion.div
-                  key="panel"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden flex-1">
-                  <div className="p-3 space-y-4 overflow-y-auto h-full" style={{ scrollbarWidth: 'thin' }}>
-
-                    {/* ── Gain ── */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[8px] font-black uppercase tracking-widest ${T.textMid}`}>Gain</span>
-                        <button onClick={() => setInfo(HELP.gain)}
-                          className={`w-4 h-4 rounded-full flex items-center justify-center ${T.surface2} ${T.textDim} hover:text-blue-400`}>
-                          <HelpCircle size={9} />
-                        </button>
-                        <span className={`ml-auto text-[9px] font-mono font-bold text-blue-400`}>{selectedCh.gain}</span>
-                      </div>
-                      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: skin === 'dark' ? '#1e2330' : '#cbd5e1' }}>
-                        <div className="absolute left-0 top-0 h-full rounded-full bg-blue-500 transition-all"
-                             style={{ width: `${selectedCh.gain}%` }} />
-                        <input type="range" min="0" max="100" value={selectedCh.gain}
-                          onChange={e => updateCh(selectedId, { gain: +e.target.value })}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                      </div>
-                    </div>
-
-                    {/* ── HPF + Pan ── */}
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* HPF toggle */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1">
-                          <span className={`text-[8px] font-black uppercase tracking-widest ${T.textMid}`}>HPF</span>
-                          <button onClick={() => setInfo(HELP.hpf)}
-                            className={`w-4 h-4 rounded-full flex items-center justify-center ${T.surface2} ${T.textDim} hover:text-blue-400`}>
-                            <HelpCircle size={9} />
-                          </button>
-                        </div>
-                        <button onClick={() => updateCh(selectedId, { hpf: !selectedCh.hpf })}
-                          className={`w-full py-2 rounded-xl text-[9px] font-black uppercase border transition-all ${
-                            selectedCh.hpf ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/20'
-                                           : `${T.surface2} ${T.border} ${T.textDim}`}`}>
-                          {selectedCh.hpf ? 'ON' : 'OFF'}
-                        </button>
-                      </div>
-
-                      {/* Pan */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1">
-                          <span className={`text-[8px] font-black uppercase tracking-widest ${T.textMid}`}>Pan</span>
-                          <button onClick={() => setInfo(HELP.pan)}
-                            className={`w-4 h-4 rounded-full flex items-center justify-center ${T.surface2} ${T.textDim} hover:text-blue-400`}>
-                            <HelpCircle size={9} />
-                          </button>
-                          <span className={`ml-auto text-[9px] font-mono font-bold text-blue-400`}>
-                            {selectedCh.pan === 0 ? 'C' : `${Math.abs(selectedCh.pan)}${selectedCh.pan < 0 ? 'L' : 'R'}`}
-                          </span>
-                        </div>
-                        <div className="relative h-2 rounded-full overflow-hidden" style={{ background: skin === 'dark' ? '#1e2330' : '#cbd5e1' }}>
-                          <div className="absolute top-0 h-full rounded-full bg-blue-500 transition-all"
-                               style={{
-                                 left: selectedCh.pan < 0 ? `${50 + selectedCh.pan / 2}%` : '50%',
-                                 width: `${Math.abs(selectedCh.pan) / 2}%`,
-                               }} />
-                          <div className="absolute left-1/2 top-0 h-full w-px bg-white/20" />
-                          <input type="range" min="-100" max="100" value={selectedCh.pan}
-                            onChange={e => updateCh(selectedId, { pan: +e.target.value })}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* ── EQ ── */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[8px] font-black uppercase tracking-widest ${T.textMid}`}>Equalizer</span>
-                        <button onClick={() => setInfo(HELP.eq)}
-                          className={`w-4 h-4 rounded-full flex items-center justify-center ${T.surface2} ${T.textDim} hover:text-blue-400`}>
-                          <HelpCircle size={9} />
-                        </button>
-                      </div>
-
-                      {/* EQ mini curve */}
-                      <div className={`h-8 rounded-lg overflow-hidden border ${T.border}`}
-                           style={{ background: skin === 'dark' ? '#0a0c10' : '#1e293b' }}>
-                        <svg width="100%" height="100%" viewBox="0 0 200 32" preserveAspectRatio="none">
-                          <polyline
-                            fill="none" stroke="#3b82f6" strokeWidth="1.5" opacity="0.7"
-                            points={`0,${16 - selectedCh.eq.low * 1.2} 50,${16 - selectedCh.eq.midLow * 1.2} 100,16 150,${16 - selectedCh.eq.midHigh * 1.2} 200,${16 - selectedCh.eq.high * 1.2}`} />
-                          <line x1="0" y1="16" x2="200" y2="16" stroke="#334155" strokeWidth="0.5" />
-                        </svg>
-                      </div>
-
-                      {/* 4 band sliders */}
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {(['high', 'midHigh', 'midLow', 'low'] as const).map(band => (
-                          <div key={band} className="flex flex-col items-center gap-1">
-                            <span className={`text-[7px] font-black uppercase ${T.textDim}`}>
-                              {band === 'high' ? 'Hi' : band === 'midHigh' ? 'mHi' : band === 'midLow' ? 'mLo' : 'Lo'}
-                            </span>
-                            <div className="relative flex items-center justify-center" style={{ height: 72, width: 10 }}>
-                              <div className={`absolute w-0.5 h-full rounded-full ${skin === 'dark' ? 'bg-slate-800' : 'bg-slate-400'}`} />
-                              <input type="range" min="-12" max="12" value={selectedCh.eq[band]}
-                                onChange={e => updateCh(selectedId, { eq: { ...selectedCh.eq, [band]: +e.target.value } })}
-                                className="absolute opacity-0 cursor-pointer z-10"
-                                style={{ width: 72, height: 10, writingMode: 'vertical-lr', direction: 'rtl' } as any} />
-                              <motion.div
-                                animate={{ top: `${((12 - selectedCh.eq[band]) / 24) * 100}%` }}
-                                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                                className="absolute w-4 h-3 rounded pointer-events-none"
-                                style={{ transform: 'translateY(-50%)',
-                                         background: selectedCh.eq[band] !== 0 ? '#3b82f6' : skin === 'dark' ? '#475569' : '#94a3b8',
-                                         boxShadow: selectedCh.eq[band] !== 0 ? '0 0 6px rgba(59,130,246,0.5)' : 'none' }} />
-                            </div>
-                            <span className={`text-[7px] font-mono font-bold ${selectedCh.eq[band] !== 0 ? 'text-blue-400' : T.textDim}`}>
-                              {selectedCh.eq[band] > 0 ? '+' : ''}{selectedCh.eq[band]}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* ── Gate / Comp (placeholder) ── */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {(['GATE', 'COMP'] as const).map(label => (
-                        <div key={label} className={`rounded-xl p-2.5 border ${T.surface2} ${T.border}`}>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className={`text-[8px] font-black ${T.textDim}`}>{label}</span>
-                            <CircleDot size={8} className={T.textDim} />
-                          </div>
-                          <div className={`h-1 rounded-full ${skin === 'dark' ? 'bg-slate-900' : 'bg-slate-400'}`}>
-                            <div className={`h-full rounded-full w-[${label === 'COMP' ? '40' : '0'}%] ${label === 'COMP' ? 'bg-orange-500/40' : ''}`} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Next channel button */}
-                    <button onClick={() => setSelectedId(selectedId < 4 ? selectedId + 1 : 1)}
-                      className={`w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-blue-600 hover:bg-blue-500 text-white`}>
-                      Next Channel <ChevronRight size={12} />
+            <AnimatePresence>
+              {showPlaylist && (
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                  className="absolute top-full mt-1 right-0 z-50 overflow-hidden rounded-xl"
+                  style={{ width: 320, background: '#1e2230', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+                  <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                    <span className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Playlist</span>
+                    <button onClick={() => setShowAddYt(p => !p)}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase text-white"
+                      style={{ background: BLUE }}>
+                      <Plus size={10} /> Add YouTube
                     </button>
+                  </div>
+                  <AnimatePresence>
+                    {showAddYt && (
+                      <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                        <div className="p-2 space-y-1 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                          <div className="flex gap-1.5">
+                            <input type="text" value={ytInputUrl} autoFocus placeholder="Paste YouTube URL..."
+                              onChange={e => { setYtInputUrl(e.target.value); setYtError(''); }}
+                              onKeyDown={e => e.key === 'Enter' && addYouTubeSong()}
+                              className="flex-1 rounded-lg px-2.5 py-1.5 text-[10px] text-white outline-none"
+                              style={{ background: '#0d0f14', border: '1px solid rgba(255,255,255,0.1)' }} />
+                            <button onClick={addYouTubeSong} disabled={ytLoading || !ytInputUrl.trim()}
+                              className="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase text-white"
+                              style={{ background: BLUE }}>
+                              {ytLoading ? '…' : 'Add'}
+                            </button>
+                          </div>
+                          {ytError && <p className="text-[8px] text-red-400">{ytError}</p>}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <div className="max-h-64 overflow-y-auto">
+                    {songs.map(s => (
+                      <div key={s.id} className="flex items-center gap-2 px-2 py-2 group border-b last:border-0 transition-all"
+                           style={{ borderColor: 'rgba(255,255,255,0.04)', background: currentSong.id === s.id ? 'rgba(59,142,245,0.08)' : 'transparent' }}>
+                        <button onClick={() => selectSong(s)} className="flex-1 flex items-center gap-2.5 min-w-0 text-left">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                               style={{ background: currentSong.id === s.id ? BLUE : '#2d3748' }}>
+                            {currentSong.id === s.id && isPlaying ? <Activity size={12} className="animate-pulse text-white" /> : <Music size={12} className="text-gray-400" />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-black uppercase truncate" style={{ color: currentSong.id === s.id ? BLUE : 'white' }}>{s.title}</div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[7px] font-bold px-1 rounded border"
+                                    style={{ color: s.type === 'youtube' ? '#f87171' : '#4ade80', borderColor: s.type === 'youtube' ? '#7f1d1d' : '#14532d' }}>
+                                {s.type === 'youtube' ? 'YT' : 'MP3'}
+                              </span>
+                              <span className="text-[7px] text-gray-500 truncate">{s.artist}</span>
+                            </div>
+                          </div>
+                        </button>
+                        <button onClick={() => deleteSong(s.id)}
+                          className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md flex items-center justify-center text-gray-600 hover:text-red-400 transition-all">
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="px-3 py-2 text-center text-[7px] text-gray-600 font-bold uppercase border-t" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+                    YT = video only · Upload MP3 for full console control
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-
         </div>
       </div>
 
-      {/* ── Info Tooltip Modal ── */}
+      {/* ══════════════════════════════════════
+          STAGE MONITOR (YouTube / waveform)
+      ══════════════════════════════════════ */}
+      <div className="shrink-0 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)', background: '#0d0f14' }}>
+        <div className="aspect-video" style={{ maxHeight: 180 }}>
+          {currentSong.type === 'youtube' ? (
+            <div className="relative w-full h-full">
+              <iframe key={currentSong.id} src={getYouTubeEmbedUrl(currentSong.url)}
+                className="w-full h-full" allow="autoplay; encrypted-media" allowFullScreen title={currentSong.title} />
+              <div className="absolute bottom-0 inset-x-0 text-center py-1 pointer-events-none"
+                   style={{ background: 'rgba(0,0,0,0.7)' }}>
+                <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: BLUE }}>
+                  ▶ Press Play inside the video
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: '#0a0c10' }}>
+              <Waves size={28} style={{ color: isPlaying ? BLUE : '#1e2230' }} />
+              <span className="text-[8px] font-black uppercase tracking-widest text-gray-600">
+                {isPlaying ? 'Audio Playing' : 'Audio Only Mode'}
+              </span>
+              {isPlaying && (
+                <div className="flex gap-0.5 items-end h-6">
+                  {[...Array(16)].map((_, i) => (
+                    <motion.div key={i}
+                      animate={{ height: [`${10 + Math.random() * 90}%`, `${10 + Math.random() * 90}%`] }}
+                      transition={{ duration: 0.2 + Math.random() * 0.3, repeat: Infinity, repeatType: 'reverse' }}
+                      className="w-1 rounded-full" style={{ height: '10%', background: BLUE, opacity: 0.6 }} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════
+          MIXER — horizontal scroll
+      ══════════════════════════════════════ */}
+      <div className="flex-1 overflow-hidden flex">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden"
+             style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent' }}>
+          <div className="flex h-full" style={{ minWidth: 'max-content' }}>
+
+            {/* Channel Strips */}
+            {channels.map(ch => (
+              <div key={ch.id} className="flex flex-col shrink-0" style={{ width: 200 }}>
+
+                {/* Strip body */}
+                <div className="flex flex-1"
+                     style={{ background: 'linear-gradient(180deg, #1c1f2b 0%, #161820 100%)',
+                              borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+
+                  {/* LEFT: Trim / Reverb / Pan / Mute / Solo / Fader */}
+                  <div className="flex flex-col items-center gap-2 pt-3 pb-2 px-2"
+                       style={{ width: 68, borderRight: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Knob value={ch.trim} onChange={v => updateCh(ch.id, { trim: v })} size={40} color={BLUE} label="Trim"
+                          onHelp={() => setInfo(HELP_INFO.trim)} />
+                    <Knob value={ch.reverb} onChange={v => updateCh(ch.id, { reverb: v })} size={40} color={BLUE} label="Reverb"
+                          onHelp={() => setInfo(HELP_INFO.reverb)} />
+                    <PanSlider value={ch.pan} onChange={v => updateCh(ch.id, { pan: v })} />
+                    <button onClick={() => updateCh(ch.id, { muted: !ch.muted })}
+                      className="w-full rounded-lg py-1 text-[9px] font-black uppercase tracking-wide transition-all"
+                      style={{ background: ch.muted ? '#dc2626' : 'linear-gradient(180deg,#2d3748,#1a202c)',
+                               color: ch.muted ? 'white' : '#64748b',
+                               border: `1px solid ${ch.muted ? '#f87171' : 'rgba(255,255,255,0.08)'}`,
+                               boxShadow: ch.muted ? '0 0 10px rgba(220,38,38,0.35)' : 'none' }}>
+                      mute
+                    </button>
+                    <button onClick={() => updateCh(ch.id, { solo: !ch.solo })}
+                      className="w-full rounded-lg py-1 text-[9px] font-black uppercase tracking-wide transition-all"
+                      style={{ background: ch.solo ? 'linear-gradient(180deg,#64748b,#475569)' : 'linear-gradient(180deg,#374151,#1f2937)',
+                               color: ch.solo ? 'white' : '#64748b',
+                               border: `1px solid ${ch.solo ? '#94a3b8' : 'rgba(255,255,255,0.08)'}` }}>
+                      solo
+                    </button>
+                    <VertFader value={ch.fader} onChange={v => updateCh(ch.id, { fader: v })} height={120} color={BLUE} />
+                  </div>
+
+                  {/* MIDDLE: EQ */}
+                  <div className="flex flex-col items-center gap-2 pt-3 pb-1 px-1.5"
+                       style={{ width: 74, borderRight: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Knob value={ch.eq.high} onChange={v => updateCh(ch.id, { eq: { ...ch.eq, high: v } })} size={44} color={BLUE} label="High" onHelp={() => setInfo(HELP_INFO.eqHigh)} />
+                    <Knob value={ch.eq.midFreq} onChange={v => updateCh(ch.id, { eq: { ...ch.eq, midFreq: v } })} size={52} color={BLUE} label="Mid Freq" onHelp={() => setInfo(HELP_INFO.eqMidFreq)} />
+                    <Knob value={ch.eq.midGain} onChange={v => updateCh(ch.id, { eq: { ...ch.eq, midGain: v } })} size={44} color={BLUE} label="Mid Gain" onHelp={() => setInfo(HELP_INFO.eqMidGain)} />
+                    <Knob value={ch.eq.low} onChange={v => updateCh(ch.id, { eq: { ...ch.eq, low: v } })} size={52} color={BLUE} label="Low" onHelp={() => setInfo(HELP_INFO.eqLow)} />
+                    <div className="text-[7px] font-bold uppercase tracking-widest text-gray-600 mt-auto pt-1">EQ</div>
+                  </div>
+
+                  {/* RIGHT: Compressor */}
+                  <div className="flex flex-col items-center gap-2.5 pt-3 pb-1 px-1.5" style={{ flex: 1 }}>
+                    <Knob value={ch.comp.attack} onChange={v => updateCh(ch.id, { comp: { ...ch.comp, attack: v } })} size={40} color={BLUE} label="Attack" onHelp={() => setInfo(HELP_INFO.compAttack)} />
+                    <Knob value={ch.comp.release} onChange={v => updateCh(ch.id, { comp: { ...ch.comp, release: v } })} size={40} color={BLUE} label="Release" onHelp={() => setInfo(HELP_INFO.compRelease)} />
+                    <Knob value={ch.comp.threshold} onChange={v => updateCh(ch.id, { comp: { ...ch.comp, threshold: v } })} size={44} color={BLUE} label="Threshold" onHelp={() => setInfo(HELP_INFO.compThreshold)} />
+                    <div className="text-[6px] font-bold uppercase tracking-widest text-gray-700 mt-auto pt-1">COMPRESSOR</div>
+                  </div>
+                </div>
+
+                {/* Channel name label — scrap-paper style */}
+                <div className="relative shrink-0 flex items-center justify-between px-2 py-1.5"
+                     style={{ height: 52, background: 'linear-gradient(135deg, #c9a96e 0%, #b8965a 40%, #a07d45 100%)',
+                              borderTop: '1px solid rgba(255,255,255,0.1)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                  {/* Paper texture overlay */}
+                  <div className="absolute inset-0 opacity-20"
+                       style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)' }} />
+                  {/* Fader position indicator (blue strip at bottom like original) */}
+                  <div className="absolute bottom-0 left-2 right-8 h-3 rounded-t-sm overflow-hidden"
+                       style={{ background: 'rgba(0,0,0,0.2)' }}>
+                    <div className="h-full rounded-t-sm transition-all"
+                         style={{ width: `${ch.fader}%`, background: 'linear-gradient(90deg, #3b82f6, #60a5fa)',
+                                  boxShadow: '0 0 8px rgba(59,130,246,0.5)' }} />
+                  </div>
+                  <span className="relative text-[10px] font-black text-amber-900 italic tracking-tight leading-tight" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.3)' }}>
+                    {ch.name}
+                  </span>
+                  {/* Orange help button */}
+                  <button onClick={() => setInfo({ title: ch.name, desc: `Channel ${ch.id}. Use the knobs above to shape this channel's sound. Click any ? button for detailed guidance.` })}
+                    className="relative w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all hover:scale-110"
+                    style={{ background: 'radial-gradient(circle at 35% 35%, #fb923c, #ea580c)',
+                             boxShadow: '0 2px 8px rgba(234,88,12,0.5), inset 0 1px 0 rgba(255,255,255,0.3)' }}>
+                    <HelpCircle size={14} className="text-white" />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* ── MASTER STRIP ── */}
+            <div className="flex flex-col shrink-0" style={{ width: 120 }}>
+              <div className="flex-1 flex flex-col items-center gap-3 pt-3 pb-2 px-3"
+                   style={{ background: 'linear-gradient(180deg, #1c1f2b 0%, #161820 100%)',
+                            borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
+                {/* Master close (X) button — orange like original */}
+                <button className="w-9 h-9 rounded-full flex items-center justify-center self-end transition-all hover:scale-110"
+                        style={{ background: 'radial-gradient(circle at 35% 35%, #fb923c, #ea580c)',
+                                 boxShadow: '0 2px 10px rgba(234,88,12,0.4), inset 0 1px 0 rgba(255,255,255,0.3)' }}>
+                  <X size={16} className="text-white font-black" />
+                </button>
+
+                {/* Brain/help icon like original */}
+                <button onClick={() => setInfo({ title: 'Master Section', desc: 'Controls the global reverb and overall output level. Reverb Size sets the space; Reverb sets the wet/dry mix. Master fader controls final output gain.' })}
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                  style={{ background: 'radial-gradient(circle at 35% 35%, #fb923c, #ea580c)',
+                           boxShadow: '0 2px 10px rgba(234,88,12,0.4), inset 0 1px 0 rgba(255,255,255,0.3)' }}>
+                  <HelpCircle size={16} className="text-white" />
+                </button>
+
+                {/* Reverb Size knob */}
+                <Knob value={reverbSize} onChange={setReverbSize} size={44} color={BLUE} label="Reverb Size"
+                      onHelp={() => setInfo(HELP_INFO.reverbSize)} />
+
+                {/* Master Reverb knob */}
+                <Knob value={masterReverb} onChange={setMasterReverb} size={44} color={BLUE} label="Reverb"
+                      onHelp={() => setInfo(HELP_INFO.masterReverb)} />
+
+                {/* Master button — blue like original */}
+                <button className="w-full py-1.5 rounded-lg text-[9px] font-black uppercase text-white transition-all"
+                        style={{ background: `linear-gradient(180deg, ${BLUE}, #1d4ed8)`,
+                                 border: '1px solid rgba(59,130,246,0.4)',
+                                 boxShadow: `0 0 12px rgba(59,142,245,0.3)` }}>
+                  Master
+                </button>
+
+                {/* Master fader + dual VU meter */}
+                <div className="flex gap-2 items-end flex-1 w-full justify-center pb-1">
+                  <VertFader value={masterFader} onChange={setMasterFader} height={120} color="#ef4444" />
+                  {/* VU Meter */}
+                  <div className="flex gap-0.5" style={{ height: 120 }}>
+                    {[1, 0.92].map((scale, i) => (
+                      <div key={i} className="w-2 rounded-sm overflow-hidden" style={{ background: '#0a0c10', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div className="w-full h-full flex flex-col-reverse">
+                          <motion.div animate={{ height: `${masterMeter * scale}%` }} transition={{ duration: 0.08 }}
+                            className="w-full rounded-sm"
+                            style={{ background: masterMeter > 85 ? '#ef4444' : masterMeter > 65 ? '#eab308' : '#22c55e',
+                                     boxShadow: masterMeter > 0 ? `0 0 4px ${masterMeter > 85 ? '#ef4444' : '#22c55e'}` : 'none' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Master label */}
+              <div className="shrink-0 flex items-center justify-center py-2 px-2"
+                   style={{ height: 52, background: '#0d0f14', borderLeft: '1px solid rgba(255,255,255,0.06)',
+                            borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <span className="text-[9px] font-black uppercase text-gray-500 tracking-[0.2em] [writing-mode:vertical-lr] rotate-180">
+                  {currentSong.title}
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════
+          HELP MODAL
+      ══════════════════════════════════════ */}
       <AnimatePresence>
         {info && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.5)' }}
+            style={{ background: 'rgba(0,0,0,0.7)' }}
             onPointerDown={() => setInfo(null)}>
-            <motion.div
-              initial={{ y: 40, scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: 40, scale: 0.95 }}
+            <motion.div initial={{ y: 30, scale: 0.96 }} animate={{ y: 0, scale: 1 }} exit={{ y: 30, scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-              className="bg-[#1e293b] border border-white/20 rounded-2xl p-4 max-w-xs w-full shadow-2xl"
+              className="rounded-2xl p-5 max-w-sm w-full shadow-2xl"
+              style={{ background: 'linear-gradient(180deg, #1e2230, #161820)', border: '1px solid rgba(255,255,255,0.12)' }}
               onPointerDown={e => e.stopPropagation()}>
               <div className="flex items-start gap-3">
-                <div className="bg-blue-600 rounded-lg p-2 shrink-0"><HelpCircle size={16} className="text-white" /></div>
-                <div className="flex-1">
-                  <h3 className="text-[11px] font-black uppercase text-blue-400 tracking-wider mb-1.5">{info.title}</h3>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">{info.desc}</p>
+                <div className="rounded-xl p-2 shrink-0"
+                     style={{ background: 'radial-gradient(circle at 35% 35%, #fb923c, #ea580c)',
+                              boxShadow: '0 2px 10px rgba(234,88,12,0.4)' }}>
+                  <HelpCircle size={18} className="text-white" />
                 </div>
-                <button onClick={() => setInfo(null)} className="text-slate-500 hover:text-white transition-colors shrink-0">
+                <div className="flex-1">
+                  <h3 className="text-[12px] font-black uppercase tracking-wider mb-2" style={{ color: BLUE }}>{info.title}</h3>
+                  <p className="text-[11px] text-gray-300 leading-relaxed">{info.desc}</p>
+                </div>
+                <button onClick={() => setInfo(null)} className="text-gray-600 hover:text-white transition-colors shrink-0">
                   <X size={16} />
                 </button>
               </div>
