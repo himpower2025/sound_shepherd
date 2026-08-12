@@ -1,56 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  HelpCircle, Activity, Power, Volume2, CircleDot, Trash2,
-  ChevronRight, ChevronLeft, Play, Square, Music, Waves, Mic, MicOff,
-  LogIn, LogOut, Save, Download
+  HelpCircle, Activity, Power, Volume2, CircleDot, Trash2, ChevronDown,
+  ChevronRight, Play, Square, Music, Waves, Mic, MicOff, Plus, X
 } from 'lucide-react';
-import { 
-  onSnapshot, collection, addDoc, query, orderBy, 
-  serverTimestamp, doc, setDoc, getDoc, deleteDoc,
-  getDocFromServer
-} from 'firebase/firestore';
-import { 
-  signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser 
-} from 'firebase/auth';
-import { auth, db, googleProvider } from '../lib/firebase';
 import { Logo } from './Logo';
-
-// ─────────────────────────────────────────────
-// Error Handling
-// ─────────────────────────────────────────────
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  // In a real app, you might show a toast here.
-}
 
 // ─────────────────────────────────────────────
 // Types
@@ -58,7 +12,6 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 interface ChannelData {
   id: number;
   name: string;
-  trackUrl?: string;
   color: string;
   gain: number;
   pan: number;
@@ -66,9 +19,7 @@ interface ChannelData {
   muted: boolean;
   solo: boolean;
   hpf: boolean;
-  eq: { high: number; mid: number; midFreq: number; low: number };
-  comp: { threshold: number; ratio: number; attack: number; release: number };
-  reverb: number;
+  eq: { high: number; midHigh: number; midLow: number; low: number };
 }
 
 interface Song {
@@ -76,2084 +27,933 @@ interface Song {
   title: string;
   url: string;
   artist?: string;
-  /** 'file' = direct MP3/audio URL  |  'youtube' = YouTube embed */
   type: 'file' | 'youtube';
 }
 
 // ─────────────────────────────────────────────
-// Song List (Supports 12-Track Stems Practice)
+// Constants
 // ─────────────────────────────────────────────
-const SONGS: Song[] = [
-  { id: 'multitrack-session', title: '🎼 Sanctuary Praise Live (4-Track Multi-Track Session)', artist: 'Sound Shepherd Multi-Track Stems', url: '/tracks/main-vocal.mp3', type: 'file' },
-  { id: 'track-vocal', title: '🎤 Main Vocal Stem', artist: 'Sanctuary Worship Team', url: '/tracks/main-vocal.mp3', type: 'file' },
-  { id: 'track-eguitar', title: '🎸 Electric Guitar Stem', artist: 'Sanctuary Worship Team', url: '/tracks/electric-guitar.mp3', type: 'file' },
-  { id: 'track-aguitar', title: '🎸 Acoustic Guitar Stem', artist: 'Sanctuary Worship Team', url: '/tracks/guitar.mp3', type: 'file' },
-  { id: 'track-bass', title: '🎸 Bass Guitar Stem', artist: 'Sanctuary Worship Team', url: '/tracks/bass.mp3', type: 'file' },
+const DEFAULT_SONGS: Song[] = [
+  { id: 'y1', title: 'Anugrako Inar',          artist: 'Adrian Dewan',       url: 'https://www.youtube.com/watch?v=BLJcYljOq-U',  type: 'youtube' },
+  { id: 'y2', title: 'All I Want for Christmas', artist: 'Mariah Carey',      url: 'https://www.youtube.com/watch?v=aAkMkVFwAoo',  type: 'youtube' },
+  { id: 'y3', title: 'Last Christmas',           artist: 'Wham!',             url: 'https://www.youtube.com/watch?v=KhqNTjbQ71A',  type: 'youtube' },
+  { id: 'y4', title: 'Golden',                   artist: 'KPop Demon Hunters', url: 'https://www.youtube.com/watch?v=yebNIHKAC4A', type: 'youtube' },
+  { id: 'y5', title: 'Dynamite',                 artist: 'BTS',               url: 'https://www.youtube.com/watch?v=gdZLi9oWNZg',  type: 'youtube' },
 ];
 
+// 4 channels (as requested)
 const INITIAL_CHANNELS: ChannelData[] = [
-  { 
-    id: 1, 
-    name: 'Main Vocal', 
-    trackUrl: '/tracks/main-vocal.mp3',
-    color: 'bg-amber-500/20', 
-    gain: 50, 
-    pan: 0, 
-    fader: 78, 
-    muted: false, 
-    solo: false, 
-    hpf: true, 
-    eq: { high: 2, mid: 1.5, midFreq: 1800, low: -3 }, 
-    comp: { threshold: -20, ratio: 4, attack: 15, release: 150 }, 
-    reverb: 30 
-  },
-  { 
-    id: 2, 
-    name: 'Elec Guitar', 
-    trackUrl: '/tracks/electric-guitar.mp3',
-    color: 'bg-orange-500/20', 
-    gain: 48, 
-    pan: -25, 
-    fader: 72, 
-    muted: false, 
-    solo: false, 
-    hpf: true, 
-    eq: { high: 3, mid: -1, midFreq: 1200, low: -2 }, 
-    comp: { threshold: -16, ratio: 3.5, attack: 20, release: 180 }, 
-    reverb: 15 
-  },
-  { 
-    id: 3, 
-    name: 'Aco Guitar', 
-    trackUrl: '/tracks/guitar.mp3',
-    color: 'bg-yellow-500/20', 
-    gain: 45, 
-    pan: 25, 
-    fader: 70, 
-    muted: false, 
-    solo: false, 
-    hpf: true, 
-    eq: { high: 2, mid: 1, midFreq: 2500, low: -4 }, 
-    comp: { threshold: -15, ratio: 3, attack: 25, release: 200 }, 
-    reverb: 20 
-  },
-  { 
-    id: 4, 
-    name: 'Bass Guitar', 
-    trackUrl: '/tracks/bass.mp3',
-    color: 'bg-blue-500/20', 
-    gain: 42, 
-    pan: 0, 
-    fader: 75, 
-    muted: false, 
-    solo: false, 
-    hpf: false, 
-    eq: { high: -4, mid: 2, midFreq: 250, low: 3.5 }, 
-    comp: { threshold: -24, ratio: 5, attack: 10, release: 100 }, 
-    reverb: 0 
-  }
+  { id: 1, name: 'Lead Voc',  color: '#3b82f6', gain: 45, pan: 0,   fader: 75, muted: false, solo: false, hpf: true,  eq: { high: 2,  midHigh: 1,  midLow: 0,  low: -3 } },
+  { id: 2, name: 'Back Voc',  color: '#60a5fa', gain: 40, pan: -20, fader: 65, muted: false, solo: false, hpf: true,  eq: { high: 0,  midHigh: 0,  midLow: 0,  low: -3 } },
+  { id: 3, name: 'Keys',      color: '#22c55e', gain: 35, pan: 15,  fader: 70, muted: false, solo: false, hpf: false, eq: { high: 1,  midHigh: 0,  midLow: -1, low: 0  } },
+  { id: 4, name: 'Drum Mix',  color: '#a855f7', gain: 30, pan: 0,   fader: 60, muted: false, solo: false, hpf: false, eq: { high: 3,  midHigh: 0,  midLow: 2,  low: 5  } },
 ];
+
+const HELP: Record<string, { title: string; desc: string }> = {
+  gain:  { title: 'Input Gain',         desc: 'Sets the input sensitivity. Adjust until the loudest peaks are just below clipping. Too low → noisy; too high → distortion.' },
+  hpf:   { title: 'High-Pass Filter',   desc: 'Cuts low-end rumble below 80 Hz. Turn ON for every vocal and instrument except kick & bass — it instantly cleans up a muddy mix.' },
+  eq:    { title: 'Equalizer (4-Band)', desc: 'Shape the frequency content of each channel. Boost hi-mids for vocal intelligibility; cut low-mids to remove boxiness.' },
+  pan:   { title: 'Stereo Pan',         desc: 'Positions the signal in the stereo field. Keep lead vocal centred. Spread instruments slightly to create width and separation.' },
+  fader: { title: 'Volume Fader',       desc: 'Your primary mix tool. Set Gain first, then use faders to achieve balance. Small moves (2–3 dB) have a big impact at FOH.' },
+  solo:  { title: 'Solo (PFL)',         desc: 'Pre-Fader Listen — lets you hear a single channel in your headphones without affecting the main output. Great for checking mic signal.' },
+  mute:  { title: 'Mute',              desc: 'Silences the channel completely. Always mute open mics when not in use to prevent feedback and unwanted noise.' },
+};
 
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
 function getYouTubeVideoId(url: string): string | null {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([^&?/]{11})/);
+  return m ? m[1] : null;
 }
-
-async function fetchYouTubeTitle(url: string): Promise<{ title: string; author: string }> {
-  // Real OEmbed call for accurate titles
-  try {
-    const videoId = getYouTubeVideoId(url);
-    if (!videoId) throw new Error("Invalid ID");
-    const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
-    const data = await response.json();
-    return { 
-      title: data.title || "YouTube Track", 
-      author: data.author_name || "Unknown Artist" 
-    };
-  } catch (e) {
-    return { title: 'New Community Track', author: 'YouTube' };
-  }
-}
-
 function getYouTubeEmbedUrl(url: string): string {
   const id = getYouTubeVideoId(url) || '';
   return `https://www.youtube.com/embed/${id}?enablejsapi=1&controls=1&rel=0&modestbranding=1`;
 }
-
-// Generates a professional synthetic impulse response for reverb effect (zero assets/fetch needed!)
-function createReverbImpulseResponse(ctx: BaseAudioContext, duration: number, decay: number) {
-  const sampleRate = ctx.sampleRate;
-  const length = sampleRate * duration;
-  const impulse = ctx.createBuffer(2, length, sampleRate);
-  for (let channel = 0; channel < 2; channel++) {
-    const channelData = impulse.getChannelData(channel);
-    for (let i = 0; i < length; i++) {
-      channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
-    }
+async function fetchYouTubeTitle(url: string): Promise<{ title: string; author: string }> {
+  try {
+    const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    return { title: d.title || 'Untitled', author: d.author_name || '' };
+  } catch {
+    return { title: 'YouTube Track', author: '' };
   }
-  return impulse;
 }
-
-// ─────────────────────────────────────────────
-// Interactive 3D Analog Knob Component
-// ─────────────────────────────────────────────
-interface KnobProps {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (v: number) => void;
-  colorClass?: string;
-  unit?: string;
-}
-
-const Knob: React.FC<KnobProps> = ({ label, value, min, max, onChange, colorClass = "text-blue-500", unit = "" }) => {
-  const knobRef = useRef<HTMLDivElement>(null);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    e.stopPropagation();
-    const target = e.currentTarget as HTMLDivElement;
-    try {
-      target.setPointerCapture(e.pointerId);
-    } catch (err) {}
-
-    const startY = e.clientY;
-    const startVal = value;
-    const range = max - min;
-    const speed = 0.5; // Drag sensitivity multiplier
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      const deltaY = startY - moveEvent.clientY; // Dragging UP increases value
-      const newVal = Math.min(max, Math.max(min, startVal + (deltaY * (range / 150)) * speed));
-      onChange(Math.round(newVal * 10) / 10);
-    };
-
-    const handlePointerUp = (upEvent: PointerEvent) => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      try {
-        target.releasePointerCapture(upEvent.pointerId);
-      } catch (err) {}
-    };
-
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-  };
-
-  // Map value to rotation angle (-135 degrees to +135 degrees)
-  const percent = (value - min) / (max - min);
-  const angle = -135 + percent * 270;
-
-  return (
-    <div className="flex flex-col items-center select-none group knob-container">
-      <div 
-        ref={knobRef}
-        onPointerDown={handlePointerDown}
-        className="relative w-7 h-7 md:w-9 md:h-9 rounded-full bg-gradient-to-b from-slate-700 to-slate-900 border-2 border-slate-600/40 shadow-md cursor-ns-resize flex items-center justify-center active:scale-95 transition-transform"
-        style={{ touchAction: 'none' }}
-      >
-        {/* Notch indicator line */}
-        <motion.div 
-          className="absolute w-0.5 h-2.5 bg-blue-400 rounded-full origin-bottom"
-          style={{ 
-            transform: `rotate(${angle}deg)`, 
-            top: '3px',
-            boxShadow: '0 0 4px rgba(96,165,250,0.8)'
-          }} 
-        />
-        {/* Metal Cap center */}
-        <div className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 rounded-full bg-slate-800 border border-slate-705 shadow-inner flex items-center justify-center pointer-events-none">
-          <div className="w-1 h-1 rounded-full bg-slate-600/50" />
-        </div>
-      </div>
-      <span className="text-[6px] md:text-[7.5px] font-black uppercase tracking-tight text-slate-500 mt-0.5 leading-none">{label}</span>
-      <span className="text-[5.5px] md:text-[6.5px] font-mono font-bold text-blue-400/80 leading-none mt-0.5">{value}{unit}</span>
-    </div>
-  );
-};
 
 // ─────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────
 export const VirtualMixer = () => {
-  const [channels, setChannels] = useState<ChannelData[]>(INITIAL_CHANNELS);
-  const [selectedId, setSelectedId] = useState<number>(1);
-  const [info, setInfo] = useState<{ title: string; desc: string; x: number; y: number } | null>(null);
-
-  // Auth
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [channels, setChannels]       = useState<ChannelData[]>(INITIAL_CHANNELS);
+  const [selectedId, setSelectedId]   = useState<number>(1);
+  const [panelOpen, setPanelOpen]     = useState(true);   // channel detail panel collapse
+  const [info, setInfo]               = useState<{ title: string; desc: string } | null>(null);
 
   // Transport
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [songs, setSongs] = useState<Song[]>(SONGS);
-  const [currentSong, setCurrentSong] = useState<Song | null>(SONGS[0] || null);
+  const [isPlaying, setIsPlaying]     = useState(false);
+  const [isLoading, setIsLoading]     = useState(false);
+  const [songs, setSongs]             = useState<Song[]>(DEFAULT_SONGS);
+  const [currentSong, setCurrentSong] = useState<Song>(DEFAULT_SONGS[0]);
   const [masterMeter, setMasterMeter] = useState(0);
   const [masterFader, setMasterFader] = useState(80);
-  const [showPlaylist, setShowPlaylist] = useState(false);
-  const [ytInputUrl, setYtInputUrl] = useState('');
+
+  // Playlist UI
+  const [showPlaylist, setShowPlaylist]     = useState(false);
+  const [ytInputUrl, setYtInputUrl]         = useState('');
   const [ytInputLoading, setYtInputLoading] = useState(false);
-  const [ytInputError, setYtInputError] = useState('');
-  const [skin, setSkin] = useState<'modern' | 'analog'>('modern');
+  const [ytInputError, setYtInputError]     = useState('');
+  const [showAddInput, setShowAddInput]     = useState(false);
 
-  // Multi-device responsive layout & scrolling helpers
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const channelRefs = useRef<Record<number, HTMLDivElement | null>>({});
-  const [focusedStripId, setFocusedStripId] = useState<number>(1);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [autoFit, setAutoFit] = useState<boolean>(true);
+  // Skin
+  const [skin, setSkin] = useState<'dark' | 'light'>('dark');
 
-  // Drag-scrolling state & event references
-  const isDraggingRef = useRef(false);
-  const startXRef = useRef(0);
-  const startYRef = useRef(0);
-  const scrollLeftRef = useRef(0);
-  const hasMovedRef = useRef(false);
-  const blockNextClickRef = useRef(false);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Tracks scrollbar thumb percentage
-  const handleDeskScroll = () => {
-    const container = scrollContainerRef.current;
-    if (container) {
-      const { scrollLeft, scrollWidth, clientWidth } = container;
-      const totalScrollable = scrollWidth - clientWidth;
-      if (totalScrollable > 0) {
-        setScrollProgress(scrollLeft / totalScrollable);
-      } else {
-        setScrollProgress(0);
-      }
-    }
-  };
-
-  const handleDeskPointerDown = (e: React.PointerEvent) => {
-    // Only support mouse left-clicks
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-
-    const target = e.target as HTMLElement;
-
-    // Strict escape if the user clicks any interactive components, buttons, or sliders
-    if (
-      target.closest('input') ||
-      target.closest('button') ||
-      target.closest('select') ||
-      target.closest('textarea') ||
-      target.closest('.knob-container') ||
-      target.closest('.knob-element') ||
-      target.closest('[role="slider"]')
-    ) {
-      return;
-    }
-
-    isDraggingRef.current = true;
-    hasMovedRef.current = false;
-    startXRef.current = e.clientX;
-    startYRef.current = e.clientY;
-    scrollLeftRef.current = scrollContainerRef.current?.scrollLeft || 0;
-  };
-
-  const handleDeskPointerMove = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current || !scrollContainerRef.current) return;
-    
-    const deltaX = e.clientX - startXRef.current;
-    const deltaY = e.clientY - startYRef.current;
-    
-    // Set dragging mode threshold of 5 pixels to differentiate from a static click
-    if (!hasMovedRef.current && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
-      // If the gesture is mostly vertical, let the native vertical scrolling handle it
-      if (Math.abs(deltaY) > Math.abs(deltaX)) {
-        isDraggingRef.current = false;
-        return;
-      }
-      
-      hasMovedRef.current = true;
-      setIsDragging(true);
-      blockNextClickRef.current = true;
-
-      // Capture pointer exclusively for horizontal sliding
-      try {
-        scrollContainerRef.current?.setPointerCapture(e.pointerId);
-      } catch (_) {}
-    }
-
-    if (hasMovedRef.current) {
-      // Natural responsive scrolling mechanics
-      scrollContainerRef.current.scrollLeft = scrollLeftRef.current - deltaX;
-      handleDeskScroll();
-    }
-  };
-
-  const handleDeskPointerUp = (e: React.PointerEvent) => {
-    if (isDraggingRef.current) {
-      isDraggingRef.current = false;
-      setIsDragging(false);
-      try {
-        scrollContainerRef.current?.releasePointerCapture(e.pointerId);
-      } catch (_) {}
-
-      // Clear the block status on the next event cycle to let the click handler finalize
-      if (hasMovedRef.current) {
-        setTimeout(() => {
-          blockNextClickRef.current = false;
-        }, 50);
-      }
-    }
-  };
-
-  const handleStripSelect = (id: number) => {
-    setFocusedStripId(id);
-    if (id >= 1 && id <= 4) {
-      setSelectedId(id);
-    }
-  };
-
-  const handlePrevStrip = () => {
-    const nextId = focusedStripId === 1 ? 14 : focusedStripId === 13 ? 4 : focusedStripId - 1;
-    handleStripSelect(nextId);
-  };
-
-  const handleNextStrip = () => {
-    const nextId = focusedStripId === 4 ? 13 : focusedStripId === 14 ? 1 : focusedStripId + 1;
-    handleStripSelect(nextId);
-  };
-
-  // Auto-scroll focused console strip into view centered horizontally without buggy scrollIntoView page shifts
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const performScroll = () => {
-      const activeCh = channelRefs.current[focusedStripId];
-      if (activeCh) {
-        const containerWidth = container.clientWidth;
-        const channelLeft = activeCh.offsetLeft;
-        const channelWidth = activeCh.clientWidth;
-        
-        let targetScrollLeft = channelLeft - (containerWidth / 2) + (channelWidth / 2);
-        
-        // FX(13) and MAIN(14) channels are located at the far right.
-        // In landscape view on mobile devices, force-scroll fully to the right edge to avoid clipping.
-        if (focusedStripId === 13 || focusedStripId === 14) {
-          const maxScroll = container.scrollWidth - containerWidth;
-          targetScrollLeft = maxScroll;
-        } else if (focusedStripId === 1) {
-          // Channel 1 is at the far left
-          targetScrollLeft = 0;
-        }
-        
-        container.scrollTo({
-          left: Math.max(0, targetScrollLeft),
-          behavior: 'smooth'
-        });
-      }
-    };
-
-    // 1. Scroll immediately for responsive instant feedback
-    performScroll();
-
-    // 2. Scroll again at intervals to handle dynamic flex layout adjustments (autoFit transitions)
-    const timer1 = setTimeout(performScroll, 60);
-    const timer2 = setTimeout(performScroll, 150);
-    const timer3 = setTimeout(performScroll, 300);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-    };
-  }, [focusedStripId, autoFit]);
-
-  // ── Web Audio Engine ──────────────────────────
-  // Used only for type==='file' tracks.
-  // AudioContext is created once, after the first user interaction.
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const audioElRef = useRef<HTMLAudioElement | null>(null);   // <audio> element
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const [audioCtxState, setAudioCtxState] = useState<AudioContextState>('suspended');
-
-  // Multi-channel stem references modeled after Yamaha MG16
-  interface ChannelNodes {
-    crossoverFilter1: BiquadFilterNode;
-    crossoverFilter2?: BiquadFilterNode;
-    hpf: BiquadFilterNode;
-    eqL: BiquadFilterNode;
-    eqM: BiquadFilterNode;
-    eqH: BiquadFilterNode;
-    compressor: DynamicsCompressorNode;
-    pan: StereoPannerNode;
-    gain: GainNode;
-    reverbSend: GainNode;
-    analyser: AnalyserNode;
-  }
-  const channelNodesRef = useRef<Record<number, ChannelNodes>>({});
-  const masterGainNodeRef = useRef<GainNode | null>(null);
-  const masterAnalyserRef = useRef<AnalyserNode | null>(null);
-  const convolverNodeRef = useRef<ConvolverNode | null>(null);
-  const reverbReturnGainRef = useRef<GainNode | null>(null);
-
-  // FX SPX Reverb settings
-  const [reverbSize, setReverbSize] = useState<number>(1.8); // decay duration in seconds
-  const [reverbMix, setReverbMix] = useState<number>(25);   // return level 0-100
-
-  // Real-time bouncing VU meters state for channels
-  const [channelMeters, setChannelMeters] = useState<Record<number, number>>({ 1: 0, 2: 0, 3: 0, 4: 0 });
+  // ── Web Audio ──────────────────────────────
+  const audioCtxRef    = useRef<AudioContext | null>(null);
+  const audioElRef     = useRef<HTMLAudioElement | null>(null);
+  const gainNodeRef    = useRef<GainNode | null>(null);
+  const analyserRef    = useRef<AnalyserNode | null>(null);
+  const hpfRef         = useRef<BiquadFilterNode | null>(null);
+  const panRef         = useRef<StereoPannerNode | null>(null);
+  const eqRefs         = useRef<{ L: BiquadFilterNode; ML: BiquadFilterNode; MH: BiquadFilterNode; H: BiquadFilterNode } | null>(null);
+  const [audioReady, setAudioReady] = useState(false);
 
   // Mic
-  const [micActive, setMicActive] = useState(false);
+  const [micActive, setMicActive]   = useState(false);
   const micStreamRef = useRef<MediaStream | null>(null);
-  const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const micSrcRef    = useRef<MediaStreamAudioSourceNode | null>(null);
 
   // Test tone
-  const [testToneActive, setTestToneActive] = useState(false);
+  const [toneActive, setToneActive] = useState(false);
   const oscRef = useRef<OscillatorNode | null>(null);
 
-  // ── Firebase Integration ──────────────────────
-  useEffect(() => {
-    // 1. Connection Test
-    const testConn = async () => {
-      try { await getDocFromServer(doc(db, 'test', 'connection')); } catch (e) {}
-    };
-    testConn();
+  // Scrollable fader strip ref
+  const stripRef = useRef<HTMLDivElement>(null);
 
-    // 2. Auth state
-    const unsubAuth = onAuthStateChanged(auth, (u: FirebaseUser | null) => {
-      setUser(u);
-      if (u) {
-        // Update user profile
-        setDoc(doc(db, 'users', u.uid), {
-          displayName: u.displayName,
-          photoURL: u.photoURL,
-          lastLogin: new Date().toISOString()
-        }, { merge: true }).catch((e: any) => handleFirestoreError(e, OperationType.WRITE, `users/${u.uid}`));
-      }
-    });
+  const selectedCh = channels.find(c => c.id === selectedId)!;
 
-    // 3. Real-time Songs (Community Playlist)
-    const q = query(collection(db, 'songs'), orderBy('createdAt', 'desc'));
-    const unsubSongs = onSnapshot(q, (snapshot: any) => {
-      const dbSongs: Song[] = snapshot.docs.map((d: any) => ({
-        id: d.id,
-        ...d.data()
-      } as Song));
-      
-      // Merge with default songs, keeping defaults unique
-      const merged = [...SONGS, ...dbSongs.filter(s => !SONGS.some(def => def.id === s.id))];
-      setSongs(merged);
-      if (merged.length > 0) {
-        setCurrentSong(prev => prev || merged[0]);
-      }
-    }, (error: any) => handleFirestoreError(error, OperationType.LIST, 'songs'));
-
-    return () => {
-      unsubAuth();
-      unsubSongs();
-    };
-  }, []);
-
-  const login = async () => {
-    try { await signInWithPopup(auth, googleProvider); } 
-    catch (e) { console.error("Login failed:", e); }
-  };
-
-  const logout = () => signOut(auth);
-
-  // ── Save/Load Mix ──
-  const saveMix = async () => {
-    if (!user) { alert("Please login to save your mix."); return; }
-    if (!currentSong) { alert("Please load or upload a song first to save your mix configuration."); return; }
-    try {
-      const presetData = {
-        songId: currentSong.id,
-        userId: user.uid,
-        masterFader,
-        channels: channels.map(c => ({
-          id: c.id,
-          gain: c.gain,
-          pan: c.pan,
-          fader: c.fader,
-          muted: c.muted,
-          solo: c.solo,
-          hpf: c.hpf,
-          eq: { ...c.eq }
-        })),
-        createdAt: serverTimestamp()
-      };
-      await addDoc(collection(db, 'users', user.uid, 'presets'), presetData);
-      alert("Mix preset saved!");
-    } catch (e) {
-      handleFirestoreError(e, OperationType.CREATE, `users/${user.uid}/presets`);
-    }
-  };
-
-  const loadLatestMix = async () => {
-    if (!user) return;
-    try {
-      // For simplicity, just get the latest preset for this song
-      const q = query(collection(db, 'users', user.uid, 'presets'), orderBy('createdAt', 'desc'));
-      const snap = await getDoc(doc(db, 'users', user.uid, 'presets', 'latest')); // This is a placeholder logic
-      // In a real app, you'd show a list. Let's just fetch the last one from the snapshot if needed.
-    } catch (e) {}
-  };
-
-  const selectedChannel = channels.find(c => c.id === selectedId)!;
-
-  const HELP_DATABASE: Record<string, { title: string; desc: string }> = {
-    gain: { title: 'Input Gain (Sensitivity)', desc: 'Think of this as the "volume" coming INTO the mixer. Set this so the loudest parts don\'t hit the red. Too low → hiss; too high → distort (clip).' },
-    hpf: { title: 'High-Pass Filter (80Hz)', desc: 'Turn this ON for every vocal and instrument EXCEPT kick drums and bass guitars. It removes foot stomps and rumble, making your mix sound professional and clear.' },
-    eq: { title: 'Equalizer (EQ)', desc: 'Used to fix "room boom" or make voices clearer. Use HPF to cut low-end rumble, and boost high-mids slightly to help words be more intelligible.' },
-    pan: { title: 'Panning (Stereo)', desc: 'Positions sound Left or Right. Keep the Worship Leader center. Panning instruments slightly creates space so everything sounds clearer without being louder.' },
-    fader: { title: 'Volume Fader', desc: 'Your main tool during the service. Start with Gain set correctly, then use faders to balance. The goal is a "transparent" mix where you can hear everyone clearly.' },
-    solo: { title: 'Solo (PFL)', desc: 'Pre-Fader Listen. Hear a specific channel through headphones without the congregation hearing it. Essential for checking if a mic is actually on!' },
-    mute: { title: 'Mute / Silence', desc: 'Instantly silences the channel. Always mute mics when not in use to prevent feedback or hearing private conversations between songs.' },
-  };
-
-  // ── Init Web Audio (multi-channel split) ──────
-  const initWebAudio = useCallback(() => {
-    // Already initialized — just resume if suspended
+  // ── Init Web Audio ─────────────────────────
+  const initAudio = useCallback(() => {
     if (audioCtxRef.current) {
       if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
       return;
     }
-
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    const ctx = new AudioContextClass();
-
-    // Create <audio> elements
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new Ctx();
     const audio = new Audio();
     audio.preload = 'auto';
     audio.loop = true;
-
-    // Events
     audio.addEventListener('playing', () => { setIsLoading(false); setIsPlaying(true); });
-    audio.addEventListener('pause', () => setIsPlaying(false));
+    audio.addEventListener('pause',   () => setIsPlaying(false));
     audio.addEventListener('waiting', () => setIsLoading(true));
     audio.addEventListener('canplay', () => setIsLoading(false));
-    audio.addEventListener('error', () => setIsLoading(false));
 
-    // Web Audio Routing: source -> crossovers -> EQs -> Comps -> Pans -> Gains -> Analysers -> MasterBus -> MasterOut
-    const source = ctx.createMediaElementSource(audio);
+    const src = ctx.createMediaElementSource(audio);
+    const hpf = ctx.createBiquadFilter(); hpf.type = 'highpass'; hpf.frequency.value = 80;
+    const eqL  = ctx.createBiquadFilter(); eqL.type  = 'lowshelf'; eqL.frequency.value  = 100;
+    const eqML = ctx.createBiquadFilter(); eqML.type = 'peaking';  eqML.frequency.value = 400;
+    const eqMH = ctx.createBiquadFilter(); eqMH.type = 'peaking';  eqMH.frequency.value = 2500;
+    const eqH  = ctx.createBiquadFilter(); eqH.type  = 'highshelf'; eqH.frequency.value = 8000;
+    const pan  = ctx.createStereoPanner();
+    const gain = ctx.createGain();
+    const analyser = ctx.createAnalyser(); analyser.fftSize = 64;
+    src.connect(hpf); hpf.connect(eqL); eqL.connect(eqML); eqML.connect(eqMH);
+    eqMH.connect(eqH); eqH.connect(pan); pan.connect(gain); gain.connect(analyser);
+    analyser.connect(ctx.destination);
 
-    // Create Master Bus Gain and Analyser
-    const masterBus = ctx.createGain();
-    const masterAnalyserNode = ctx.createAnalyser();
-    masterAnalyserNode.fftSize = 64;
-
-    // Create SPX Reverb Convolver effect
-    const convolver = ctx.createConvolver();
-    convolver.buffer = createReverbImpulseResponse(ctx, reverbSize, 1.5);
-    const reverbReturn = ctx.createGain();
-    convolver.connect(reverbReturn);
-    reverbReturn.connect(masterBus);
-
-    // Master path
-    const masterVolumeNode = ctx.createGain();
-    masterBus.connect(masterVolumeNode);
-    masterVolumeNode.connect(masterAnalyserNode);
-    masterAnalyserNode.connect(ctx.destination);
-
-    // Build the 4 channels
-    const nodes: Record<number, ChannelNodes> = {};
-    INITIAL_CHANNELS.forEach(ch => {
-      const cross1 = ctx.createBiquadFilter();
-      let cross2: BiquadFilterNode | undefined;
-
-      // STEM FREQUENCY CROSSOVER EXTRACTION LOGIC
-      if (ch.id === 1) {
-        // Vocals: presence bandpass
-        cross1.type = 'bandpass';
-        cross1.frequency.value = 1800;
-        cross1.Q.value = 0.65;
-      } else if (ch.id === 2) {
-        // Guitar/Piano: wide midrange
-        cross1.type = 'bandpass';
-        cross1.frequency.value = 600;
-        cross1.Q.value = 0.5;
-      } else if (ch.id === 3) {
-        // Bass Guitar: sub lows
-        cross1.type = 'lowpass';
-        cross1.frequency.value = 130;
-      } else if (ch.id === 4) {
-        // Drums: parallel lowpass (kick) + highpass (cymbals/clicks)
-        cross1.type = 'lowpass';
-        cross1.frequency.value = 85;
-
-        cross2 = ctx.createBiquadFilter();
-        cross2.type = 'highpass';
-        cross2.frequency.value = 4500;
-        source.connect(cross2);
-      }
-
-      // Connect crossovers from source
-      source.connect(cross1);
-
-      // HPF
-      const hpfNode = ctx.createBiquadFilter();
-      hpfNode.type = 'highpass';
-      hpfNode.frequency.value = ch.hpf ? 80 : 15;
-
-      // EQs
-      const eqLNode = ctx.createBiquadFilter();
-      eqLNode.type = 'lowshelf';
-      eqLNode.frequency.value = 100;
-
-      const eqMNode = ctx.createBiquadFilter();
-      eqMNode.type = 'peaking';
-      eqMNode.frequency.value = ch.eq.midFreq;
-      eqMNode.Q.value = 0.7;
-
-      const eqHNode = ctx.createBiquadFilter();
-      eqHNode.type = 'highshelf';
-      eqHNode.frequency.value = 8000;
-
-      // Dynamics Compressor
-      const compNode = ctx.createDynamicsCompressor();
-      compNode.threshold.value = ch.comp.threshold;
-      compNode.ratio.value = ch.comp.ratio;
-      compNode.attack.value = ch.comp.attack / 1000;
-      compNode.release.value = ch.comp.release / 1000;
-
-      // Stereo Pan
-      const panNode = ctx.createStereoPanner();
-      panNode.pan.value = ch.pan / 100;
-
-      // Gain controls
-      const gainNode = ctx.createGain();
-      const reverbSendNode = ctx.createGain();
-
-      // Analyser per channel for separate meters
-      const chAnalyser = ctx.createAnalyser();
-      chAnalyser.fftSize = 64;
-
-      // Connect stems together
-      cross1.connect(hpfNode);
-      if (cross2) {
-        cross2.connect(hpfNode);
-      }
-
-      hpfNode.connect(eqLNode);
-      eqLNode.connect(eqMNode);
-      eqMNode.connect(eqHNode);
-      eqHNode.connect(compNode);
-
-      // Branch to Pan and Reverb Send
-      compNode.connect(panNode);
-      panNode.connect(gainNode);
-      gainNode.connect(chAnalyser);
-      chAnalyser.connect(masterBus);
-
-      compNode.connect(reverbSendNode);
-      reverbSendNode.connect(convolver);
-
-      nodes[ch.id] = {
-        crossoverFilter1: cross1,
-        crossoverFilter2: cross2,
-        hpf: hpfNode,
-        eqL: eqLNode,
-        eqM: eqMNode,
-        eqH: eqHNode,
-        compressor: compNode,
-        pan: panNode,
-        gain: gainNode,
-        reverbSend: reverbSendNode,
-        analyser: chAnalyser,
-      };
-    });
-
-    audioCtxRef.current = ctx;
-    audioElRef.current = audio;
-    sourceNodeRef.current = source;
-    channelNodesRef.current = nodes;
-    masterGainNodeRef.current = masterVolumeNode;
-    masterAnalyserRef.current = masterAnalyserNode;
-    convolverNodeRef.current = convolver;
-    reverbReturnGainRef.current = reverbReturn;
-
-    setAudioCtxState(ctx.state);
+    audioCtxRef.current = ctx; audioElRef.current = audio;
+    gainNodeRef.current = gain; analyserRef.current = analyser;
+    hpfRef.current = hpf; panRef.current = pan;
+    eqRefs.current = { L: eqL, ML: eqML, MH: eqMH, H: eqH };
     if (ctx.state === 'suspended') ctx.resume();
-  }, [reverbSize]);
-
-  // ── AudioContext state polling ──────────────────
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (audioCtxRef.current) setAudioCtxState(audioCtxRef.current.state);
-    }, 1000);
-    return () => clearInterval(t);
+    setAudioReady(true);
   }, []);
 
-  // ── Sync node parameters ────────────────────────
-  const syncNodes = useCallback(() => {
+  // ── Sync nodes ────────────────────────────
+  useEffect(() => {
     const ctx = audioCtxRef.current;
     if (!ctx || ctx.state === 'closed') return;
-
     const t = ctx.currentTime;
-    const masterGain = Math.pow(10, (masterFader - 80) / 20);
-
-    // Sync Master volume and reverb returns
-    if (masterGainNodeRef.current) {
-      masterGainNodeRef.current.gain.setTargetAtTime(masterGain, t, 0.05);
+    const chGain = selectedCh.muted ? 0 : Math.pow(10, (selectedCh.fader - 70) / 20);
+    const mGain  = Math.pow(10, (masterFader - 80) / 20);
+    gainNodeRef.current?.gain.setTargetAtTime(chGain * mGain, t, 0.05);
+    hpfRef.current?.frequency.setTargetAtTime(selectedCh.hpf ? 80 : 20, t, 0.05);
+    panRef.current?.pan.setTargetAtTime(selectedCh.pan / 100, t, 0.05);
+    if (eqRefs.current) {
+      eqRefs.current.L.gain.setTargetAtTime(selectedCh.eq.low,     t, 0.05);
+      eqRefs.current.ML.gain.setTargetAtTime(selectedCh.eq.midLow,  t, 0.05);
+      eqRefs.current.MH.gain.setTargetAtTime(selectedCh.eq.midHigh, t, 0.05);
+      eqRefs.current.H.gain.setTargetAtTime(selectedCh.eq.high,    t, 0.05);
     }
-    if (reverbReturnGainRef.current) {
-      reverbReturnGainRef.current.gain.setTargetAtTime(reverbMix / 100, t, 0.05);
-    }
+  }, [selectedCh, masterFader]);
 
-    // Is any channel currently Soloed? (PFL logic)
-    const isAnySoloed = channels.some(c => c.solo);
-
-    // Sync each channel strip
-    channels.forEach(ch => {
-      const live = channelNodesRef.current[ch.id];
-      if (!live) return;
-
-      // If solo exists, channels that are NOT soloed must be quiet
-      const isMutedBySolo = isAnySoloed && !ch.solo;
-      const isMuted = ch.muted || isMutedBySolo;
-
-      const faderVolume = Math.pow(10, (ch.fader - 70) / 20); // 70 is nominal 0dB fader level
-      const trimGain = ch.gain / 50; // nominal 50 -> 1x trim
-
-      // Power scales to balance filtered bands
-      let stemMultiplier = 1.0;
-      if (ch.id === 1) stemMultiplier = 1.7; // vocals clarity
-      if (ch.id === 2) stemMultiplier = 1.2; // guitar presence
-      if (ch.id === 3) stemMultiplier = 1.85; // bass richness
-      if (ch.id === 4) stemMultiplier = 1.55; // drum crispness
-
-      const targetGain = isMuted ? 0 : faderVolume * trimGain * stemMultiplier;
-
-      live.gain.gain.setTargetAtTime(targetGain, t, 0.05);
-      live.reverbSend.gain.setTargetAtTime((ch.reverb / 100) * (isMuted ? 0 : 1), t, 0.05);
-
-      // Pan
-      live.pan.pan.setTargetAtTime(ch.pan / 100, t, 0.05);
-
-      // HPF
-      live.hpf.frequency.setTargetAtTime(ch.hpf ? 80 : 15, t, 0.05);
-
-      // 3-Band Parametric Sweep EQ
-      live.eqL.gain.setTargetAtTime(ch.eq.low, t, 0.05);
-      live.eqM.gain.setTargetAtTime(ch.eq.mid, t, 0.05);
-      live.eqM.frequency.setTargetAtTime(ch.eq.midFreq, t, 0.05);
-      live.eqH.gain.setTargetAtTime(ch.eq.high, t, 0.05);
-
-      // Compressor parameters
-      live.compressor.threshold.setTargetAtTime(ch.comp.threshold, t, 0.05);
-      live.compressor.ratio.setTargetAtTime(ch.comp.ratio, t, 0.05);
-      live.compressor.attack.setTargetAtTime(ch.comp.attack / 1000, t, 0.05);
-      live.compressor.release.setTargetAtTime(ch.comp.release / 1000, t, 0.05);
-    });
-  }, [channels, masterFader, reverbMix]);
-
-  useEffect(() => { syncNodes(); }, [syncNodes]);
-
-  // ── VU Meter animation (multitrack reading) ─────
+  // ── VU Meter ──────────────────────────────
   useEffect(() => {
     let raf: number;
-    const loop = () => {
-      if (isPlaying && currentSong) {
-        if (currentSong.type === 'file') {
-          // Read Master output meter
-          if (masterAnalyserRef.current) {
-            const data = new Uint8Array(masterAnalyserRef.current.frequencyBinCount);
-            masterAnalyserRef.current.getByteFrequencyData(data);
-            const avg = data.reduce((a, b) => a + b, 0) / data.length;
-            setMasterMeter((avg / 255) * 110); // scale slightly for visual impact
-          }
-
-          // Read individual channels' analysers
-          const meters: Record<number, number> = {};
-          channels.forEach(ch => {
-            const live = channelNodesRef.current[ch.id];
-            if (live && live.analyser && !ch.muted) {
-              const chData = new Uint8Array(live.analyser.frequencyBinCount);
-              live.analyser.getByteFrequencyData(chData);
-              const avg = chData.reduce((a, b) => a + b, 0) / chData.length;
-              meters[ch.id] = Math.min(100, (avg / 255) * 200 * (ch.gain / 50));
-            } else {
-              meters[ch.id] = 0;
-            }
-          });
-          setChannelMeters(meters);
+    const tick = () => {
+      if (isPlaying) {
+        if (currentSong.type === 'file' && analyserRef.current) {
+          const d = new Uint8Array(analyserRef.current.frequencyBinCount);
+          analyserRef.current.getByteFrequencyData(d);
+          setMasterMeter((d.reduce((a, b) => a + b, 0) / d.length / 255) * 100);
         } else {
-          // YouTube: simple simulation with some random organic jitter
-          const t = Date.now() / 150;
-          setMasterMeter(40 + Math.sin(t) * 15 + Math.random() * 8);
-
-          const meters: Record<number, number> = {};
-          channels.forEach(ch => {
-            meters[ch.id] = ch.muted ? 0 : 35 + Math.sin(t + ch.id) * 18 + Math.random() * 10;
-          });
-          setChannelMeters(meters);
+          setMasterMeter(38 + Math.random() * 22 + (Math.random() > 0.88 ? 18 : 0));
         }
       } else {
-        setMasterMeter(0);
-        const meters: Record<number, number> = {};
-        channels.forEach(ch => { meters[ch.id] = 0; });
-        setChannelMeters(meters);
+        setMasterMeter(prev => Math.max(0, prev - 4));
       }
-      raf = requestAnimationFrame(loop);
+      raf = requestAnimationFrame(tick);
     };
-    loop();
+    tick();
     return () => cancelAnimationFrame(raf);
-  }, [isPlaying, currentSong, channels]);
+  }, [isPlaying, currentSong]);
 
-  // ── Cleanup ─────────────────────────────────────
-  useEffect(() => {
-    return () => {
-      audioElRef.current?.pause();
-      audioCtxRef.current?.close().catch(() => {});
-      micStreamRef.current?.getTracks().forEach(t => t.stop());
-    };
+  // ── Cleanup ───────────────────────────────
+  useEffect(() => () => {
+    audioElRef.current?.pause();
+    audioCtxRef.current?.close().catch(() => {});
+    micStreamRef.current?.getTracks().forEach(t => t.stop());
   }, []);
 
-  // ─────────────────────────────────────────────
-  // Transport Controls
-  // ─────────────────────────────────────────────
+  // ── Dismiss info on outside click ────────
+  useEffect(() => {
+    const h = () => setInfo(null);
+    window.addEventListener('pointerdown', h);
+    return () => window.removeEventListener('pointerdown', h);
+  }, []);
+
+  // ─────────────────────────────────────────
+  // Transport
+  // ─────────────────────────────────────────
   const togglePlay = async () => {
-    if (!currentSong) return;
-    if (currentSong.type === 'file' && !currentSong.url) {
-      alert("This is a pending Demo Guide track placeholder. Authentic high-fidelity sessional multitracks will be officially uploaded on client handover. In the meantime, please import your own audio files (up to 6 custom slots) using the import button to play and practice!");
-      return;
-    }
-    // YouTube type: console/meter simulation only — user plays directly inside iframe
-    if (currentSong.type === 'youtube') {
-      setIsPlaying(prev => !prev);
-      return;
-    }
-
-    // file type: Web Audio playback
-    initWebAudio();
-
-    const ctx = audioCtxRef.current;
-    const audio = audioElRef.current;
+    if (currentSong.type === 'youtube') { setIsPlaying(p => !p); return; }
+    initAudio();
+    const ctx = audioCtxRef.current; const audio = audioElRef.current;
     if (!ctx || !audio) return;
-
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      if (ctx.state === 'suspended') await ctx.resume();
-      // Always update src in case the song changed
-      if (audio.src !== currentSong.url) {
-        audio.src = currentSong.url;
-        audio.load();
-      }
-      setIsLoading(true);
-      audio.play().catch((err: any) => {
-        console.error('Play error:', err);
-        setIsLoading(false);
-        // If CORS blocks the CDN file, guide user to upload their own file
-        if (err.name === 'NotSupportedError' || err.name === 'NotAllowedError') {
-          alert('Could not play this track. Please use the Upload button to load your own audio file.');
-        }
-      });
-    }
+    if (isPlaying) { audio.pause(); return; }
+    if (ctx.state === 'suspended') await ctx.resume();
+    if (audio.src !== currentSong.url) { audio.src = currentSong.url; audio.load(); }
+    setIsLoading(true);
+    audio.play().catch(err => {
+      setIsLoading(false);
+      console.error('Play error:', err);
+    });
   };
 
   const selectSong = async (song: Song) => {
     const wasPlaying = isPlaying;
-
-    // Stop current playback
-    if (audioElRef.current) audioElRef.current.pause();
-    setIsPlaying(false);
-    setCurrentSong(song);
-    setShowPlaylist(false);
-
+    audioElRef.current?.pause();
+    setIsPlaying(false); setCurrentSong(song); setShowPlaylist(false);
     if (song.type === 'file') {
-      if (!song.url) {
-        // Just select placeholder but do not play/init web audio
-        return;
-      }
-      // Ensure Web Audio engine is ready
-      initWebAudio();
-      // audioElRef may now be set by initWebAudio; get fresh reference
-      const audio = audioElRef.current;
-      const ctx = audioCtxRef.current;
+      initAudio();
+      const audio = audioElRef.current; const ctx = audioCtxRef.current;
       if (!audio) return;
-
-      audio.src = song.url;
-      audio.load();
-
+      audio.src = song.url; audio.load();
       if (wasPlaying) {
         if (ctx?.state === 'suspended') await ctx?.resume();
         setIsLoading(true);
         audio.play().catch(() => setIsLoading(false));
       }
     }
-    // YouTube type: video replaces via key={currentSong.id} on the iframe
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check custom tracks limit (maximum of 6)
-    const customSongsCount = songs.filter(s => s.id.startsWith('custom-')).length;
-    if (customSongsCount >= 6) {
-      alert("A maximum of 6 uploaded custom songs is allowed to keep performance optimal and memory usage light. Please delete one of your uploaded tracks from the media source playlist first.");
-      return;
-    }
-
-    initWebAudio();
+    const file = e.target.files?.[0]; if (!file) return;
+    initAudio();
     const url = URL.createObjectURL(file);
-    // Blob URLs are always same-origin — CORS never an issue
-    const newSong: Song = { id: 'custom-' + Date.now(), title: file.name.replace(/\.\w+$/, ''), url, type: 'file' };
-    setSongs(prev => [...prev.filter(s => s.id !== newSong.id), newSong]);
+    const newSong: Song = { id: 'file-' + Date.now(), title: file.name.replace(/\.\w+$/, ''), url, type: 'file' };
     setCurrentSong(newSong);
     const audio = audioElRef.current;
     if (audio) {
-      audio.src = url;
-      audio.load();
-      // Auto-play the uploaded file immediately
-      const ctx = audioCtxRef.current;
-      if (ctx?.state === 'suspended') ctx.resume();
+      audio.src = url; audio.load();
+      audioCtxRef.current?.resume();
       audio.play().catch(() => {});
     }
   };
 
   const addYouTubeSong = async () => {
-    const url = ytInputUrl.trim();
-    if (!url) return;
-    const videoId = getYouTubeVideoId(url);
-    if (!videoId) {
-      setYtInputError('Please paste a valid YouTube URL (youtube.com or youtu.be)');
-      return;
-    }
-    // Prevent duplicates
-    if (songs.some(s => s.url.includes(videoId))) {
-      setYtInputError('This video is already in your playlist.');
-      return;
-    }
-    setYtInputError('');
-    setYtInputLoading(true);
-    
-    try {
-      const { title, author } = await fetchYouTubeTitle(url);
-      const newSongData = {
-        title,
-        artist: author,
-        url: `https://www.youtube.com/watch?v=${videoId}`,
-        type: 'youtube',
-        createdBy: user?.uid || 'anonymous',
-        createdAt: serverTimestamp()
-      };
-
-      if (user) {
-        await addDoc(collection(db, 'songs'), newSongData);
-      } else {
-        // Fallback for anonymous users (local only)
-        setSongs(prev => [...prev, { id: 'yt-' + videoId, ...newSongData } as Song]);
-      }
-      setYtInputUrl('');
-    } catch (e) {
-      setYtInputError('Failed to add track.');
-    } finally {
-      setYtInputLoading(false);
-    }
+    const url = ytInputUrl.trim(); if (!url) return;
+    const vid = getYouTubeVideoId(url);
+    if (!vid) { setYtInputError('Paste a valid YouTube URL (youtube.com or youtu.be)'); return; }
+    if (songs.some(s => s.url.includes(vid))) { setYtInputError('Already in playlist.'); return; }
+    setYtInputError(''); setYtInputLoading(true);
+    const { title, author } = await fetchYouTubeTitle(url);
+    setSongs(prev => [...prev, { id: 'yt-' + vid, title, artist: author, url: `https://www.youtube.com/watch?v=${vid}`, type: 'youtube' }]);
+    setYtInputUrl(''); setYtInputLoading(false); setShowAddInput(false);
   };
 
-  // ── Delete song from playlist ──────────────────
-  const deleteSong = async (id: string) => {
-    // If it's a default song, just hide it locally
-    if (SONGS.some(s => s.id === id)) {
-      setSongs(prev => prev.filter(s => s.id !== id));
-      return;
-    }
-
-    // If it's a Firestore song, delete it
-    try {
-       await deleteDoc(doc(db, 'songs', id));
-    } catch (e) {
-      handleFirestoreError(e, OperationType.DELETE, `songs/${id}`);
-      // Fallback: local delete
-      setSongs(prev => prev.filter(s => s.id !== id));
-    }
-
-    if (currentSong?.id === id) {
-      const next = songs.filter(s => s.id !== id);
-      if (next.length > 0) {
-        selectSong(next[0]);
-      } else {
-        setCurrentSong(null);
-        setIsPlaying(false);
-        if (audioElRef.current) audioElRef.current.pause();
-      }
-    }
+  const deleteSong = (id: string) => {
+    setSongs(prev => {
+      const next = prev.filter(s => s.id !== id);
+      if (currentSong.id === id && next.length > 0) selectSong(next[0]);
+      return next;
+    });
   };
 
-  // ── Test Tone ──────────────────────────────────
   const toggleSoundCheck = () => {
-    initWebAudio();
-    const ctx = audioCtxRef.current;
-    if (!ctx) return;
-    if (ctx.state === 'suspended') ctx.resume();
-
-    if (testToneActive) {
-      oscRef.current?.stop();
-      setTestToneActive(false);
-    } else {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = 440;
-      g.gain.value = 0.15;
-      osc.connect(g); g.connect(ctx.destination);
-      osc.start();
-      oscRef.current = osc;
-      setTestToneActive(true);
-      setTimeout(() => { osc.stop(); setTestToneActive(false); }, 1000);
-    }
+    initAudio();
+    const ctx = audioCtxRef.current; if (!ctx) return;
+    ctx.resume();
+    if (toneActive) { oscRef.current?.stop(); setToneActive(false); return; }
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.frequency.value = 1000; g.gain.value = 0.12;
+    osc.connect(g); g.connect(ctx.destination); osc.start();
+    oscRef.current = osc; setToneActive(true);
+    setTimeout(() => { osc.stop(); setToneActive(false); }, 800);
   };
 
-  // ── Microphone ─────────────────────────────────
   const toggleMic = async () => {
     if (micActive) {
       micStreamRef.current?.getTracks().forEach(t => t.stop());
-      micSourceRef.current?.disconnect();
-      micStreamRef.current = null; micSourceRef.current = null;
-      setMicActive(false);
+      micSrcRef.current?.disconnect();
+      micStreamRef.current = null; micSrcRef.current = null; setMicActive(false);
     } else {
       try {
-        initWebAudio();
-        const ctx = audioCtxRef.current;
-        if (ctx?.state === 'suspended') await ctx.resume();
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        initAudio();
+        await audioCtxRef.current?.resume();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         micStreamRef.current = stream;
-        if (ctx) {
-          const src = ctx.createMediaStreamSource(stream);
-          micSourceRef.current = src;
-          // Dynamically plug microphone source into Channel 1 (Vocals) processing path!
-          const vocNode = channelNodesRef.current[1];
-          if (vocNode) {
-            src.connect(vocNode.hpf);
-          } else if (masterAnalyserRef.current) {
-            src.connect(masterAnalyserRef.current);
-          }
+        if (audioCtxRef.current && analyserRef.current) {
+          const s = audioCtxRef.current.createMediaStreamSource(stream);
+          s.connect(analyserRef.current); micSrcRef.current = s;
         }
         setMicActive(true);
-      } catch (err: any) {
-        alert(`Microphone access failed: ${err.message}`);
-      }
+      } catch (err: any) { alert(`Mic error: ${err.message}`); }
     }
   };
 
-  // ─────────────────────────────────────────────
-  // Channel / UI Helpers
-  // ─────────────────────────────────────────────
-  const updateChannel = (id: number, updates: Partial<ChannelData>) =>
-    setChannels(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  // ─────────────────────────────────────────
+  // Helpers
+  // ─────────────────────────────────────────
+  const updateCh = (id: number, u: Partial<ChannelData>) =>
+    setChannels(prev => prev.map(c => c.id === id ? { ...c, ...u } : c));
 
-  const showInfo = (e: React.MouseEvent, title: string, desc: string) => {
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setInfo({ title, desc, x: rect.left + rect.width / 2, y: rect.top - 10 });
+  // Theme tokens
+  const T = skin === 'dark' ? {
+    bg:       'bg-[#12141a]',
+    surface:  'bg-[#1c1f28]',
+    surface2: 'bg-[#22262f]',
+    border:   'border-white/6',
+    text:     'text-white',
+    textMid:  'text-slate-400',
+    textDim:  'text-slate-600',
+    strip:    'bg-[#0d0f14]',
+    meter:    'bg-green-400',
+    accent:   'bg-blue-600',
+  } : {
+    bg:       'bg-[#e8eaef]',
+    surface:  'bg-[#d4d7df]',
+    surface2: 'bg-[#c8cbd4]',
+    border:   'border-black/10',
+    text:     'text-slate-900',
+    textMid:  'text-slate-600',
+    textDim:  'text-slate-400',
+    strip:    'bg-[#b8bbc4]',
+    meter:    'bg-green-500',
+    accent:   'bg-blue-600',
   };
 
-  useEffect(() => {
-    const handler = () => { if (info) setInfo(null); };
-    window.addEventListener('mousedown', handler);
-    return () => window.removeEventListener('mousedown', handler);
-  }, [info]);
-
-  // ─────────────────────────────────────────────
+  // ─────────────────────────────────────────
   // Render
-  // ─────────────────────────────────────────────
+  // ─────────────────────────────────────────
   return (
-    <div
-      className={`transition-all duration-500 flex flex-col h-auto lg:h-[780px] xl:h-[820px] min-h-[480px] overflow-hidden lg:overflow-visible relative rounded-[1rem] md:rounded-[2rem] shadow-2xl border-2 md:border-4 w-full max-w-full ${
-      skin === 'modern'
-        ? 'bg-[#f8fafc] border-slate-300 p-1.5 md:p-3 text-slate-900'
-        : 'bg-[#e2e8f0] border-slate-400 p-2 md:p-4 text-slate-900'
-    }`}>
+    <div className={`${T.bg} flex flex-col h-full min-h-screen rounded-2xl overflow-hidden border ${T.border} select-none`}>
 
-      {/* ── Top Bar ── */}
-      <div className={`flex items-center justify-between mb-1 md:mb-3 pb-1 border-b shrink-0 ${skin === 'modern' ? 'border-slate-200' : 'border-slate-300'}`}>
-        <div className="flex items-center gap-2 md:gap-4">
-          <div className={`${skin === 'modern' ? 'bg-white border border-blue-200 shadow-sm' : 'bg-slate-700 border border-slate-600 shadow-xl'} p-2 md:p-2.5 rounded-2xl flex items-center justify-center relative group overflow-hidden`}>
-            {skin === 'modern' && <div className="absolute inset-0 bg-blue-600/5 blur-xl group-hover:bg-blue-600/10 transition-colors" />}
-            <Logo size={24} />
+      {/* ════════════════════════════════════
+          TOP BAR — Row 1: Logo + Skin + Status
+      ════════════════════════════════════ */}
+      <div className={`${T.surface} border-b ${T.border} px-3 py-2 flex items-center gap-3 shrink-0`}>
+        {/* Logo */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center">
+            <Logo size={20} />
           </div>
-          <div>
-            <h2 className={`text-[10px] sm:text-xs md:text-xl font-black tracking-tighter uppercase italic leading-none ${skin === 'modern' ? 'text-slate-900' : 'text-slate-800'}`}>
-              SHEPHERD <span className={skin === 'modern' ? 'text-blue-600' : 'text-slate-500'}>CORE</span>
-            </h2>
-            <div className="flex items-center gap-1 mt-0.5">
-              <span className={`w-1 h-1 rounded-full animate-pulse ${skin === 'modern' ? 'bg-emerald-500' : 'bg-red-600'}`} />
-              <span className={`text-[6px] md:text-[9px] font-bold uppercase tracking-[0.2em] ${skin === 'modern' ? 'text-blue-600' : 'text-slate-600'}`}>
-                {skin === 'modern' ? 'PRECISION DSP ACTIVE' : 'VINTAGE SIGNAL PATH'}
-              </span>
+          <div className="hidden sm:block">
+            <div className={`text-[11px] font-black uppercase tracking-widest ${T.text}`}>
+              Sound <span className="text-blue-500">Shepherd</span>
             </div>
+            <div className={`text-[7px] font-bold uppercase tracking-[0.2em] ${T.textDim}`}>Training Console</div>
           </div>
         </div>
 
-        <div className={`flex gap-2 md:gap-3 items-center p-1 md:p-1.5 rounded-xl border relative ${skin === 'modern' ? 'bg-white border-slate-200 shadow-sm' : 'bg-white/40 border-black/10'}`}>
-          {/* Skin switcher */}
-          <div className={`flex p-1 rounded-lg border shadow-inner ${skin === 'modern' ? 'bg-slate-100 border-slate-200' : 'bg-slate-400 border-slate-500'}`}>
-            <button onClick={() => setSkin('modern')} className={`px-3 py-1.5 text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all rounded-md ${skin === 'modern' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>CORE-X</button>
-            <button onClick={() => setSkin('analog')} className={`px-3 py-1.5 text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all rounded-md ${skin === 'analog' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600'}`}>ANALOG-800</button>
+        <div className="flex-1" />
+
+        {/* Skin toggle */}
+        <div className={`flex rounded-lg overflow-hidden border ${T.border} shrink-0`}>
+          <button onClick={() => setSkin('dark')}
+            className={`px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all ${skin === 'dark' ? 'bg-blue-600 text-white' : `${T.surface2} ${T.textDim}`}`}>
+            Dark
+          </button>
+          <button onClick={() => setSkin('light')}
+            className={`px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all ${skin === 'light' ? 'bg-slate-700 text-white' : `${T.surface2} ${T.textDim}`}`}>
+            Light
+          </button>
+        </div>
+
+        {/* Audio Engine status */}
+        {!audioReady && (
+          <button onClick={initAudio}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-red-600 text-white rounded-lg text-[8px] font-black uppercase animate-pulse shrink-0">
+            <Power size={10} /> Engine Off
+          </button>
+        )}
+        {audioReady && (
+          <div className="flex items-center gap-1 shrink-0">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className={`text-[7px] font-bold uppercase ${T.textDim}`}>Live</span>
           </div>
+        )}
+      </div>
 
-          {/* Audio Engine offline indicator */}
-          {audioCtxState === 'suspended' && (
-            <button
-              onClick={() => { initWebAudio(); }}
-              className="animate-pulse px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 text-white text-[7px] sm:text-[8px] md:text-[10px] font-black uppercase rounded shadow-[0_0_20px_rgba(220,38,38,0.5)] flex items-center gap-1.5 border border-red-400"
-            >
-              <Power size={10} /> <span className="hidden xs:inline">Audio Engine:</span> Offline
-            </button>
-          )}
+      {/* ════════════════════════════════════
+          TOP BAR — Row 2: Transport + Media
+      ════════════════════════════════════ */}
+      <div className={`${T.surface2} border-b ${T.border} px-3 py-1.5 flex items-center gap-2 shrink-0 overflow-x-auto`}
+           style={{ scrollbarWidth: 'none' }}>
 
-          {/* Sound Check (test tone) */}
-          <button
-            onClick={toggleSoundCheck}
-            className={`p-1.5 sm:p-2 rounded-lg border transition-all flex items-center gap-2 ${testToneActive ? 'bg-green-600 border-green-400 text-white animate-bounce' : (skin === 'modern' ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white' : 'bg-slate-300 border-slate-400 text-slate-700')}`}
-            title="System Sound Check"
-          >
-            <Volume2 size={14} className={testToneActive ? 'animate-pulse' : ''} />
-            <span className="hidden sm:inline text-[8px] font-black uppercase tracking-tighter">Check</span>
+        {/* Play / Stop */}
+        <button onClick={togglePlay} disabled={isLoading}
+          className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-[9px] font-black uppercase transition-all ${
+            isLoading ? 'bg-slate-700 cursor-wait' :
+            isPlaying  ? 'bg-orange-600 hover:bg-orange-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
+          {isLoading ? <Activity size={13} className="animate-spin" /> :
+           isPlaying  ? <Square size={13} fill="white" />  : <Play size={13} fill="white" />}
+          <span className="hidden xs:inline">{isLoading ? 'Loading' : isPlaying ? 'Stop' : 'Play'}</span>
+        </button>
+
+        {/* Check (test tone) */}
+        <button onClick={toggleSoundCheck}
+          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase border transition-all ${
+            toneActive ? 'bg-green-600 border-green-400 text-white' :
+            `${T.surface} ${T.border} ${T.textMid} hover:text-white`}`}>
+          <Volume2 size={13} />
+          <span>Check</span>
+        </button>
+
+        {/* Mic */}
+        <button onClick={toggleMic}
+          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase border transition-all ${
+            micActive ? 'bg-red-600 border-red-400 text-white animate-pulse' :
+            `${T.surface} ${T.border} ${T.textMid} hover:text-white`}`}>
+          {micActive ? <MicOff size={13} /> : <Mic size={13} />}
+          <span className="hidden sm:inline">{micActive ? 'Mic On' : 'Mic'}</span>
+        </button>
+
+        {/* Upload */}
+        <label className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase border cursor-pointer transition-all ${T.surface} ${T.border} ${T.textMid} hover:text-white`}>
+          <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
+          <Music size={13} />
+          <span className="hidden sm:inline">Upload</span>
+        </label>
+
+        <div className={`h-5 w-px ${T.border} shrink-0 mx-1`} />
+
+        {/* Current track + playlist toggle */}
+        <div className="relative shrink-0">
+          <button onClick={() => setShowPlaylist(p => !p)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-left transition-all ${T.surface} ${T.border}`}>
+            <Music size={12} className={isPlaying ? 'text-blue-400' : T.textDim} />
+            <div>
+              <div className={`text-[8px] ${T.textDim} uppercase font-bold tracking-widest leading-none`}>Now Playing</div>
+              <div className={`text-[10px] font-black uppercase ${T.text} max-w-[140px] truncate`}>{currentSong.title}</div>
+            </div>
+            <ChevronDown size={11} className={`${T.textDim} transition-transform ${showPlaylist ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* File upload */}
-          <div className="flex gap-2 items-center px-1 md:px-2 border-x border-white/5 mx-1 md:mx-2">
-            <label className={`cursor-pointer group flex items-center justify-center p-1.5 md:p-2 rounded-lg border transition-all ${skin === 'modern' ? 'bg-slate-800 border-slate-700 hover:bg-blue-600 hover:border-blue-400' : 'bg-slate-300 border-slate-400 hover:bg-slate-400'}`}>
-              <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
-              <Music size={14} className={skin === 'modern' ? 'text-slate-400 group-hover:text-white' : 'text-slate-700'} />
-            </label>
-          </div>
+          {/* Playlist dropdown */}
+          <AnimatePresence>
+            {showPlaylist && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                transition={{ duration: 0.15 }}
+                className={`absolute top-full mt-1 left-0 w-80 ${skin === 'dark' ? 'bg-[#1c1f28]' : 'bg-white'} border ${T.border} rounded-xl shadow-2xl z-50 overflow-hidden`}>
 
-          {/* Transport */}
-          <div className="flex gap-2 items-center px-2 md:px-4 border-r border-white/5">
-            <button
-              onClick={togglePlay}
-              disabled={isLoading}
-              className={`p-2 rounded-lg text-white transition-all shadow-lg ${isLoading ? 'bg-slate-700 cursor-wait' : (isPlaying ? 'bg-orange-600 hover:bg-orange-500 shadow-orange-600/20' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20')}`}
-            >
-              {isLoading ? <Activity size={16} className="animate-spin" /> : (isPlaying ? <Square size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />)}
-            </button>
-
-            {/* Mic */}
-            <button
-              onClick={toggleMic}
-              title={micActive ? 'Mic On — Click to Stop' : 'Click to Activate Microphone'}
-              className={`p-2 rounded-lg text-white transition-all shadow-lg ${micActive ? 'bg-red-600 hover:bg-red-500 shadow-red-600/30 animate-pulse' : (skin === 'modern' ? 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700' : 'bg-slate-300 hover:bg-slate-400 text-slate-700 border border-slate-400')}`}
-            >
-              {micActive ? <MicOff size={16} /> : <Mic size={16} />}
-            </button>
-
-            <div className="hidden sm:block">
-              <div className="text-[8px] text-slate-500 uppercase font-black tracking-tighter">Transport</div>
-              <div className={`text-[10px] font-black uppercase italic ${micActive ? 'text-red-400 animate-pulse' : isLoading ? 'text-blue-400 animate-pulse' : (isPlaying ? 'text-green-500 animate-pulse' : 'text-slate-600')}`}>
-                {micActive ? 'Mic Live' : isLoading ? 'Loading' : (isPlaying ? 'Live' : 'Stop')}
-              </div>
-            </div>
-          </div>
-
-          {/* Playlist picker */}
-          <div className="relative">
-            <button
-              onClick={() => setShowPlaylist(!showPlaylist)}
-              className="flex gap-3 items-center px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl hover:bg-slate-800 transition-all group overflow-hidden relative shadow-inner"
-            >
-              <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Music size={14} className={`${isPlaying ? 'text-blue-500' : 'text-slate-500'} group-hover:scale-110 transition-transform`} />
-              <div className="text-left relative z-10">
-                <div className="text-[7px] text-slate-500 uppercase font-black tracking-widest leading-none mb-0.5">Media Source</div>
-                <div className="text-[10px] text-white font-black uppercase tracking-tight flex items-center gap-2">
-                  {currentSong ? currentSong.title : "No Track Selected"}
-                  <ChevronRight size={10} className={`text-slate-600 transition-transform ${showPlaylist ? 'rotate-90' : ''}`} />
+                {/* Header */}
+                <div className={`flex items-center justify-between px-3 py-2 border-b ${T.border}`}>
+                  <span className={`text-[9px] font-black uppercase tracking-widest ${T.textMid}`}>Playlist</span>
+                  <button onClick={() => { setShowAddInput(p => !p); setYtInputError(''); }}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md ${T.accent} text-white text-[8px] font-black uppercase`}>
+                    <Plus size={10} /> Add YouTube
+                  </button>
                 </div>
-              </div>
-            </button>
 
-            <AnimatePresence>
-              {showPlaylist && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute top-full mt-2 right-0 md:left-0 md:right-auto w-80 bg-[#1a1c23] border border-slate-700/50 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden backdrop-blur-xl"
-                >
-                  <div className="p-4 border-b border-slate-800 bg-black/40 flex items-center justify-between">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Training Tracks</h4>
-                    <Activity size={12} className={isPlaying ? 'text-blue-500' : 'text-slate-600'} />
-                  </div>
-                  {/* Song list */}
-                  <div className="p-1 max-h-60 overflow-y-auto custom-scrollbar">
-                    {songs.length === 0 && (
-                      <div className="py-8 text-center text-slate-600 text-[10px] font-bold uppercase tracking-widest">
-                        No tracks yet — upload an MP3 file below
+                {/* Add URL input */}
+                <AnimatePresence>
+                  {showAddInput && (
+                    <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
+                      className="overflow-hidden">
+                      <div className={`p-2.5 border-b ${T.border} space-y-1.5`}>
+                        <div className="flex gap-1.5">
+                          <input
+                            type="text" value={ytInputUrl} autoFocus
+                            onChange={e => { setYtInputUrl(e.target.value); setYtInputError(''); }}
+                            onKeyDown={e => e.key === 'Enter' && addYouTubeSong()}
+                            placeholder="Paste YouTube URL..."
+                            className={`flex-1 rounded-lg px-2.5 py-1.5 text-[10px] border outline-none focus:border-blue-500 min-w-0 ${
+                              skin === 'dark' ? 'bg-[#0d0f14] border-slate-700 text-white placeholder-slate-600'
+                                              : 'bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-400'}`} />
+                          <button onClick={addYouTubeSong} disabled={ytInputLoading || !ytInputUrl.trim()}
+                            className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg text-[9px] font-black uppercase">
+                            {ytInputLoading ? '…' : 'Add'}
+                          </button>
+                        </div>
+                        {ytInputError && <p className="text-[8px] text-red-400 font-bold">{ytInputError}</p>}
                       </div>
-                    )}
-                    {songs.map(song => (
-                      <div
-                        key={song.id}
-                        className={`flex items-center gap-2 rounded-xl mb-1 pr-2 transition-all group ${currentSong?.id === song.id ? 'bg-blue-600/10' : 'hover:bg-white/5'}`}
-                      >
-                        <button
-                          onClick={() => selectSong(song)}
-                          className="flex-1 p-3 text-left flex items-center gap-3 min-w-0"
-                        >
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${currentSong?.id === song.id ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-800 text-slate-600 group-hover:bg-slate-700'}`}>
-                            {currentSong?.id === song.id && isPlaying ? <Activity size={12} className="animate-pulse" /> : <Music size={12} />}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Song list */}
+                <div className="max-h-64 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                  {songs.length === 0 && (
+                    <div className={`py-8 text-center text-[10px] font-bold ${T.textDim}`}>
+                      No tracks — add a YouTube URL above
+                    </div>
+                  )}
+                  {songs.map(s => (
+                    <div key={s.id}
+                      className={`flex items-center gap-2 group px-2 py-2 transition-all border-b ${T.border} last:border-0 ${
+                        currentSong.id === s.id
+                          ? skin === 'dark' ? 'bg-blue-600/10' : 'bg-blue-50'
+                          : skin === 'dark' ? 'hover:bg-white/4' : 'hover:bg-slate-50'}`}>
+                      <button onClick={() => selectSong(s)} className="flex-1 flex items-center gap-2.5 min-w-0 text-left">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                          currentSong.id === s.id ? 'bg-blue-500 text-white' : `${skin === 'dark' ? 'bg-slate-800' : 'bg-slate-200'} ${T.textMid}`}`}>
+                          {currentSong.id === s.id && isPlaying
+                            ? <Activity size={12} className="animate-pulse" />
+                            : <Music size={12} />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className={`text-[10px] font-black uppercase truncate ${currentSong.id === s.id ? 'text-blue-400' : T.text}`}>{s.title}</div>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className={`text-[7px] font-bold uppercase px-1 rounded border ${
+                              s.type === 'youtube' ? 'text-red-400 border-red-800' : 'text-green-400 border-green-800'}`}>
+                              {s.type === 'youtube' ? 'YT' : 'MP3'}
+                            </span>
+                            <span className={`text-[7px] font-bold truncate ${T.textDim}`}>{s.artist}</span>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className={`text-[10px] font-black uppercase tracking-tight truncate ${currentSong?.id === song.id ? 'text-blue-400' : 'text-slate-300'}`}>{song.title}</div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              {song.type === 'youtube' && (
-                                <span className="text-[7px] text-red-400 font-bold uppercase border border-red-800 rounded px-1 shrink-0">YT</span>
-                              )}
-                              {song.type === 'file' && (
-                                <span className="text-[7px] text-green-400 font-bold uppercase border border-green-800 rounded px-1 shrink-0">MP3</span>
-                              )}
-                              <div className="text-[7px] text-slate-500 font-bold uppercase truncate">{song.artist || ''}</div>
-                            </div>
-                          </div>
+                        </div>
+                      </button>
+                      <button onClick={() => deleteSong(s.id)}
+                        className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600/20 hover:text-red-400 ${T.textDim}`}>
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className={`px-3 py-2 border-t ${T.border}`}>
+                  <p className={`text-[7px] font-bold uppercase tracking-widest ${T.textDim} text-center`}>
+                    YT = video only &nbsp;·&nbsp; Upload MP3 for full console control
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Master meter (compact, top bar) */}
+        <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
+          <span className={`text-[7px] font-black uppercase ${T.textDim} hidden sm:block shrink-0`}>Master</span>
+          <div className="flex gap-0.5 items-end h-5 shrink-0">
+            {[0, 1].map(i => (
+              <div key={i} className={`w-1.5 h-full rounded-sm ${skin === 'dark' ? 'bg-slate-800' : 'bg-slate-300'} relative overflow-hidden`}>
+                <motion.div animate={{ height: `${masterMeter * (i === 0 ? 1 : 0.92)}%` }}
+                  transition={{ duration: 0.08 }}
+                  className={`absolute bottom-0 w-full ${masterMeter > 85 ? 'bg-red-500' : masterMeter > 65 ? 'bg-yellow-400' : T.meter}`} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ════════════════════════════════════
+          MAIN BODY
+      ════════════════════════════════════ */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+
+        {/* ── STAGE MONITOR (always visible at top on mobile) ── */}
+        <div className={`${T.surface} border-b ${T.border} shrink-0`}>
+          <div className={`aspect-video max-h-40 sm:max-h-52 md:max-h-64 relative overflow-hidden`}>
+            {currentSong.type === 'youtube' ? (
+              <>
+                <iframe key={currentSong.id}
+                  src={getYouTubeEmbedUrl(currentSong.url)}
+                  className="w-full h-full" allow="autoplay; encrypted-media" allowFullScreen
+                  title={currentSong.title} />
+                <div className="absolute bottom-0 inset-x-0 bg-black/60 py-1 text-center pointer-events-none">
+                  <span className="text-[8px] text-blue-300 font-bold uppercase tracking-widest">
+                    ▶ Press Play inside the video
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className={`w-full h-full flex flex-col items-center justify-center gap-2 ${skin === 'dark' ? 'bg-slate-900' : 'bg-slate-200'}`}>
+                <Waves size={28} className={isPlaying ? 'text-blue-500 animate-pulse' : 'text-blue-500/20'} />
+                <span className={`text-[8px] font-black uppercase tracking-widest ${T.textDim}`}>
+                  {isPlaying ? 'Audio Playing' : 'Audio Only'}
+                </span>
+                {isPlaying && (
+                  <div className="flex gap-0.5 items-end h-5">
+                    {[...Array(14)].map((_, i) => (
+                      <motion.div key={i}
+                        animate={{ height: [`${15 + Math.random() * 85}%`, `${15 + Math.random() * 85}%`] }}
+                        transition={{ duration: 0.25 + Math.random() * 0.3, repeat: Infinity, repeatType: 'reverse' }}
+                        className="w-1 bg-blue-500/50 rounded-full" style={{ height: '15%' }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── MIXER STRIP + CHANNEL DETAIL ── */}
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+
+          {/* ─── LEFT: Fader Strips (horizontal scroll) ─── */}
+          <div className="lg:flex-1 flex flex-col overflow-hidden">
+
+            {/* Scrollable strip area */}
+            <div
+              ref={stripRef}
+              className="flex-1 overflow-x-auto overflow-y-hidden"
+              style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin',
+                       scrollbarColor: skin === 'dark' ? '#334155 transparent' : '#94a3b8 transparent' }}>
+              <div className={`flex h-full gap-0 min-w-max p-2 ${T.bg}`} style={{ minHeight: 260 }}>
+
+                {/* Channel Strips */}
+                {channels.map(ch => {
+                  const active = ch.id === selectedId;
+                  return (
+                    <div key={ch.id}
+                      className={`flex flex-col items-center w-[72px] sm:w-[84px] h-full rounded-xl transition-all mx-0.5 ${
+                        active ? `${skin === 'dark' ? 'bg-slate-800/70' : 'bg-white/60'} ring-1 ring-white/10` : ''}`}>
+
+                      {/* Channel label (tap to select) */}
+                      <button onClick={() => setSelectedId(ch.id)}
+                        className={`w-full h-10 sm:h-12 rounded-xl flex flex-col items-center justify-center mb-1 border-2 transition-all ${
+                          active ? 'border-white/60 scale-105' : 'border-transparent opacity-70 hover:opacity-90'}`}
+                        style={{ backgroundColor: ch.color }}>
+                        <span className="text-[7px] font-black text-white/50 uppercase">{ch.id}</span>
+                        <span className="text-[9px] sm:text-[11px] font-black text-white truncate px-1 w-full text-center leading-tight">
+                          {ch.name}
+                        </span>
+                      </button>
+
+                      {/* VU meter */}
+                      <div className={`w-3 sm:w-4 rounded-md overflow-hidden mb-1 ${skin === 'dark' ? 'bg-black' : 'bg-slate-800'}`}
+                           style={{ height: 80 }}>
+                        <div className="w-full h-full flex flex-col-reverse p-0.5">
+                          <motion.div
+                            animate={{ height: ch.muted ? '0%' : `${masterMeter * (active ? 1 : 0.5 + Math.random() * 0.3)}%` }}
+                            transition={{ duration: 0.09 }}
+                            className={`w-full rounded-sm ${ch.muted ? 'bg-transparent' : 'bg-green-400'}`}
+                            style={{ boxShadow: ch.muted ? 'none' : '0 0 6px rgba(74,222,128,0.5)' }} />
+                        </div>
+                      </div>
+
+                      {/* Solo / Mute */}
+                      <div className="flex flex-col gap-1 w-full px-1 mb-1">
+                        <button onClick={() => updateCh(ch.id, { solo: !ch.solo })}
+                          className={`w-full py-0.5 rounded-md text-[8px] font-black uppercase transition-all border ${
+                            ch.solo ? 'bg-yellow-500 border-yellow-300 text-black'
+                                    : `${skin === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-600' : 'bg-slate-300 border-slate-400 text-slate-600'}`}`}>
+                          Solo
                         </button>
-                        {/* Delete button */}
-                        <button
-                          onClick={() => deleteSong(song.id)}
-                          title="Remove from playlist"
-                          className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-slate-700 hover:bg-red-600/20 hover:text-red-405 transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <Trash2 size={11} />
+                        <button onClick={() => updateCh(ch.id, { muted: !ch.muted })}
+                          className={`w-full py-0.5 rounded-md text-[8px] font-black uppercase transition-all border ${
+                            ch.muted ? 'bg-red-600 border-red-400 text-white'
+                                     : `${skin === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-600' : 'bg-slate-300 border-slate-400 text-slate-600'}`}`}>
+                          Mute
                         </button>
+                      </div>
+
+                      {/* Fader */}
+                      <div className={`relative flex-1 w-7 sm:w-8 rounded-lg border mb-1 overflow-visible ${
+                        skin === 'dark' ? 'bg-[#0a0c10] border-slate-800/60' : 'bg-slate-700 border-slate-800'}`}
+                           style={{ minHeight: 100 }}>
+                        {/* tick marks */}
+                        <div className="absolute inset-y-3 inset-x-0 flex flex-col justify-between pointer-events-none px-1">
+                          {[...Array(9)].map((_, i) => (
+                            <div key={i} className={`h-px w-full ${skin === 'dark' ? 'bg-slate-700/40' : 'bg-slate-500/40'}`} />
+                          ))}
+                        </div>
+                        {/* invisible range input */}
+                        <input type="range" min="0" max="100" value={ch.fader}
+                          onChange={e => updateCh(ch.id, { fader: +e.target.value })}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any} />
+                        {/* fader cap */}
+                        <motion.div
+                          animate={{ bottom: `${ch.fader}%` }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                          className="absolute left-0 right-0 h-8 sm:h-10 rounded-md pointer-events-none z-0 flex flex-col items-center justify-center"
+                          style={{ transform: 'translateY(50%)', background: active ? '#e2e8f0' : '#94a3b8',
+                                   boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3)' }}>
+                          <div className="w-4 h-0.5 rounded-full bg-red-500" style={{ boxShadow: '0 0 6px rgba(239,68,68,0.8)' }} />
+                        </motion.div>
+                      </div>
+
+                      {/* Fader value */}
+                      <span className={`text-[7px] font-mono font-bold ${T.textDim}`}>{ch.fader}</span>
+                    </div>
+                  );
+                })}
+
+                {/* ─ Master Strip ─ */}
+                <div className={`flex flex-col items-center w-[72px] sm:w-[84px] h-full ml-1 pl-2 border-l ${T.border}`}>
+                  <div className="w-full h-10 sm:h-12 rounded-xl bg-red-700 flex items-center justify-center mb-1 border-2 border-red-500">
+                    <span className="text-[9px] font-black text-white uppercase tracking-widest">Main</span>
+                  </div>
+
+                  {/* Dual master meter */}
+                  <div className="flex gap-0.5 mb-1" style={{ height: 80 }}>
+                    {[1, 0.92].map((scale, i) => (
+                      <div key={i} className={`w-2.5 sm:w-3 rounded-md overflow-hidden ${skin === 'dark' ? 'bg-black' : 'bg-slate-800'}`}>
+                        <div className="w-full h-full flex flex-col-reverse p-0.5">
+                          <motion.div animate={{ height: `${masterMeter * scale}%` }}
+                            transition={{ duration: 0.08 }}
+                            className={`w-full rounded-sm ${masterMeter > 85 ? 'bg-red-500' : masterMeter > 65 ? 'bg-yellow-400' : 'bg-green-400'}`} />
+                        </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Add YouTube URL input */}
-                  <div className="p-3 border-t border-slate-800 bg-black/40 space-y-2">
-                    <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Add YouTube Track</p>
-                    <div className="flex gap-1.5">
-                      <input
-                        type="text"
-                        value={ytInputUrl}
-                        onChange={e => { setYtInputUrl(e.target.value); setYtInputError(''); }}
-                        onKeyDown={e => e.key === 'Enter' && addYouTubeSong()}
-                        placeholder="Paste YouTube URL here..."
-                        className="flex-1 bg-slate-900 border border-slate-705 rounded-lg px-2 py-1.5 text-[10px] text-white placeholder-slate-650 focus:outline-none focus:border-blue-500 min-w-0"
-                      />
-                      <button
-                        onClick={addYouTubeSong}
-                        disabled={ytInputLoading || !ytInputUrl.trim()}
-                        className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-705 disabled:text-slate-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
-                      >
-                        {ytInputLoading ? '...' : 'Add'}
-                      </button>
+                  <div className="flex-1 relative w-7 sm:w-8 rounded-lg border overflow-visible bg-[#0a0c10] border-red-900/40"
+                       style={{ minHeight: 100 }}>
+                    <div className="absolute inset-y-3 inset-x-0 flex flex-col justify-between pointer-events-none px-1">
+                      {[...Array(9)].map((_, i) => <div key={i} className="h-px w-full bg-red-900/30" />)}
                     </div>
-                    {ytInputError && (
-                      <p className="text-[8px] text-red-100 font-bold">{ytInputError}</p>
-                    )}
-                    <p className="text-[7px] text-slate-600 font-medium uppercase tracking-[0.15em]">
-                      YT = video display only &nbsp;|&nbsp; Upload MP3 for full console control
-                    </p>
+                    <input type="range" min="0" max="100" value={masterFader}
+                      onChange={e => setMasterFader(+e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any} />
+                    <motion.div
+                      animate={{ bottom: `${masterFader}%` }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                      className="absolute left-0 right-0 h-8 sm:h-10 rounded-md pointer-events-none z-0 flex items-center justify-center"
+                      style={{ transform: 'translateY(50%)', background: '#dc2626',
+                               boxShadow: '0 2px 8px rgba(0,0,0,0.5), 0 0 12px rgba(220,38,38,0.3), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
+                      <div className="w-4 h-0.5 rounded-full bg-white" style={{ boxShadow: '0 0 8px white' }} />
+                    </motion.div>
+                  </div>
+                  <span className={`text-[7px] font-mono font-bold ${T.textDim}`}>{masterFader}</span>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          {/* ─── RIGHT: Channel Detail Panel (collapsible) ─── */}
+          <div className={`lg:w-72 xl:w-80 border-t lg:border-t-0 lg:border-l ${T.border} flex flex-col shrink-0 transition-all`}>
+
+            {/* Panel header (tap to collapse on mobile) */}
+            <button
+              onClick={() => setPanelOpen(p => !p)}
+              className={`flex items-center justify-between px-3 py-2 border-b ${T.border} ${T.surface} w-full`}>
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-md flex items-center justify-center text-white text-[10px] font-black"
+                     style={{ backgroundColor: selectedCh.color }}>
+                  {selectedCh.id}
+                </div>
+                <span className={`text-[10px] font-black uppercase ${T.text}`}>{selectedCh.name}</span>
+                <span className={`text-[7px] font-bold uppercase ${T.textDim}`}>— Channel Detail</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={e => { e.stopPropagation(); updateCh(selectedId, { ...INITIAL_CHANNELS.find(c => c.id === selectedId)! }); }}
+                  className={`px-2 py-0.5 rounded border text-[7px] font-black uppercase ${T.surface2} ${T.border} ${T.textMid} hover:text-white`}>
+                  Reset
+                </button>
+                <ChevronDown size={14} className={`${T.textMid} transition-transform ${panelOpen ? '' : '-rotate-90'}`} />
+              </div>
+            </button>
+
+            {/* Panel content */}
+            <AnimatePresence initial={false}>
+              {panelOpen && (
+                <motion.div
+                  key="panel"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden flex-1">
+                  <div className="p-3 space-y-4 overflow-y-auto h-full" style={{ scrollbarWidth: 'thin' }}>
+
+                    {/* ── Gain ── */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${T.textMid}`}>Gain</span>
+                        <button onClick={() => setInfo(HELP.gain)}
+                          className={`w-4 h-4 rounded-full flex items-center justify-center ${T.surface2} ${T.textDim} hover:text-blue-400`}>
+                          <HelpCircle size={9} />
+                        </button>
+                        <span className={`ml-auto text-[9px] font-mono font-bold text-blue-400`}>{selectedCh.gain}</span>
+                      </div>
+                      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: skin === 'dark' ? '#1e2330' : '#cbd5e1' }}>
+                        <div className="absolute left-0 top-0 h-full rounded-full bg-blue-500 transition-all"
+                             style={{ width: `${selectedCh.gain}%` }} />
+                        <input type="range" min="0" max="100" value={selectedCh.gain}
+                          onChange={e => updateCh(selectedId, { gain: +e.target.value })}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                      </div>
+                    </div>
+
+                    {/* ── HPF + Pan ── */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* HPF toggle */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1">
+                          <span className={`text-[8px] font-black uppercase tracking-widest ${T.textMid}`}>HPF</span>
+                          <button onClick={() => setInfo(HELP.hpf)}
+                            className={`w-4 h-4 rounded-full flex items-center justify-center ${T.surface2} ${T.textDim} hover:text-blue-400`}>
+                            <HelpCircle size={9} />
+                          </button>
+                        </div>
+                        <button onClick={() => updateCh(selectedId, { hpf: !selectedCh.hpf })}
+                          className={`w-full py-2 rounded-xl text-[9px] font-black uppercase border transition-all ${
+                            selectedCh.hpf ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/20'
+                                           : `${T.surface2} ${T.border} ${T.textDim}`}`}>
+                          {selectedCh.hpf ? 'ON' : 'OFF'}
+                        </button>
+                      </div>
+
+                      {/* Pan */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1">
+                          <span className={`text-[8px] font-black uppercase tracking-widest ${T.textMid}`}>Pan</span>
+                          <button onClick={() => setInfo(HELP.pan)}
+                            className={`w-4 h-4 rounded-full flex items-center justify-center ${T.surface2} ${T.textDim} hover:text-blue-400`}>
+                            <HelpCircle size={9} />
+                          </button>
+                          <span className={`ml-auto text-[9px] font-mono font-bold text-blue-400`}>
+                            {selectedCh.pan === 0 ? 'C' : `${Math.abs(selectedCh.pan)}${selectedCh.pan < 0 ? 'L' : 'R'}`}
+                          </span>
+                        </div>
+                        <div className="relative h-2 rounded-full overflow-hidden" style={{ background: skin === 'dark' ? '#1e2330' : '#cbd5e1' }}>
+                          <div className="absolute top-0 h-full rounded-full bg-blue-500 transition-all"
+                               style={{
+                                 left: selectedCh.pan < 0 ? `${50 + selectedCh.pan / 2}%` : '50%',
+                                 width: `${Math.abs(selectedCh.pan) / 2}%`,
+                               }} />
+                          <div className="absolute left-1/2 top-0 h-full w-px bg-white/20" />
+                          <input type="range" min="-100" max="100" value={selectedCh.pan}
+                            onChange={e => updateCh(selectedId, { pan: +e.target.value })}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── EQ ── */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${T.textMid}`}>Equalizer</span>
+                        <button onClick={() => setInfo(HELP.eq)}
+                          className={`w-4 h-4 rounded-full flex items-center justify-center ${T.surface2} ${T.textDim} hover:text-blue-400`}>
+                          <HelpCircle size={9} />
+                        </button>
+                      </div>
+
+                      {/* EQ mini curve */}
+                      <div className={`h-8 rounded-lg overflow-hidden border ${T.border}`}
+                           style={{ background: skin === 'dark' ? '#0a0c10' : '#1e293b' }}>
+                        <svg width="100%" height="100%" viewBox="0 0 200 32" preserveAspectRatio="none">
+                          <polyline
+                            fill="none" stroke="#3b82f6" strokeWidth="1.5" opacity="0.7"
+                            points={`0,${16 - selectedCh.eq.low * 1.2} 50,${16 - selectedCh.eq.midLow * 1.2} 100,16 150,${16 - selectedCh.eq.midHigh * 1.2} 200,${16 - selectedCh.eq.high * 1.2}`} />
+                          <line x1="0" y1="16" x2="200" y2="16" stroke="#334155" strokeWidth="0.5" />
+                        </svg>
+                      </div>
+
+                      {/* 4 band sliders */}
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {(['high', 'midHigh', 'midLow', 'low'] as const).map(band => (
+                          <div key={band} className="flex flex-col items-center gap-1">
+                            <span className={`text-[7px] font-black uppercase ${T.textDim}`}>
+                              {band === 'high' ? 'Hi' : band === 'midHigh' ? 'mHi' : band === 'midLow' ? 'mLo' : 'Lo'}
+                            </span>
+                            <div className="relative flex items-center justify-center" style={{ height: 72, width: 10 }}>
+                              <div className={`absolute w-0.5 h-full rounded-full ${skin === 'dark' ? 'bg-slate-800' : 'bg-slate-400'}`} />
+                              <input type="range" min="-12" max="12" value={selectedCh.eq[band]}
+                                onChange={e => updateCh(selectedId, { eq: { ...selectedCh.eq, [band]: +e.target.value } })}
+                                className="absolute opacity-0 cursor-pointer z-10"
+                                style={{ width: 72, height: 10, writingMode: 'vertical-lr', direction: 'rtl' } as any} />
+                              <motion.div
+                                animate={{ top: `${((12 - selectedCh.eq[band]) / 24) * 100}%` }}
+                                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                                className="absolute w-4 h-3 rounded pointer-events-none"
+                                style={{ transform: 'translateY(-50%)',
+                                         background: selectedCh.eq[band] !== 0 ? '#3b82f6' : skin === 'dark' ? '#475569' : '#94a3b8',
+                                         boxShadow: selectedCh.eq[band] !== 0 ? '0 0 6px rgba(59,130,246,0.5)' : 'none' }} />
+                            </div>
+                            <span className={`text-[7px] font-mono font-bold ${selectedCh.eq[band] !== 0 ? 'text-blue-400' : T.textDim}`}>
+                              {selectedCh.eq[band] > 0 ? '+' : ''}{selectedCh.eq[band]}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* ── Gate / Comp (placeholder) ── */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['GATE', 'COMP'] as const).map(label => (
+                        <div key={label} className={`rounded-xl p-2.5 border ${T.surface2} ${T.border}`}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className={`text-[8px] font-black ${T.textDim}`}>{label}</span>
+                            <CircleDot size={8} className={T.textDim} />
+                          </div>
+                          <div className={`h-1 rounded-full ${skin === 'dark' ? 'bg-slate-900' : 'bg-slate-400'}`}>
+                            <div className={`h-full rounded-full w-[${label === 'COMP' ? '40' : '0'}%] ${label === 'COMP' ? 'bg-orange-500/40' : ''}`} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Next channel button */}
+                    <button onClick={() => setSelectedId(selectedId < 4 ? selectedId + 1 : 1)}
+                      className={`w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-blue-600 hover:bg-blue-500 text-white`}>
+                      Next Channel <ChevronRight size={12} />
+                    </button>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+
         </div>
       </div>
 
-      {/* ── Main Layout ── */}
-      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 w-full max-w-full min-w-0 h-auto lg:h-full overflow-visible">
-
-        {/* Left: Console Desk Container */}
-        <div className="flex-1 flex flex-col gap-3 min-w-0 w-full max-w-full order-1 lg:order-1">
-          
-          {/* ── DSP Meter Bridge & Monitor Rack (Live Screen + Selected Channel info) ── */}
-          <div className={`grid grid-cols-1 md:grid-cols-12 gap-3 p-2.5 rounded-2xl border shrink-0 ${
-            skin === 'modern' ? 'bg-[#12141a] border-white/5 shadow-md shadow-black/40' : 'bg-slate-300 border-slate-400 shadow-sm'
-          }`}>
-            
-            {/* Left Column: Live Screen (Stage Monitor) - Takes 7/12 cols on desktop */}
-            <div className="md:col-span-7 flex flex-col gap-1 min-w-0">
-              <div className="flex items-center justify-between px-1 mb-0.5">
-                <span className="text-[7.5px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest italic leading-none flex items-center gap-1.5">
-                  <Activity size={10} className="text-blue-500 animate-pulse" /> Live Worship Scene
-                </span>
-                <span className={`text-[6.5px] md:text-[8px] font-bold uppercase ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>Interactive Screen</span>
-              </div>
-
-              <div className={`aspect-video rounded-xl border overflow-hidden relative max-h-[140px] md:max-h-[160px] ${skin === 'modern' ? 'bg-black border-white/10' : 'bg-slate-900 border-black/20'}`}>
-                {currentSong ? (
-                  currentSong.type === 'youtube' ? (
-                    <div className="w-full h-full relative">
-                      <iframe
-                        key={currentSong.id}
-                        src={getYouTubeEmbedUrl(currentSong.url)}
-                        className="w-full h-full"
-                        allow="autoplay; encrypted-media"
-                        allowFullScreen
-                        title={currentSong.title}
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/85 text-center py-1 pointer-events-none">
-                        <span className="text-[7.5px] text-blue-300 font-bold uppercase tracking-widest">
-                          ▶ Press Play inside video
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/60 p-2 text-center gap-1">
-                      <Waves size={16} className={isPlaying ? 'text-blue-500 animate-pulse' : 'text-blue-500/20'} />
-                      <span className="text-[7px] md:text-[8.5px] font-black text-slate-455 uppercase tracking-[0.15em] truncate max-w-full px-2">
-                        {isPlaying ? `Playing: ${currentSong.title}` : 'Audio Idle'}
-                      </span>
-                      {isPlaying && (
-                        <div className="flex gap-0.5 items-end h-4">
-                          {[...Array(12)].map((_, i) => (
-                            <motion.div
-                              key={i}
-                              animate={{ height: [`${15 + Math.random() * 85}%`, `${15 + Math.random() * 85}%`] }}
-                              transition={{ duration: 0.2 + Math.random() * 0.4, repeat: Infinity, repeatType: 'reverse' }}
-                              className="w-0.5 sm:w-1 bg-blue-500/60 rounded-full"
-                              style={{ height: '30%' }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-slate-950/60 text-center gap-1">
-                    <Music size={14} className="animate-pulse text-blue-500/30" />
-                    <span className="text-[7.5px] font-black text-white uppercase">No Practice Track</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right Column: Selected Channel Indicator - Takes 5/12 cols on desktop */}
-            <div className="md:col-span-5 flex flex-col gap-1 min-w-0 justify-between">
-              <div className="flex items-center gap-2 px-1 mb-0.5">
-                <span className={`w-3.5 h-3.5 rounded flex items-center justify-center text-white font-black text-[8px] leading-none ${selectedChannel.color}`}>{selectedChannel.id}</span>
-                <div>
-                  <h4 className="text-[8.5px] md:text-[10px] font-black uppercase text-blue-400 tracking-wide">Selected: {selectedChannel.name}</h4>
-                  <p className="text-[6px] md:text-[7px] text-slate-500 font-bold uppercase leading-none">Tuning active console strip</p>
-                </div>
-              </div>
-
-              <div className={`p-2 rounded-xl border flex-1 flex flex-col justify-between text-[8.5px] md:text-[9.5px] leading-normal ${skin === 'modern' ? 'bg-slate-950/40 border-white/5 text-slate-400' : 'bg-white border-black/10 shadow-sm text-slate-700'}`}>
-                <p className="line-clamp-2 md:line-clamp-none">
-                  Adjust <strong className="text-white">Trim, Reverb, Pan, fine-swept EQ</strong>, and <strong className="text-white">COMP</strong> directly on the mixer.
-                </p>
-                <div className="grid grid-cols-2 gap-1.5 pt-1.5 mt-auto">
-                  <div className="bg-slate-900/60 p-1 rounded border border-white/5 text-center">
-                    <span className="block text-[5px] md:text-[6px] text-slate-500 uppercase font-black">HPF state</span>
-                    <span className={`text-[7px] md:text-[8px] font-bold ${selectedChannel.hpf ? 'text-green-400' : 'text-slate-500'}`}>{selectedChannel.hpf ? 'ON (80Hz)' : 'OFF'}</span>
-                  </div>
-                  <div className="bg-slate-900/60 p-1 rounded border border-white/5 text-center">
-                    <span className="block text-[5px] md:text-[6px] text-slate-500 uppercase font-black">Swept Mid</span>
-                    <span className="text-[7px] md:text-[8px] font-black text-blue-400">{selectedChannel.eq.midFreq}Hz</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-          
-          {/* Desk Navigation Controller Ribbon (Symmetrical 8-Column Grid) */}
-          <div className={`p-3 rounded-2xl flex flex-col md:flex-row gap-3 items-center justify-between border w-full ${
-            skin === 'modern' 
-              ? 'bg-white border-slate-200 shadow-sm' 
-              : 'bg-[#cbd5e1] border-slate-400 shadow-sm'
-          }`}>
-            {/* Left Portion: Status (Centered on mobile/tablet, left-aligned on desktop) */}
-            <div className="flex items-center justify-center md:justify-start gap-2.5 w-full md:w-auto px-1">
-              <div className="flex items-center gap-1.5 pl-0.5">
-                <span className={`w-1.5 h-3.5 rounded-full ${skin === 'modern' ? 'bg-blue-600 animate-pulse' : 'bg-slate-600'}`} />
-                <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest ${skin === 'modern' ? 'text-slate-800' : 'text-slate-700'}`}>
-                  Strip Navigator
-                </span>
-              </div>
-              
-              {/* Active strip status label */}
-              <div className="flex items-center gap-1 shrink-0">
-                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                  focusedStripId === 13 ? 'bg-blue-100 text-blue-700 border border-blue-200 animate-pulse' :
-                  focusedStripId === 14 ? 'bg-red-100 text-red-700 border border-red-200 animate-pulse' :
-                  'bg-amber-100 text-amber-800 border border-amber-200'
-                }`}>
-                  {focusedStripId >= 1 && focusedStripId <= 4 && (channels.find(c => c.id === focusedStripId)?.name || `CH ${focusedStripId}`)}
-                  {focusedStripId === 13 && "Reverb FX"}
-                  {focusedStripId === 14 && "Stereo Out"}
-                </span>
-              </div>
-            </div>
-
-            {/* Middle Portion: Scrollable channel buttons ribbon */}
-            <div className="w-full md:flex-1 flex justify-center overflow-x-auto py-0.5 custom-scrollbar">
-              <div className="flex items-center gap-1 shrink-0">
-                {/* Prev Column Button */}
-                <button
-                  onClick={handlePrevStrip}
-                  className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-0.5 border transition-all active:scale-95 shrink-0 select-none ${
-                    skin === 'modern'
-                      ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                      : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-200'
-                  }`}
-                  title="Previous Column"
-                >
-                  <ChevronLeft size={10} strokeWidth={3} />
-                  <span className="hidden min-[360px]:inline">PREV</span>
-                </button>
-
-                {/* Channels 1-4 */}
-                {channels.map((ch) => {
-                  const isFocused = focusedStripId === ch.id;
-                  return (
-                    <button
-                      key={ch.id}
-                      onClick={() => handleStripSelect(ch.id)}
-                      className={`px-2.5 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
-                        isFocused
-                          ? skin === 'modern'
-                            ? 'bg-blue-600 border-blue-600 text-white shadow-sm scale-[1.03]'
-                            : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]'
-                          : skin === 'modern'
-                          ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                          : 'bg-slate-200 border-slate-300 text-slate-650 hover:bg-white/40 shadow-inner'
-                      }`}
-                    >
-                      CH{ch.id}
-                    </button>
-                  );
-                })}
-
-                {/* FX Return (Reverb Return) */}
-                <button
-                  onClick={() => handleStripSelect(13)}
-                  className={`px-2.5 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
-                    focusedStripId === 13
-                      ? skin === 'modern'
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm scale-[1.03]'
-                        : 'bg-white border-blue-600 text-blue-600 font-bold shadow-sm scale-[1.03]'
-                      : skin === 'modern'
-                      ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      : 'bg-slate-200 border-slate-300 text-slate-650 hover:bg-white/40 shadow-inner'
-                  }`}
-                >
-                  FX
-                </button>
-
-                {/* Stereo Master */}
-                <button
-                  onClick={() => handleStripSelect(14)}
-                  className={`px-2.5 py-1.5 rounded text-[9px] font-black uppercase transition-all border text-center shrink-0 select-none ${
-                    focusedStripId === 14
-                      ? skin === 'modern'
-                        ? 'bg-rose-600 border-rose-600 text-white shadow-sm scale-[1.03]'
-                        : 'bg-rose-100 border-red-500 text-red-650 font-bold shadow-sm scale-[1.03]'
-                      : skin === 'modern'
-                      ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      : 'bg-slate-200 border-slate-300 text-slate-650 hover:bg-white/40 shadow-inner'
-                  }`}
-                >
-                  MAIN
-                </button>
-
-                {/* Next Column Button */}
-                <button
-                  onClick={handleNextStrip}
-                  className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-0.5 border transition-all active:scale-95 shrink-0 select-none ${
-                    skin === 'modern'
-                      ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                      : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-200'
-                  }`}
-                  title="Next Column"
-                >
-                  <span className="hidden min-[360px]:inline">NEXT</span>
-                  <ChevronRight size={10} strokeWidth={3} />
-                </button>
-              </div>
-            </div>
-
-            {/* Right Portion: Auto-Fit Toggle & Focusing Strip Indicator (Responsive placement) */}
-            <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto px-1 border-t md:border-t-0 pt-2 md:pt-0 border-white/5">
-              {/* Auto-Fit Toggle Switch */}
-              <button
-                onClick={() => setAutoFit(!autoFit)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all ${
-                  autoFit
-                    ? (skin === 'modern' ? 'bg-blue-950/40 border-blue-500/30 text-blue-400 font-bold' : 'bg-blue-50 border-blue-300 text-blue-600 font-bold')
-                    : (skin === 'modern' ? 'bg-slate-950/60 border-white/5 text-slate-500 hover:text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-500 hover:bg-slate-200')
-                }`}
-                title="Toggle Auto-Fit Layout on mobile/tablets"
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${autoFit ? 'bg-green-400 animate-pulse' : 'bg-slate-600'}`} />
-                <span className="text-[8.5px] font-black uppercase tracking-wider">AUTO-FIT</span>
-              </button>
-
-              <div className="flex items-center gap-1.5">
-                <span className={`text-[8px] md:text-[9px] font-mono font-bold leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>
-                  FOCUS:
-                </span>
-                <span className="text-[9.5px] font-black uppercase text-blue-400">
-                  CH {focusedStripId}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Left: Scrollable Console Desk */}
-          <div 
-            ref={scrollContainerRef} 
-            onPointerDown={handleDeskPointerDown}
-            onPointerMove={handleDeskPointerMove}
-            onPointerUp={handleDeskPointerUp}
-            onPointerCancel={handleDeskPointerUp}
-            onScroll={handleDeskScroll}
-            className={`flex-1 w-full max-w-full overflow-x-auto pb-2 custom-scrollbar lg:max-w-none min-w-0 content-start ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-            style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-          >
-            <div className={`flex gap-1.5 md:gap-3 p-1.5 md:p-3 rounded-3xl h-full relative ${
-              autoFit ? 'w-full justify-between min-w-[880px] lg:min-w-0 lg:w-auto lg:justify-start' : 'min-w-max'
-            } ${skin === 'modern' ? 'bg-slate-100/70 border border-slate-200' : 'bg-slate-300 shadow-inner border border-slate-400'}`}>
-            
-            {channels.map(ch => {
-              const isSelected = selectedId === ch.id;
-              return (
-                <div
-                  key={ch.id}
-                  ref={el => { channelRefs.current[ch.id] = el; }}
-                  className={`flex flex-col gap-1.5 md:gap-2 transition-all rounded-2xl cursor-pointer select-none ${
-                    autoFit && !isSelected
-                      ? 'p-1.5 md:p-3 w-auto min-w-[70px] flex-1 max-w-[105px] sm:max-w-none'
-                      : 'p-2.5 md:p-4'
-                  } ${
-                    isSelected 
-                      ? (skin === 'modern' ? 'bg-white ring-2 ring-blue-600 shadow-xl scale-[1.01] border-blue-200' : 'bg-white/95 shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
-                      : (skin === 'modern' ? 'bg-white/90 hover:bg-white border border-slate-200/80 shadow-sm' : 'bg-slate-200/90 hover:bg-white/60 border border-slate-400')
-                  }`}
-                  onClick={(e) => {
-                    if (blockNextClickRef.current) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      return;
-                    }
-                    handleStripSelect(ch.id);
-                  }}
-                >
-                  {/* Channel Header */}
-                  <div className={`w-full py-1 rounded-md text-[10px] md:text-[11px] font-black uppercase text-center tracking-widest ${isSelected ? 'bg-blue-600 text-white animate-pulse' : (skin === 'modern' ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-400 text-slate-700')}`}>
-                    CH {ch.id}
-                  </div>
-
-                  {/* 3 Column Sub-strips Grid */}
-                  <div className="flex gap-3 md:gap-4 flex-1">
-                    
-                    {/* ── Column 1: Input & Routing & Fader ── */}
-                    <div className={`flex flex-col items-center gap-2 w-[58px] md:w-[68px] p-1.5 md:p-2 rounded-xl border self-stretch justify-between ${skin === 'modern' ? 'bg-slate-50/80 border-slate-200/80 shadow-inner' : 'bg-black/15 border-white/5'}`}>
-                      <div className={`text-[6px] md:text-[8px] font-black uppercase tracking-wider mb-0.5 ${skin === 'modern' ? 'text-slate-700' : 'text-slate-300'}`}>Strip</div>
-                      
-                      {/* Knob Group */}
-                      <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
-                        {/* Trim (Input Level/Gain) */}
-                        <Knob
-                          label="Trim"
-                          value={ch.gain}
-                          min={0}
-                          max={100}
-                          onChange={(v) => updateChannel(ch.id, { gain: v })}
-                        />
-
-                        {/* Reverb send level */}
-                        <Knob
-                          label="Reverb"
-                          value={ch.reverb}
-                          min={0}
-                          max={100}
-                          unit="%"
-                          onChange={(v) => updateChannel(ch.id, { reverb: v })}
-                        />
-
-                        {/* Panoramic positioning */}
-                        <Knob
-                          label="L Pan R"
-                          value={ch.pan}
-                          min={-100}
-                          max={100}
-                          onChange={(v) => updateChannel(ch.id, { pan: v })}
-                        />
-
-                        {/* Mute & Solo Buttons Stack (Integrated inside Knob Group vertically: Solo on top, Mute on bottom) */}
-                        <div className="w-full flex flex-col gap-1 mt-1">
-                          {/* Solo Button */}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { solo: !ch.solo }); }}
-                            className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
-                              ch.solo 
-                                ? 'bg-amber-500 border-amber-300 text-black shadow-md' 
-                                : (skin === 'modern' ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-400')
-                            }`}
-                          >
-                            solo
-                          </button>
-
-                          {/* Mute Button (Analog tactile look) */}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { muted: !ch.muted }); }}
-                            className={`w-full py-1 rounded font-black text-[8px] md:text-[9px] uppercase border transition-all ${
-                              ch.muted 
-                                ? 'bg-blue-600 border-blue-400 text-white shadow-md' 
-                                : (skin === 'modern' ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300 border-slate-400 text-slate-700 hover:bg-slate-400')
-                            }`}
-                          >
-                            mute
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* LED Meter + Vertical Fader Container */}
-                      <div className="flex gap-1 h-26 md:h-32 w-full mt-2">
-                        {/* Compact Channel Meter */}
-                        <div className="h-full w-2 md:w-3 bg-[#0a0a0d] border border-slate-800/80 rounded-[4px] flex flex-col-reverse p-0.5 overflow-hidden gap-[1px]">
-                          {[...Array(12)].map((_, i) => {
-                            const level = (i / 11) * 100;
-                            const val = channelMeters[ch.id] || 0;
-                            const isActive = val >= level && val > 0;
-                            let dotColor = 'bg-green-500/10';
-                            if (isActive) {
-                              if (level > 85) dotColor = 'bg-red-500 shadow-[0_0_6px_#f87171]';
-                              else if (level > 65) dotColor = 'bg-yellow-405 shadow-[0_0_5px_#facc15]';
-                              else dotColor = 'bg-green-400 shadow-[0_0_4px_#4ade80]';
-                            } else {
-                              if (level > 85) dotColor = 'bg-red-950/10';
-                              else if (level > 65) dotColor = 'bg-yellow-950/10';
-                              else dotColor = 'bg-green-950/10';
-                            }
-                            return (
-                              <div key={i} className={`h-[6%] w-full rounded-[1px] transition-all duration-75 ${dotColor}`} />
-                            );
-                          })}
-                        </div>
-
-                        {/* Interactive vertical Fader track layout */}
-                        <div className={`flex-1 relative rounded-lg border flex items-center justify-center p-0.5 shadow-inner ${skin === 'modern' ? 'bg-[#08080b] border-slate-800/80' : 'bg-slate-800 border-slate-900'}`}>
-                          {/* Hash ticks on track */}
-                          <div className="absolute inset-y-0 flex flex-col justify-between py-2 pointer-events-none opacity-10">
-                            {[...Array(9)].map((_, i) => <div key={i} className="h-[1px] w-3 bg-white" />)}
-                          </div>
-                          
-                          <input
-                            type="range" min="0" max="100" value={ch.fader}
-                            onChange={(e) => updateChannel(ch.id, { fader: parseInt(e.target.value) })}
-                            onClick={(e) => e.stopPropagation()}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                            style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'none' } as any}
-                          />
-
-                          {/* Blue caps indicating level */}
-                          <motion.div
-                            animate={{ bottom: `${ch.fader}%` }}
-                            className="absolute w-full h-5 md:h-7 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 border-y-2 border-[#1e40af] rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
-                            style={{ transform: 'translateY(50%)' }}
-                          >
-                            <div className="w-[12%] h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                          </motion.div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* ── Column 2: Parametric Swept-Mid Equalizer ── */}
-                    <div className={`flex flex-col items-center gap-2 w-[58px] md:w-[68px] p-1.5 md:p-2.5 rounded-xl border self-stretch justify-between ${
-                      autoFit
-                        ? (isSelected ? 'flex' : 'hidden lg:flex')
-                        : 'flex'
-                    } ${skin === 'modern' ? 'bg-slate-50/80 border-slate-200/80 shadow-inner' : 'bg-black/15 border-white/5'}`}>
-                      <div className={`text-[6px] md:text-[8px] font-black uppercase tracking-wider mb-0.5 ${skin === 'modern' ? 'text-slate-700' : 'text-slate-300'}`}>EQ</div>
-                      
-                      {/* Knob Group */}
-                      <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
-                        {/* High Shelf EQ Gain */}
-                        <Knob
-                          label="High"
-                          value={ch.eq.high}
-                          min={-12}
-                          max={12}
-                          unit="dB"
-                          onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, high: v } })}
-                        />
-
-                        {/* Mid Crossover sweepable center frequency */}
-                        <Knob
-                          label="Mid Freq"
-                          value={ch.eq.midFreq}
-                          min={250}
-                          max={5000}
-                          unit="Hz"
-                          onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, midFreq: Math.round(v) } })}
-                        />
-
-                        {/* Mid Peaking EQ Gain */}
-                        <Knob
-                          label="Mid gain"
-                          value={ch.eq.mid}
-                          min={-12}
-                          max={12}
-                          unit="dB"
-                          onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, mid: v } })}
-                        />
-
-                        {/* Low Shelf EQ Gain */}
-                        <Knob
-                          label="Low"
-                          value={ch.eq.low}
-                          min={-12}
-                          max={12}
-                          unit="dB"
-                          onChange={(v) => updateChannel(ch.id, { eq: { ...ch.eq, low: v } })}
-                        />
-                      </div>
-
-                      {/* High Pass Filter rumble killer */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); updateChannel(ch.id, { hpf: !ch.hpf }); }}
-                        className={`w-full py-1 rounded text-[7px] md:text-[8px] font-black uppercase border transition-all mt-auto ${
-                          ch.hpf 
-                            ? 'bg-blue-600 border-blue-400 text-white shadow-md' 
-                            : (skin === 'modern' ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300 border-[#475569]/30 text-slate-600')
-                        }`}
-                      >
-                        HPF
-                      </button>
-                    </div>
-
-                    {/* ── Column 3: Dynamics Compressor ── */}
-                    <div className={`flex flex-col items-center gap-2 w-[58px] md:w-[68px] p-1.5 md:p-2.5 rounded-xl border self-stretch justify-between ${
-                      autoFit
-                        ? (isSelected ? 'flex' : 'hidden lg:flex')
-                        : 'flex'
-                    } ${skin === 'modern' ? 'bg-slate-50/80 border-slate-200/80 shadow-inner' : 'bg-black/15 border-white/5'}`}>
-                      <div className={`text-[6px] md:text-[8px] font-black uppercase tracking-wider mb-0.5 ${skin === 'modern' ? 'text-slate-700' : 'text-slate-300'}`}>COMP</div>
-                      
-                      {/* Knob Group */}
-                      <div className="flex flex-col gap-2 md:gap-2.5 items-center w-full">
-                        {/* Comp Attack Speed */}
-                        <Knob
-                          label="Attack"
-                          value={ch.comp.attack}
-                          min={1}
-                          max={100}
-                          unit="ms"
-                          onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, attack: v } })}
-                        />
-
-                        {/* Comp Release Delay */}
-                        <Knob
-                          label="Release"
-                          value={ch.comp.release}
-                          min={10}
-                          max={1000}
-                          unit="ms"
-                          onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, release: v } })}
-                        />
-
-                        {/* Comp Threshold trigger point */}
-                        <Knob
-                          label="Thresh"
-                          value={ch.comp.threshold}
-                          min={-60}
-                          max={0}
-                          unit="dB"
-                          onChange={(v) => updateChannel(ch.id, { comp: { ...ch.comp, threshold: v } })}
-                        />
-
-                        {/* Perfect spacer to align with the 4th Knob of EQ */}
-                        <div className="h-[34px] md:h-[44px] w-full flex items-center justify-center opacity-0 pointer-events-none" />
-                      </div>
-
-                      {/* Feedback Dynamics LEDs representing current GR */}
-                      <div className="w-full flex flex-col items-center gap-1 mt-auto">
-                        <span className="text-[5px] md:text-[7px] font-bold text-slate-600 uppercase tracking-tighter">GR Level</span>
-                        <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-900/80 relative">
-                          <motion.div 
-                            animate={{ 
-                              width: isPlaying && ch.fader > 30 && Math.abs((ch.fader + ch.id) % 4) > 1 
-                                ? `${Math.floor(25 + Math.random() * 45)}%` 
-                                : '0%' 
-                            }}
-                            className="h-full bg-orange-500" 
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Aesthetic Tape Scribble at Bottom of Channel strip */}
-                  <div className="mt-2 w-full px-2 py-2 bg-[#fef08a] border border-[#fef3c7] rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center select-none">
-                    <span className="text-[11px] md:text-[13px] font-sans italic font-black text-slate-800 tracking-tight leading-none text-center truncate">
-                      {ch.name}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* SPACER */}
-            <div className="w-[1px] self-stretch bg-slate-700/20 dark:bg-white/5 my-2 animate-pulse" />
-
-             {/* Yamaha SPX Reverb Return Strip */}
-            <div 
-              ref={el => { channelRefs.current[13] = el; }}
-              onClick={(e) => {
-                if (blockNextClickRef.current) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  return;
-                }
-                handleStripSelect(13);
-              }}
-              className={`flex flex-col items-center gap-2 rounded-2xl border cursor-pointer select-none transition-all ${
-                autoFit
-                  ? 'w-auto min-w-[65px] flex-1 max-w-[85px] sm:max-w-none p-1 sm:p-1.5'
-                  : 'w-[68px] md:w-[80px] p-1.5'
-              } ${
-                focusedStripId === 13 
-                  ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
-                  : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/85 border border-white/5' : 'bg-slate-200 border border-slate-400')
-              }`}
-            >
-              <div className="w-full text-center text-[7px] md:text-[8px] font-black uppercase tracking-wider text-blue-400 bg-blue-950/40 py-1 rounded leading-none">
-                SPX Return
-              </div>
-              
-              <div className="flex flex-col gap-5 py-4 items-center flex-1 justify-start">
-                <Knob 
-                  label="Reverb Size" 
-                  value={reverbSize} 
-                  min={0.5} 
-                  max={4.0} 
-                  unit="s" 
-                  onChange={(v) => { 
-                    setReverbSize(v);
-                    const ctx = audioCtxRef.current;
-                    if (ctx && convolverNodeRef.current) {
-                      convolverNodeRef.current.buffer = createReverbImpulseResponse(ctx, v, 1.5);
-                    }
-                  }} 
-                />
-                
-                <Knob 
-                  label="Eff Return" 
-                  value={reverbMix} 
-                  min={0} 
-                  max={100} 
-                  unit="%" 
-                  onChange={(v) => setReverbMix(v)} 
-                />
-              </div>
-
-              {/* Tape for Return */}
-              <div className="mt-auto w-full px-1 py-1.5 bg-[#cbd5e1] border border-slate-300 rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center select-none">
-                <span className="text-[9px] md:text-[10px] font-sans font-black text-slate-700 tracking-tight leading-none text-center truncate">
-                  FX RET
-                </span>
-              </div>
-            </div>
-
-            <div className="w-[1px] self-stretch bg-slate-700/20 dark:bg-white/5 my-2" />
-
-            {/* Stereo Master Out Strip */}
-            <div 
-              ref={el => { channelRefs.current[14] = el; }}
-              onClick={(e) => {
-                if (blockNextClickRef.current) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  return;
-                }
-                handleStripSelect(14);
-              }}
-              className={`border-l border-white/5 pl-1 ml-0.5 flex flex-col items-center gap-2 rounded-2xl self-stretch cursor-pointer select-none transition-all ${
-                autoFit
-                  ? 'w-auto min-w-[70px] flex-1 max-w-[95px] sm:max-w-none p-1 sm:p-1.5'
-                  : 'w-[74px] md:w-[92px] p-1.5'
-              } ${
-                focusedStripId === 14 
-                  ? (skin === 'modern' ? 'bg-slate-800/80 ring-2 ring-blue-500/80 shadow-2xl scale-[1.01]' : 'bg-white shadow-xl ring-2 ring-blue-600 scale-[1.01]') 
-                  : (skin === 'modern' ? 'bg-slate-900/50 hover:bg-slate-900/85 border border-white/5' : 'bg-slate-200 border border-slate-400')
-              }`}
-            >
-              
-              {user && (
-                <div className="flex gap-1 w-full">
-                  <button 
-                    onClick={saveMix}
-                    className="flex-1 py-1 bg-slate-900 border border-slate-700 rounded-lg hover:border-blue-500 transition-all group"
-                    title="Save Mix Preset"
-                  >
-                    <Save size={11} className="text-slate-500 group-hover:text-blue-500 mx-auto" />
-                  </button>
-                </div>
-              )}
-
-              <button
-                onClick={(e) => { initWebAudio(); showInfo(e, 'Master Output', 'Main stereo output terminal fader.'); }}
-                className="w-full h-8 md:h-10 bg-red-600 rounded-lg flex flex-col items-center justify-center border border-red-500 shadow-lg shadow-red-600/10 hover:bg-red-600 transition-colors"
-              >
-                <span className="text-[8px] md:text-[9px] font-black text-white uppercase italic leading-none">MAIN</span>
-              </button>
-
-              {/* Stereo Output dual VUs */}
-              <div className="flex gap-1 h-26 md:h-34 w-7 md:w-9 bg-black rounded p-0.5 overflow-hidden border border-slate-800">
-                <div className="flex-1 bg-green-500/5 rounded-sm relative overflow-hidden flex flex-col-reverse gap-[1px]">
-                  {[...Array(12)].map((_, i) => {
-                    const level = (i / 11) * 100;
-                    const isActive = masterMeter >= level && masterMeter > 0;
-                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-400' : 'bg-green-400') : 'bg-slate-950/60';
-                    return <div key={i} className={`h-[7%] w-full rounded-[1px] ${dotColor}`} />;
-                  })}
-                </div>
-                <div className="flex-1 bg-green-500/5 rounded-sm relative overflow-hidden flex flex-col-reverse gap-[1px]">
-                  {[...Array(12)].map((_, i) => {
-                    const level = (i / 11) * 100;
-                    const isActive = masterMeter * 0.95 >= level && masterMeter > 0;
-                    let dotColor = isActive ? (level > 85 ? 'bg-red-500' : level > 65 ? 'bg-yellow-400' : 'bg-green-400') : 'bg-slate-950/60';
-                    return <div key={i} className={`h-[7%] w-full rounded-[1px] ${dotColor}`} />;
-                  })}
-                </div>
-              </div>
-
-              {/* Master Stereo Fader cap */}
-              <div className={`relative h-28 md:h-38 w-8 md:w-10 rounded-xl border flex items-center justify-center p-0.5 shadow-inner mt-auto ${skin === 'modern' ? 'bg-[#08080b] border-slate-800' : 'bg-slate-800'}`}>
-                <div className="absolute inset-y-0 inset-x-0.5 flex flex-col justify-between py-3 pointer-events-none opacity-20">
-                  {[...Array(9)].map((_, i) => <div key={i} className="h-[1px] w-full bg-slate-400" />)}
-                </div>
-                  <input
-                   type="range" min="0" max="100" value={masterFader}
-                   onChange={(e) => setMasterFader(parseInt(e.target.value))}
-                   onClick={(e) => e.stopPropagation()}
-                   onPointerDown={(e) => e.stopPropagation()}
-                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                   style={{ writingMode: 'vertical-lr', direction: 'rtl', touchAction: 'none' } as any}
-                 />
-                <motion.div
-                  animate={{ bottom: `${masterFader}%` }}
-                  className="absolute w-full h-5 md:h-7 bg-gradient-to-r from-red-200 via-red-100 to-red-205 border-y-2 border-red-750 rounded shadow-lg z-10 pointer-events-none flex flex-col items-center justify-center"
-                  style={{ transform: 'translateY(50%)' }}
-                >
-                  <div className="w-[12%] h-full bg-red-650 shadow-[0_0_8px_#dc2626]" />
-                </motion.div>
-              </div>
-
-              <div className="w-full px-1 py-1.5 bg-[#fecaca] border border-red-200 rounded shadow-[1px_2px_4px_rgba(0,0,0,0.15)] flex items-center justify-center select-none">
-                <span className="text-[9px] md:text-[10px] font-sans font-black text-red-800 tracking-tight leading-none text-center truncate">
-                  STEREO
-                </span>
-              </div>
-            </div>
-
-          </div>
-          </div>
-
-          {/* Symmetrical Scroll progress tracking indicator (visible on touch devices & desktops as visual navigation cue) */}
-          {!autoFit && (
-            <div className="w-full flex items-center justify-center gap-2.5 px-6 py-1.5 shrink-0 select-none">
-              <span className={`text-[8px] font-mono font-bold uppercase tracking-widest ${skin === 'modern' ? 'text-slate-500' : 'text-slate-600'}`}>CONSOLE PAN</span>
-              <div className={`flex-1 max-w-[160px] h-1.5 rounded-full relative overflow-hidden ${skin === 'modern' ? 'bg-white/5 border border-white/5' : 'bg-slate-300'}`}>
-                <div 
-                  className={`h-full rounded-full transition-all duration-75 ${skin === 'modern' ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-blue-600'}`}
-                  style={{ 
-                    width: '35%', 
-                    left: `${scrollProgress * 65}%`,
-                    position: 'absolute'
-                  }}
-                />
-              </div>
-              <span className="text-[8px] font-mono text-slate-500">{Math.round(scrollProgress * 100)}%</span>
-            </div>
-          )}
-        </div>
-
-        {/* Right Panel: Console Monitor & Training Handbook */}
-        <div className={`lg:w-[320px] xl:w-[350px] shrink-0 rounded-[1.5rem] border overflow-hidden flex flex-col min-w-full lg:min-w-0 order-2 lg:order-2 mt-4 lg:mt-0 transition-colors ${skin === 'modern' ? 'bg-slate-800/40 border-white/5' : 'bg-slate-200 border-black/10'}`}>
-          <div className={`p-2 md:p-3 border-b flex items-center justify-between shrink-0 ${skin === 'modern' ? 'bg-slate-900 border-white/5' : 'bg-slate-400 border-black/10'}`}>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-blue-600/20 flex items-center justify-center text-blue-400 shadow-inner">
-                <HelpCircle size={13} />
-              </div>
-              <div>
-                <h3 className={`text-[10px] md:text-sm font-bold uppercase italic ${skin === 'modern' ? 'text-white' : 'text-slate-900'}`}>ENGINEER HANDBOOK</h3>
-                <p className={`text-[7px] md:text-[10px] font-black tracking-widest leading-none ${skin === 'modern' ? 'text-slate-500' : 'text-slate-700'}`}>TRAINING SUITE</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-3 md:p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
-
-            {/* ── SOUND ENGINEER HANDBOOK (Interactive help panel) ── */}
-            <div className={`p-3 rounded-xl border ${skin === 'modern' ? 'bg-slate-900/50 border-white/5' : 'bg-slate-300 border-black/10'}`}>
-              <h4 className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1.5 italic">SOUND TRAINING METHOD</h4>
-              
-              <div className="space-y-3">
-                {/* Topic 1: Gain Structure */}
-                <div className="space-y-1">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">1. Gain (Trim) structure</span>
-                  <p className="text-[9px] text-slate-400 leading-snug">Set the top **Trim** knob so that loud vocal snaps bounce the channel meter primarily in the green and yellow zones. Don't hit red peak zone to avoid harsh clipping distortion.</p>
-                </div>
-
-                {/* Topic 2: High Pass Filter */}
-                <div className="space-y-1">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">2. Low-frequency Mud Cut (HPF)</span>
-                  <p className="text-[9px] text-slate-400 leading-snug">Press **HPF** to dynamically clean low end rumble on Vocals & Guitars. Keep HPF off on Bass Instrument to retain natural punchy power.</p>
-                </div>
-
-                {/* Topic 3: 3-Band Swept EQ */}
-                <div className="space-y-1">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">3. Parametric Vocal Tuning</span>
-                  <p className="text-[9px] text-slate-400 leading-snug">Adjust **Mid Crossover Freq** (e.g., 2000Hz for speech presence, 500Hz for guitar scoop) and apply safe cut/boost gains to sculpt a beautifully transparent frequency room mix.</p>
-                </div>
-
-                {/* Topic 4: Dynamic Control */}
-                <div className="space-y-1">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-blue-300">4. Dynamic Compression (COMP)</span>
-                  <p className="text-[9px] text-slate-400 leading-snug">Turn down **Thresh** and dial in custom **Attack & Release** times to cleanly compress highly dynamic singers and level out inconsistent worship transients.</p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      {/* ── Tooltip ── */}
+      {/* ── Info Tooltip Modal ── */}
       <AnimatePresence>
         {info && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 10 }}
-            className="fixed z-[9999] pointer-events-none"
-            style={{ left: `${info.x}px`, top: `${info.y}px`, transform: 'translate(-50%, -100%)' }}
-          >
-            <div className="bg-[#1e293b] text-white p-3 rounded-lg shadow-2xl border border-white/20 pointer-events-auto w-[220px]">
-              <div className="flex items-start gap-2">
-                <div className="bg-blue-600 p-1 rounded-md shrink-0"><HelpCircle size={14} className="text-white" /></div>
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+            onPointerDown={() => setInfo(null)}>
+            <motion.div
+              initial={{ y: 40, scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: 40, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              className="bg-[#1e293b] border border-white/20 rounded-2xl p-4 max-w-xs w-full shadow-2xl"
+              onPointerDown={e => e.stopPropagation()}>
+              <div className="flex items-start gap-3">
+                <div className="bg-blue-600 rounded-lg p-2 shrink-0"><HelpCircle size={16} className="text-white" /></div>
                 <div className="flex-1">
-                  <h3 className="font-black text-[10px] uppercase tracking-wider mb-1 text-blue-400">{info.title}</h3>
-                  <p className="text-slate-200 text-[10px] leading-snug font-medium">{info.desc}</p>
+                  <h3 className="text-[11px] font-black uppercase text-blue-400 tracking-wider mb-1.5">{info.title}</h3>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">{info.desc}</p>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setInfo(null); }} className="p-0.5 hover:bg-white/10 rounded-md transition-all self-start">
-                  <Square size={8} className="text-slate-500" />
+                <button onClick={() => setInfo(null)} className="text-slate-500 hover:text-white transition-colors shrink-0">
+                  <X size={16} />
                 </button>
               </div>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[#1e293b]" />
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar { height: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
-      `}</style>
     </div>
   );
 };
